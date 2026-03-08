@@ -54,12 +54,24 @@ export function UsersPage() {
   const [createName, setCreateName] = React.useState("");
   const [createGradeId, setCreateGradeId] = React.useState<string | null>(null);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
       grades.map((g) => [g.id, g.name ?? g.code ?? g.id] as const),
     );
   }, [grades]);
+
+  const filteredProfiles = React.useMemo(() => {
+    if (!searchQuery.trim()) return profiles;
+    const query = searchQuery.toLowerCase();
+    return profiles.filter((p) => {
+      const nameMatch = (p.name ?? "").toLowerCase().includes(query);
+      const idMatch = (p.academic_id ?? "").toLowerCase().includes(query);
+      const emailMatch = (p.id ?? "").toLowerCase().includes(query); // Just fallback
+      return nameMatch || idMatch || emailMatch;
+    });
+  }, [profiles, searchQuery]);
 
   const load = React.useCallback(async () => {
     setError(null);
@@ -237,10 +249,10 @@ export function UsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Users & Roles</div>
-        <div className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Users & Roles</h1>
+        <p className="text-muted-foreground mt-2">
           Update a user’s role and grade assignment.
-        </div>
+        </p>
       </div>
 
       {error ? (
@@ -336,8 +348,16 @@ export function UsersPage() {
       </Card>
 
       <Card>
-        <CardHeader className="border-b">
+        <CardHeader className="border-b flex flex-col gap-4 items-start sm:flex-row sm:items-center sm:justify-between py-5">
           <CardTitle>All users</CardTitle>
+          <div className="w-full sm:w-72">
+            <Input
+              placeholder="Search by name or Academic ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-background"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -355,7 +375,14 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map((p) => {
+                  {filteredProfiles.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        No users match your search.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {filteredProfiles.map((p) => {
                   const d = draftFor(p);
                   const displayName = p.name ?? p.id;
                   const status = (p.account_status ?? "active").toLowerCase();

@@ -105,10 +105,10 @@ export function ServantsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Servants</div>
-        <div className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Servants</h1>
+        <p className="text-muted-foreground mt-2">
           Review servant accounts and activate/deactivate access.
-        </div>
+        </p>
       </div>
 
       {error ? <ErrorBanner title="Request failed" message={error} /> : null}

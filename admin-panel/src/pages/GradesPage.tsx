@@ -127,10 +127,10 @@ export function GradesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Grades</div>
-        <div className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Grades</h1>
+        <p className="text-muted-foreground mt-2">
           Create and update grades.
-        </div>
+        </p>
       </div>
 
       {error ? (

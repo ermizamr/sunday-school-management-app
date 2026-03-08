@@ -21,12 +21,6 @@ type GradeRow = {
   sort_order?: number | null;
 };
 
-type SubjectRow = {
-  id: string;
-  name?: string | null;
-  grade_id?: string | null;
-};
-
 type BoundDraft = {
   lower: string;
   upper: string;
@@ -35,13 +29,9 @@ type BoundDraft = {
 export function PromotionsPage() {
   const [years, setYears] = React.useState<AcademicYearRow[]>([]);
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
-  const [subjects, setSubjects] = React.useState<SubjectRow[]>([]);
   const [selectedYearId, setSelectedYearId] = React.useState<string | null>(null);
   const [selectedGradeId, setSelectedGradeId] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
-
-  const [usePrerequisite, setUsePrerequisite] = React.useState(false);
-  const [prerequisiteSubjectId, setPrerequisiteSubjectId] = React.useState<string | null>(null);
 
   const [minimumOverallAverage, setMinimumOverallAverage] = React.useState("70");
   const [minimumSubjectGrade, setMinimumSubjectGrade] = React.useState("60");
@@ -79,11 +69,10 @@ export function PromotionsPage() {
     setError(null);
     setIsLoading(true);
 
-    const [{ data: yearsData, error: yearsError }, { data: gradesData, error: gradesError }, { data: subjectsData, error: subjectsError }] =
+    const [{ data: yearsData, error: yearsError }, { data: gradesData, error: gradesError }] =
       await Promise.all([
         supabase.from("academic_years").select("*").order("created_at", { ascending: false }),
         supabase.from("grades").select("*").order("sort_order", { ascending: true }).order("name", { ascending: true }),
-        supabase.from("subjects").select("id, name, grade_id").order("name", { ascending: true }),
       ]);
 
     if (yearsError) {
@@ -98,13 +87,6 @@ export function PromotionsPage() {
       setGrades([]);
     } else {
       setGrades((gradesData ?? []) as GradeRow[]);
-    }
-
-    if (subjectsError) {
-      setError(subjectsError.message);
-      setSubjects([]);
-    } else {
-      setSubjects((subjectsData ?? []) as SubjectRow[]);
     }
 
     setIsLoading(false);
@@ -229,18 +211,10 @@ export function PromotionsPage() {
     }
   }
 
-  const subjectsForSelectedGrade = React.useMemo(() => {
-    if (!selectedGradeId) return subjects;
-    return subjects.filter((s) => !s.grade_id || s.grade_id === selectedGradeId);
-  }, [selectedGradeId, subjects]);
-
   function buildPromotionNotes(): string | null {
     const trimmed = notes.trim();
     const config = {
-      prerequisite: {
-        enabled: usePrerequisite,
-        subject_id: usePrerequisite ? prerequisiteSubjectId : null,
-      },
+      promotion_basis: "average_of_two_semester_averages",
       minimum_thresholds: {
         minimum_overall_average: minimumOverallAverage.trim() || null,
         minimum_subject_grade: minimumSubjectGrade.trim() || null,
@@ -297,10 +271,10 @@ export function PromotionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Promotions</div>
-        <div className="text-sm text-muted-foreground">
-          Run grade promotions for a given academic year.
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Promotions</h1>
+        <p className="text-muted-foreground mt-2">
+          Run grade promotions for a given academic year based on the average of semester 1 and semester 2.
+        </p>
       </div>
 
       {error ? <ErrorBanner title="Request failed" message={error} /> : null}
@@ -310,33 +284,8 @@ export function PromotionsPage() {
           <CardTitle>Promotion criteria</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-3 grid gap-2">
-            <Label>Prerequisite subject</Label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={usePrerequisite}
-                onChange={(e) => setUsePrerequisite(e.target.checked)}
-                disabled={isLoading}
-              />
-              This promotion uses a prerequisite subject
-            </label>
-            <select
-              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              value={prerequisiteSubjectId ?? ""}
-              onChange={(e) => setPrerequisiteSubjectId(e.target.value || null)}
-              disabled={isLoading || !usePrerequisite}
-            >
-              <option value="">—</option>
-              {subjectsForSelectedGrade.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name ?? s.id}
-                </option>
-              ))}
-            </select>
-            <div className="text-xs text-muted-foreground">
-              If enabled, a student may need to add the prerequisite subject next class; otherwise the overall subjects average is used.
-            </div>
+          <div className="md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages, and course prerequisites are enforced from the Subjects page.
           </div>
 
           <div className="grid gap-2">

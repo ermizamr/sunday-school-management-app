@@ -14,6 +14,7 @@ import { SubjectsPage } from "./pages/SubjectsPage";
 import { PromotionsPage } from "./pages/PromotionsPage";
 import { AnnouncementsPage } from "./pages/AnnouncementsPage";
 import { ServantsPage } from "./pages/ServantsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 
 const router = createBrowserRouter([
   { path: "/sign-in", element: <SignInPage /> },
@@ -23,9 +24,10 @@ const router = createBrowserRouter([
       {
         element: <AdminLayout />,
         children: [
-          { index: true, element: <Navigate to="/admin/academic-year" replace /> },
+          { index: true, element: <Navigate to="/admin/dashboard" replace /> },
 
           // Admin routes
+          { path: "/admin/dashboard", element: <DashboardPage /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/servants", element: <ServantsPage /> },
           { path: "/admin/academic-year", element: <AcademicYearsPage /> },

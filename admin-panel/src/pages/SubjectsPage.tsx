@@ -36,6 +36,12 @@ type GradeRow = {
   code?: string | null;
 };
 
+type SubjectPrerequisiteRow = {
+  subject_id: string;
+  prerequisite_subject_id: string;
+  minimum_score?: number | null;
+};
+
 type Draft = {
   name: string;
   grade_id: string | null;
@@ -55,7 +61,11 @@ function toNumberOrNull(value: string): number | null {
 export function SubjectsPage() {
   const [subjects, setSubjects] = React.useState<SubjectRow[]>([]);
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
+  const [prerequisites, setPrerequisites] = React.useState<SubjectPrerequisiteRow[]>([]);
   const [drafts, setDrafts] = React.useState<Record<string, Draft>>({});
+  const [prerequisiteDrafts, setPrerequisiteDrafts] = React.useState<
+    Record<string, { prerequisite_subject_id: string | null; minimum_score: string }>
+  >({});
 
   const [filterGradeId, setFilterGradeId] = React.useState<string | null>(null);
 
@@ -86,10 +96,17 @@ export function SubjectsPage() {
     setError(null);
     setIsLoading(true);
 
-    const [{ data: gradesData, error: gradesError }, { data: subjectsData, error: subjectsError }] =
+    const [
+      { data: gradesData, error: gradesError },
+      { data: subjectsData, error: subjectsError },
+      { data: prereqData, error: prereqError },
+    ] =
       await Promise.all([
         supabase.from("grades").select("*").order("name"),
         supabase.from("subjects").select("*").order("name"),
+        supabase
+          .from("subject_prerequisites")
+          .select("subject_id, prerequisite_subject_id, minimum_score"),
       ]);
 
     if (gradesError) {
@@ -106,7 +123,15 @@ export function SubjectsPage() {
       setSubjects((subjectsData ?? []) as SubjectRow[]);
     }
 
+    if (prereqError) {
+      setError(prereqError.message);
+      setPrerequisites([]);
+    } else {
+      setPrerequisites((prereqData ?? []) as SubjectPrerequisiteRow[]);
+    }
+
     setDrafts({});
+    setPrerequisiteDrafts({});
     setIsLoading(false);
   }, []);
 
@@ -125,6 +150,22 @@ export function SubjectsPage() {
             : String(s.passing_grade),
         weight: s.weight === null || s.weight === undefined ? "" : String(s.weight),
         active: s.active ?? true,
+      }
+    );
+  }
+
+  function prerequisiteDraftFor(subjectId: string): {
+    prerequisite_subject_id: string | null;
+    minimum_score: string;
+  } {
+    const current = prerequisites.find((p) => p.subject_id === subjectId) ?? null;
+    return (
+      prerequisiteDrafts[subjectId] ?? {
+        prerequisite_subject_id: current?.prerequisite_subject_id ?? null,
+        minimum_score:
+          current?.minimum_score === null || current?.minimum_score === undefined
+            ? ""
+            : String(current.minimum_score),
       }
     );
   }
@@ -166,25 +207,56 @@ export function SubjectsPage() {
 
   async function saveSubject(id: string) {
     const d = drafts[id];
-    if (!d) return;
+    const p = prerequisiteDraftFor(id);
+    if (!d && !prerequisiteDrafts[id]) return;
 
     setError(null);
     setSavingId(id);
     try {
-      const { error: updateError } = await supabase
-        .from("subjects")
-        .update({
-          name: d.name.trim() || null,
-          grade_id: d.grade_id,
-          passing_grade: toNumberOrNull(d.passing_grade),
-          weight: toNumberOrNull(d.weight),
-          active: d.active,
-        })
-        .eq("id", id);
+      if (d) {
+        const { error: updateError } = await supabase
+          .from("subjects")
+          .update({
+            name: d.name.trim() || null,
+            grade_id: d.grade_id,
+            passing_grade: toNumberOrNull(d.passing_grade),
+            weight: toNumberOrNull(d.weight),
+            active: d.active,
+          })
+          .eq("id", id);
 
-      if (updateError) {
-        setError(updateError.message);
+        if (updateError) {
+          setError(updateError.message);
+          return;
+        }
+      }
+
+      const prerequisiteSubjectId = p.prerequisite_subject_id;
+      const minimumScore = toNumberOrNull(p.minimum_score);
+
+      const { error: clearError } = await supabase
+        .from("subject_prerequisites")
+        .delete()
+        .eq("subject_id", id);
+
+      if (clearError) {
+        setError(clearError.message);
         return;
+      }
+
+      if (prerequisiteSubjectId) {
+        const { error: insertError } = await supabase
+          .from("subject_prerequisites")
+          .insert({
+            subject_id: id,
+            prerequisite_subject_id: prerequisiteSubjectId,
+            minimum_score: minimumScore,
+          });
+
+        if (insertError) {
+          setError(insertError.message);
+          return;
+        }
       }
 
       await load();
@@ -196,10 +268,10 @@ export function SubjectsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Subjects</div>
-        <div className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Subjects</h1>
+        <p className="text-muted-foreground mt-2">
           Create and manage subjects and their grading settings.
-        </div>
+        </p>
       </div>
 
       {error ? (
@@ -307,6 +379,8 @@ export function SubjectsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
+                  <TableHead>Prerequisite</TableHead>
+                  <TableHead>Prereq min</TableHead>
                   <TableHead>Passing</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Active</TableHead>
@@ -316,6 +390,10 @@ export function SubjectsPage() {
               <TableBody>
                 {visibleSubjects.map((s) => {
                   const d = draftFor(s);
+                  const p = prerequisiteDraftFor(s.id);
+                  const subjectsInSameGrade = subjects.filter(
+                    (opt) => opt.id !== s.id && opt.grade_id === (d.grade_id ?? s.grade_id ?? null),
+                  );
                   return (
                     <TableRow key={s.id}>
                       <TableCell>
@@ -356,6 +434,44 @@ export function SubjectsPage() {
                         <div className="mt-1 text-xs text-muted-foreground">
                           {d.grade_id ? gradeNameById.get(d.grade_id) : "No grade"}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <select
+                          className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                          value={p.prerequisite_subject_id ?? ""}
+                          onChange={(e) =>
+                            setPrerequisiteDrafts((prev) => ({
+                              ...prev,
+                              [s.id]: {
+                                ...p,
+                                prerequisite_subject_id: e.target.value ? e.target.value : null,
+                              },
+                            }))
+                          }
+                        >
+                          <option value="">None</option>
+                          {subjectsInSameGrade.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.name ?? opt.id}
+                            </option>
+                          ))}
+                        </select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          inputMode="decimal"
+                          placeholder="Use prerequisite passing"
+                          value={p.minimum_score}
+                          onChange={(e) =>
+                            setPrerequisiteDrafts((prev) => ({
+                              ...prev,
+                              [s.id]: {
+                                ...p,
+                                minimum_score: e.target.value,
+                              },
+                            }))
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <Input
@@ -408,7 +524,7 @@ export function SubjectsPage() {
                       <TableCell className="text-right">
                         <Button
                           size="sm"
-                          disabled={!drafts[s.id] || savingId === s.id}
+                          disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}
                           onClick={() => void saveSubject(s.id)}
                         >
                           {savingId === s.id ? "Saving…" : "Save"}

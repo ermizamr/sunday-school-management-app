@@ -194,10 +194,10 @@ export function AnnouncementsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-2xl font-semibold">Announcements</div>
-        <div className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Announcements</h1>
+        <p className="text-muted-foreground mt-2">
           Create global or grade-scoped announcements.
-        </div>
+        </p>
       </div>
 
       {error ? <ErrorBanner title="Request failed" message={error} /> : null}
