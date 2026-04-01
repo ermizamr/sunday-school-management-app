@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/useAuth";
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { Button } from "../components/ui/button";

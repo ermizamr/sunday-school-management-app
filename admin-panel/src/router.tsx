@@ -15,6 +15,7 @@ import { PromotionsPage } from "./pages/PromotionsPage";
 import { AnnouncementsPage } from "./pages/AnnouncementsPage";
 import { ServantsPage } from "./pages/ServantsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { GraduatesPage } from "./pages/GraduatesPage";
 
 const router = createBrowserRouter([
   { path: "/sign-in", element: <SignInPage /> },
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
           // Admin routes
           { path: "/admin/dashboard", element: <DashboardPage /> },
           { path: "/admin/users", element: <UsersPage /> },
+          { path: "/admin/graduates", element: <GraduatesPage /> },
           { path: "/admin/servants", element: <ServantsPage /> },
           { path: "/admin/academic-year", element: <AcademicYearsPage /> },
           { path: "/admin/promotions", element: <PromotionsPage /> },
@@ -39,6 +41,7 @@ const router = createBrowserRouter([
           // Back-compat redirects
           { path: "/academic-years", element: <Navigate to="/admin/academic-year" replace /> },
           { path: "/users", element: <Navigate to="/admin/users" replace /> },
+          { path: "/graduates", element: <Navigate to="/admin/graduates" replace /> },
           { path: "/grades", element: <Navigate to="/admin/grades" replace /> },
           { path: "/subjects", element: <Navigate to="/admin/subjects" replace /> },
         ],

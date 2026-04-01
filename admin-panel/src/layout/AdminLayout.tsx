@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router";
 import { 
   LayoutDashboard, 
   Users, 
+  UserCheck,
   UserCog, 
   CalendarDays, 
   TrendingUp, 
@@ -13,17 +14,18 @@ import {
 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/useAuth";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/users", label: "Students", icon: Users },
   { to: "/admin/servants", label: "Servants", icon: UserCog },
+  { to: "/admin/grades", label: "Grades", icon: GraduationCap },
+  { to: "/admin/subjects", label: "Subjects", icon: BookOpen },
   { to: "/admin/academic-year", label: "Academic Year", icon: CalendarDays },
   { to: "/admin/promotions", label: "Promotions", icon: TrendingUp },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/admin/grades", label: "Grades", icon: GraduationCap },
-  { to: "/admin/subjects", label: "Subjects", icon: BookOpen },
+  { to: "/admin/graduates", label: "Graduates", icon: UserCheck },
 ] as const;
 
 export function AdminLayout() {

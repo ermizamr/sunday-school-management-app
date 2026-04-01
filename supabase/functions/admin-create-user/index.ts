@@ -24,14 +24,24 @@ serve(async (req) => {
     const body = (await req.json()) as Partial<CreateUserBody>;
 
     const password = (body.password ?? "").trim();
-    const role = (body.role ?? "").trim();
+    const role = (body.role ?? "").trim().toLowerCase();
     const academicId = (body.academic_id ?? "").trim();
     const name = (body.name ?? "").trim();
+    const allowedRoles = new Set(["student", "servant"]);
 
     if (!password || !role || !academicId || !name) {
       return jsonResponse(
         {
           error: "Missing required fields: password, role, academic_id, name.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!allowedRoles.has(role)) {
+      return jsonResponse(
+        {
+          error: "Invalid role. Allowed roles: student, servant.",
         },
         { status: 400 },
       );

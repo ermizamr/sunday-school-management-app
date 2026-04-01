@@ -30,10 +30,7 @@ type GradeRow = {
   code?: string | null;
 };
 
-const roleOptions = ["admin", "servant", "student"] as const;
-
 type Draft = {
-  role: string;
   grade_id: string | null;
 };
 
@@ -49,12 +46,12 @@ export function UsersPage() {
 
   const [createEmail, setCreateEmail] = React.useState("");
   const [createPassword, setCreatePassword] = React.useState("");
-  const [createRole, setCreateRole] = React.useState<string>("student");
   const [createAcademicId, setCreateAcademicId] = React.useState("");
   const [createName, setCreateName] = React.useState("");
   const [createGradeId, setCreateGradeId] = React.useState<string | null>(null);
   const [isCreating, setIsCreating] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive_pending_admin">("all");
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
@@ -63,15 +60,20 @@ export function UsersPage() {
   }, [grades]);
 
   const filteredProfiles = React.useMemo(() => {
-    if (!searchQuery.trim()) return profiles;
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
     return profiles.filter((p) => {
+      const status = (p.account_status ?? "active").toLowerCase();
+      if (status === "graduated") return false;
+      const statusMatches = statusFilter === "all" ? true : status === statusFilter;
+      if (!statusMatches) return false;
+
+      if (!query) return true;
       const nameMatch = (p.name ?? "").toLowerCase().includes(query);
       const idMatch = (p.academic_id ?? "").toLowerCase().includes(query);
-      const emailMatch = (p.id ?? "").toLowerCase().includes(query); // Just fallback
+      const emailMatch = (p.id ?? "").toLowerCase().includes(query);
       return nameMatch || idMatch || emailMatch;
     });
-  }, [profiles, searchQuery]);
+  }, [profiles, searchQuery, statusFilter]);
 
   const load = React.useCallback(async () => {
     setError(null);
@@ -80,7 +82,7 @@ export function UsersPage() {
     const [{ data: gradesData, error: gradesError }, { data: profilesData, error: profilesError }] =
       await Promise.all([
         supabase.from("grades").select("*").order("name"),
-        supabase.from("profiles").select("*").order("name"),
+        supabase.from("profiles").select("*").eq("role", "student").order("name"),
       ]);
 
     if (gradesError) {
@@ -108,7 +110,6 @@ export function UsersPage() {
   function draftFor(p: ProfileRow): Draft {
     return (
       drafts[p.id] ?? {
-        role: p.role ?? "",
         grade_id: p.grade_id ?? null,
       }
     );
@@ -124,7 +125,6 @@ export function UsersPage() {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
-          role: draft.role || null,
           grade_id: draft.grade_id,
         })
         .eq("id", id);
@@ -161,7 +161,7 @@ export function UsersPage() {
           body: {
             email: email || undefined,
             password,
-            role: createRole,
+            role: "student",
             academic_id: academicId,
             name,
             grade_id: createGradeId,
@@ -181,7 +181,6 @@ export function UsersPage() {
 
       setCreateEmail("");
       setCreatePassword("");
-      setCreateRole("student");
       setCreateAcademicId("");
       setCreateName("");
       setCreateGradeId(null);
@@ -220,7 +219,16 @@ export function UsersPage() {
 
   async function toggleAccountStatus(p: ProfileRow) {
     const current = (p.account_status ?? "active").toLowerCase();
-    const next = current === "inactive" ? "active" : "inactive";
+    if (current === "graduated") {
+      setError("Graduated users are read-only in this toggle. Change status from backend admin tools if needed.");
+      return;
+    }
+
+    const next = current === "inactive_pending_admin" ? "active" : "inactive_pending_admin";
+    const actionLabel = next === "active" ? "activate" : "deactivate";
+    if (!window.confirm(`Are you sure you want to ${actionLabel} ${p.name ?? p.id}?`)) {
+      return;
+    }
 
     setError(null);
     setActionId(p.id);
@@ -249,9 +257,9 @@ export function UsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Users & Roles</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Students</h1>
         <p className="text-muted-foreground mt-2">
-          Update a user’s role and grade assignment.
+          Manage students, their grade assignment, and account status.
         </p>
       </div>
 
@@ -304,22 +312,6 @@ export function UsersPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="create-role">Role</Label>
-            <select
-              id="create-role"
-              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              value={createRole}
-              onChange={(e) => setCreateRole(e.target.value)}
-            >
-              {roleOptions.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid gap-2">
             <Label htmlFor="create-grade">Grade</Label>
             <select
               id="create-grade"
@@ -350,13 +342,26 @@ export function UsersPage() {
       <Card>
         <CardHeader className="border-b flex flex-col gap-4 items-start sm:flex-row sm:items-center sm:justify-between py-5">
           <CardTitle>All users</CardTitle>
-          <div className="w-full sm:w-72">
-            <Input
-              placeholder="Search by name or Academic ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-background"
-            />
+          <div className="w-full sm:w-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="w-full sm:w-52">
+              <select
+                className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive_pending_admin")}
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive_pending_admin">Inactive</option>
+              </select>
+            </div>
+            <div className="w-full sm:w-72">
+              <Input
+                placeholder="Search by name or Academic ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-background"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -368,7 +373,6 @@ export function UsersPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Academic ID</TableHead>
-                  <TableHead>Role</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
@@ -377,8 +381,8 @@ export function UsersPage() {
               <TableBody>
                   {filteredProfiles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        No users match your search.
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        No students match your search.
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -393,28 +397,6 @@ export function UsersPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {p.academic_id ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <select
-                          className="h-9 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                          value={d.role}
-                          onChange={(e) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [p.id]: {
-                                ...d,
-                                role: e.target.value,
-                              },
-                            }))
-                          }
-                        >
-                          <option value="">—</option>
-                          {roleOptions.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
                       </TableCell>
                       <TableCell>
                         <select
@@ -442,7 +424,17 @@ export function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {status}
+                        <span
+                          className={
+                            status === "active"
+                              ? "inline-flex rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-700"
+                              : status === "graduated"
+                                ? "inline-flex rounded-full bg-primary/15 px-2 py-1 text-xs font-medium text-primary"
+                                : "inline-flex rounded-full bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-700"
+                          }
+                        >
+                          {status === "inactive_pending_admin" ? "inactive" : status}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -465,13 +457,13 @@ export function UsersPage() {
 
                           <Button
                             size="sm"
-                            variant={status === "inactive" ? "default" : "destructive"}
-                            disabled={actionId === p.id}
+                            variant={status === "inactive_pending_admin" ? "default" : "destructive"}
+                            disabled={actionId === p.id || status === "graduated"}
                             onClick={() => void toggleAccountStatus(p)}
                           >
                             {actionId === p.id
                               ? "Working…"
-                              : status === "inactive"
+                              : status === "inactive_pending_admin"
                                 ? "Activate"
                                 : "Deactivate"}
                           </Button>

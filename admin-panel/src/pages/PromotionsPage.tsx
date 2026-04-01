@@ -6,6 +6,14 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 
 type AcademicYearRow = {
   id: string;
@@ -21,9 +29,33 @@ type GradeRow = {
   sort_order?: number | null;
 };
 
-type BoundDraft = {
-  lower: string;
-  upper: string;
+type SubjectRow = {
+  id: string;
+  name?: string | null;
+  grade_id?: string | null;
+  active?: boolean | null;
+};
+
+type GradeSummaryRow = {
+  gradeId: string;
+  gradeName: string;
+  runId: string;
+  totalStudents: number;
+  eligible: number;
+  atRisk: number;
+  notEligible: number;
+  graduated: number;
+};
+
+type AllGradesSummary = {
+  academicYearId: string;
+  totalGrades: number;
+  totalStudents: number;
+  eligible: number;
+  atRisk: number;
+  notEligible: number;
+  graduated: number;
+  gradeSummaries: GradeSummaryRow[];
 };
 
 export function PromotionsPage() {
@@ -32,22 +64,14 @@ export function PromotionsPage() {
   const [selectedYearId, setSelectedYearId] = React.useState<string | null>(null);
   const [selectedGradeId, setSelectedGradeId] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
+  const [subjects, setSubjects] = React.useState<SubjectRow[]>([]);
+  const [isSubjectsFallback, setIsSubjectsFallback] = React.useState(false);
+  const [subjectMinimumGrades, setSubjectMinimumGrades] = React.useState<Record<string, string>>({});
+  const [subjectAttendanceDays, setSubjectAttendanceDays] = React.useState<Record<string, string>>({});
 
   const [minimumOverallAverage, setMinimumOverallAverage] = React.useState("70");
-  const [minimumSubjectGrade, setMinimumSubjectGrade] = React.useState("60");
-  const [minimumAttendance, setMinimumAttendance] = React.useState("75");
-
-  const [bandAPlusMin, setBandAPlusMin] = React.useState("97");
-  const [bandAMin, setBandAMin] = React.useState("93");
-  const [bandAMinusMin, setBandAMinusMin] = React.useState("90");
-  const [bandBPlusMin, setBandBPlusMin] = React.useState("87");
-  const [bandBMin, setBandBMin] = React.useState("83");
-
-  const [excellent, setExcellent] = React.useState<BoundDraft>({ lower: "93", upper: "100" });
-  const [veryGood, setVeryGood] = React.useState<BoundDraft>({ lower: "90", upper: "92.99" });
-  const [good, setGood] = React.useState<BoundDraft>({ lower: "87", upper: "89.99" });
-  const [enough, setEnough] = React.useState<BoundDraft>({ lower: "83", upper: "86.99" });
-  const [critical, setCritical] = React.useState<BoundDraft>({ lower: "0", upper: "82.99" });
+  const minimumSubjectGrade = "60";
+  const minimumAttendance = "75";
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRunning, setIsRunning] = React.useState(false);
@@ -59,6 +83,38 @@ export function PromotionsPage() {
     () => years.find((y) => y.status === "active") ?? null,
     [years],
   );
+
+  const promotionSummary = React.useMemo<AllGradesSummary | null>(() => {
+    if (!result || typeof result !== "object") return null;
+    const row = result as Record<string, unknown>;
+    const academicYearId = typeof row.academic_year_id === "string" ? row.academic_year_id : null;
+    if (!academicYearId) return null;
+
+    const gradeSummariesSource = Array.isArray(row.grade_summaries) ? row.grade_summaries : [];
+    const gradeSummaries: GradeSummaryRow[] = gradeSummariesSource
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map((item) => ({
+        gradeId: typeof item.grade_id === "string" ? item.grade_id : "",
+        gradeName: typeof item.grade_name === "string" ? item.grade_name : "Unknown grade",
+        runId: typeof item.run_id === "string" ? item.run_id : "",
+        totalStudents: typeof item.total_students === "number" ? item.total_students : 0,
+        eligible: typeof item.eligible === "number" ? item.eligible : 0,
+        atRisk: typeof item.at_risk === "number" ? item.at_risk : 0,
+        notEligible: typeof item.not_eligible === "number" ? item.not_eligible : 0,
+        graduated: typeof item.graduated === "number" ? item.graduated : 0,
+      }));
+
+    return {
+      academicYearId,
+      totalGrades: typeof row.total_grades === "number" ? row.total_grades : gradeSummaries.length,
+      totalStudents: typeof row.total_students === "number" ? row.total_students : 0,
+      eligible: typeof row.eligible === "number" ? row.eligible : 0,
+      atRisk: typeof row.at_risk === "number" ? row.at_risk : 0,
+      notEligible: typeof row.not_eligible === "number" ? row.not_eligible : 0,
+      graduated: typeof row.graduated === "number" ? row.graduated : 0,
+      gradeSummaries,
+    };
+  }, [result]);
 
   function toNumberOrDefault(v: string, fallback: number): number {
     const n = Number(v);
@@ -103,6 +159,56 @@ export function PromotionsPage() {
   }, [activeYear?.id, selectedYearId]);
 
   React.useEffect(() => {
+    if (!selectedGradeId && grades.length > 0) {
+      setSelectedGradeId(grades[0].id);
+    }
+  }, [grades, selectedGradeId]);
+
+  React.useEffect(() => {
+    async function loadSubjects() {
+      if (!selectedGradeId) {
+        setSubjects([]);
+        setIsSubjectsFallback(false);
+        setSubjectMinimumGrades({});
+        setSubjectAttendanceDays({});
+        return;
+      }
+
+      const { data, error: subjectsError } = await supabase
+        .from("subjects")
+        .select("id,name,grade_id,active")
+        .order("active", { ascending: false })
+        .order("name", { ascending: true });
+
+      if (subjectsError) {
+        setError(subjectsError.message);
+        setSubjects([]);
+        setIsSubjectsFallback(false);
+        setSubjectMinimumGrades({});
+        setSubjectAttendanceDays({});
+        return;
+      }
+
+      const rows = (data ?? []) as SubjectRow[];
+      const forSelectedGrade = rows.filter((row) => row.grade_id === selectedGradeId);
+
+      if (forSelectedGrade.length > 0) {
+        setSubjects(forSelectedGrade);
+        setIsSubjectsFallback(false);
+        setSubjectMinimumGrades({});
+        setSubjectAttendanceDays({});
+      } else {
+        setSubjects(rows);
+        setIsSubjectsFallback(rows.length > 0);
+        setSubjectMinimumGrades({});
+        setSubjectAttendanceDays({});
+      }
+    }
+
+    void loadSubjects();
+  }, [selectedGradeId]);
+
+  React.useEffect(() => {
     async function loadCriteria() {
       if (!selectedYearId || !selectedGradeId) return;
 
@@ -122,44 +228,34 @@ export function PromotionsPage() {
         moa === null || moa === undefined ? "70" : String(moa),
       );
 
-      const msg = row["minimum_subject_grade"];
-      setMinimumSubjectGrade(
-        msg === null || msg === undefined ? "60" : String(msg),
-      );
-
-      const ma = row["minimum_attendance"];
-      setMinimumAttendance(
-        ma === null || ma === undefined ? "75" : String(ma),
-      );
-
-      const aPlus = row["band_a_plus_min"];
-      setBandAPlusMin(aPlus === null || aPlus === undefined ? "97" : String(aPlus));
-      const a = row["band_a_min"];
-      setBandAMin(a === null || a === undefined ? "93" : String(a));
-      const aMinus = row["band_a_minus_min"];
-      setBandAMinusMin(aMinus === null || aMinus === undefined ? "90" : String(aMinus));
-      const bPlus = row["band_b_plus_min"];
-      setBandBPlusMin(bPlus === null || bPlus === undefined ? "87" : String(bPlus));
-      const b = row["band_b_min"];
-      setBandBMin(b === null || b === undefined ? "83" : String(b));
-
-      function setBounds(
-        setState: React.Dispatch<React.SetStateAction<BoundDraft>>,
-        lowerKey: string,
-        upperKey: string,
-      ) {
-        const lower = row[lowerKey];
-        const upper = row[upperKey];
-        setState({
-          lower: lower === null || lower === undefined ? "" : String(lower),
-          upper: upper === null || upper === undefined ? "" : String(upper),
-        });
+      const criteriaSetId = row["id"];
+      if (criteriaSetId === null || criteriaSetId === undefined) {
+        setSubjectMinimumGrades({});
+        setSubjectAttendanceDays({});
+        return;
       }
 
-      setBounds(setExcellent, "excellent_lower", "excellent_upper");
-      setBounds(setVeryGood, "very_good_lower", "very_good_upper");
-      setBounds(setGood, "good_lower", "good_upper");
-      setBounds(setEnough, "enough_lower", "enough_upper");
+      const { data: subjectsCriteria, error: subjectCriteriaError } = await supabase
+        .from("promotion_criteria_subjects")
+        .select("subject_id,minimum_grade,minimum_attendance_days")
+        .eq("criteria_set_id", String(criteriaSetId));
+
+      if (subjectCriteriaError) {
+        setError(subjectCriteriaError.message);
+        return;
+      }
+
+      const minimumGradeMap: Record<string, string> = {};
+      const attendanceDaysMap: Record<string, string> = {};
+      for (const item of subjectsCriteria ?? []) {
+        const subjectId = String(item.subject_id);
+        const minimumGrade = item.minimum_grade;
+        const attendanceDays = item.minimum_attendance_days;
+        minimumGradeMap[subjectId] = minimumGrade === null || minimumGrade === undefined ? "" : String(minimumGrade);
+        attendanceDaysMap[subjectId] = attendanceDays === null || attendanceDays === undefined ? "" : String(attendanceDays);
+      }
+      setSubjectMinimumGrades(minimumGradeMap);
+      setSubjectAttendanceDays(attendanceDaysMap);
     }
 
     void loadCriteria();
@@ -175,36 +271,105 @@ export function PromotionsPage() {
 
     setCriteriaSaving(true);
     try {
+      if (subjects.length === 0) {
+        setError("No subjects found for the selected grade. Add subjects before saving promotion criteria.");
+        return;
+      }
+
+      const missingSubjects = subjects.filter((subject) => {
+        const raw = (subjectAttendanceDays[subject.id] ?? "").trim();
+        return raw === "";
+      });
+
+      if (missingSubjects.length > 0) {
+        setError("Enter minimum present days for every subject before saving criteria.");
+        return;
+      }
+
+      const missingSubjectGrades = subjects.filter((subject) => {
+        const raw = (subjectMinimumGrades[subject.id] ?? "").trim();
+        return raw === "";
+      });
+
+      if (missingSubjectGrades.length > 0) {
+        setError("Enter minimum grade for every subject before saving criteria.");
+        return;
+      }
+
       const payload = {
         academic_year_id: selectedYearId,
         grade_id: selectedGradeId,
         minimum_overall_average: toNumberOrDefault(minimumOverallAverage, 70),
         minimum_subject_grade: toNumberOrDefault(minimumSubjectGrade, 60),
         minimum_attendance: toNumberOrDefault(minimumAttendance, 75),
-        band_a_plus_min: toNumberOrDefault(bandAPlusMin, 97),
-        band_a_min: toNumberOrDefault(bandAMin, 93),
-        band_a_minus_min: toNumberOrDefault(bandAMinusMin, 90),
-        band_b_plus_min: toNumberOrDefault(bandBPlusMin, 87),
-        band_b_min: toNumberOrDefault(bandBMin, 83),
-        excellent_lower: toNumberOrDefault(excellent.lower, 93),
-        excellent_upper: toNumberOrDefault(excellent.upper, 100),
-        very_good_lower: toNumberOrDefault(veryGood.lower, 90),
-        very_good_upper: toNumberOrDefault(veryGood.upper, 92.99),
-        good_lower: toNumberOrDefault(good.lower, 87),
-        good_upper: toNumberOrDefault(good.upper, 89.99),
-        enough_lower: toNumberOrDefault(enough.lower, 83),
-        enough_upper: toNumberOrDefault(enough.upper, 86.99),
       };
 
-      const { error: upsertError } = await supabase
+      const { data: criteriaSet, error: upsertError } = await supabase
         .from("promotion_criteria_sets")
-        .upsert(payload, { onConflict: "academic_year_id,grade_id" });
+        .upsert(payload, { onConflict: "academic_year_id,grade_id" })
+        .select("id")
+        .single();
 
       if (upsertError) {
         setError(
           `Failed to save criteria. Details: ${upsertError.message}`,
         );
         return;
+      }
+
+      const criteriaSetId = criteriaSet?.id;
+      if (!criteriaSetId) {
+        setError("Failed to save criteria subjects because criteria set id was not returned.");
+        return;
+      }
+
+      const { data: existingRows, error: existingRowsError } = await supabase
+        .from("promotion_criteria_subjects")
+        .select("subject_id,required,minimum_grade,weight")
+        .eq("criteria_set_id", criteriaSetId);
+
+      if (existingRowsError) {
+        setError(`Failed to load existing subject criteria. Details: ${existingRowsError.message}`);
+        return;
+      }
+
+      const existingBySubject = new Map<string, {
+        required: boolean | null;
+        minimum_grade: number | null;
+        weight: number | null;
+      }>();
+
+      for (const row of existingRows ?? []) {
+        existingBySubject.set(String(row.subject_id), {
+          required: row.required,
+          minimum_grade: row.minimum_grade,
+          weight: row.weight,
+        });
+      }
+
+      const subjectRows = subjects.map((subject) => {
+        const existing = existingBySubject.get(subject.id);
+        const minimumGradeRaw = (subjectMinimumGrades[subject.id] ?? "").trim();
+        const raw = (subjectAttendanceDays[subject.id] ?? "").trim();
+        return {
+          criteria_set_id: criteriaSetId,
+          subject_id: subject.id,
+          required: existing?.required ?? true,
+          minimum_grade: toNumberOrDefault(minimumGradeRaw, 0),
+          weight: existing?.weight ?? null,
+          minimum_attendance_days: toNumberOrDefault(raw, 0),
+        };
+      });
+
+      if (subjectRows.length > 0) {
+        const { error: upsertSubjectsError } = await supabase
+          .from("promotion_criteria_subjects")
+          .upsert(subjectRows, { onConflict: "criteria_set_id,subject_id" });
+
+        if (upsertSubjectsError) {
+          setError(`Failed to save subject attendance-day rules. Details: ${upsertSubjectsError.message}`);
+          return;
+        }
       }
     } finally {
       setCriteriaSaving(false);
@@ -217,23 +382,31 @@ export function PromotionsPage() {
       promotion_basis: "average_of_two_semester_averages",
       minimum_thresholds: {
         minimum_overall_average: minimumOverallAverage.trim() || null,
-        minimum_subject_grade: minimumSubjectGrade.trim() || null,
+        minimum_subject_grade: minimumSubjectGrade,
         minimum_attendance: minimumAttendance.trim() || null,
       },
-      grade_bands: {
-        band_a_plus_min: bandAPlusMin.trim() || null,
-        band_a_min: bandAMin.trim() || null,
-        band_a_minus_min: bandAMinusMin.trim() || null,
-        band_b_plus_min: bandBPlusMin.trim() || null,
-        band_b_min: bandBMin.trim() || null,
-      },
-      grade_classification: {
-        excellent,
-        very_good: veryGood,
-        good,
-        enough,
-        critical,
-      },
+      subject_minimum_grades: subjects
+        .map((subject) => {
+          const raw = (subjectMinimumGrades[subject.id] ?? "").trim();
+          if (!raw) return null;
+          return {
+            subject_id: subject.id,
+            subject_name: subject.name ?? subject.id,
+            minimum_grade: toNumberOrDefault(raw, 0),
+          };
+        })
+        .filter((item): item is { subject_id: string; subject_name: string; minimum_grade: number } => item !== null),
+      subject_minimum_attendance_days: subjects
+        .map((subject) => {
+          const raw = (subjectAttendanceDays[subject.id] ?? "").trim();
+          if (!raw) return null;
+          return {
+            subject_id: subject.id,
+            subject_name: subject.name ?? subject.id,
+            minimum_attendance_days: toNumberOrDefault(raw, 0),
+          };
+        })
+        .filter((item): item is { subject_id: string; subject_name: string; minimum_attendance_days: number } => item !== null),
     };
 
     if (!trimmed) return JSON.stringify({ config });
@@ -244,16 +417,15 @@ export function PromotionsPage() {
     setError(null);
     setResult(null);
 
-    if (!selectedYearId || !selectedGradeId) {
-      setError("Choose an academic year and grade.");
+    if (!selectedYearId) {
+      setError("Choose an academic year.");
       return;
     }
 
     setIsRunning(true);
     try {
-      const { data, error: rpcError } = await supabase.rpc("run_promotion", {
+      const { data, error: rpcError } = await supabase.rpc("run_promotion_for_all_grades_with_summary", {
         p_academic_year_id: selectedYearId,
-        p_grade_id: selectedGradeId,
         p_notes: buildPromotionNotes(),
       });
 
@@ -285,7 +457,29 @@ export function PromotionsPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages, and course prerequisites are enforced from the Subjects page.
+            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages. Per-subject attendance days are weighted as present=1.0 day, permission=1.0 day, late=0.5 day, absent=0 day.
+          </div>
+
+          <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            Active academic year: <span className="font-medium text-foreground">{activeYear?.name ?? "Not set"}</span>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="criteria-grade">Grade</Label>
+            <select
+              id="criteria-grade"
+              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              value={selectedGradeId ?? ""}
+              onChange={(e) => setSelectedGradeId(e.target.value || null)}
+              disabled={isLoading}
+            >
+              <option value="">—</option>
+              {grades.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name ?? g.code ?? g.id}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid gap-2">
@@ -303,110 +497,130 @@ export function PromotionsPage() {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="min-subject">Minimum subject grade (passing)</Label>
-            <Input
-              id="min-subject"
-              inputMode="decimal"
-              placeholder="Default: 60"
-              value={minimumSubjectGrade}
-              onChange={(e) => setMinimumSubjectGrade(e.target.value)}
-              disabled={isLoading}
-            />
-            <div className="text-xs text-muted-foreground">
-              Minimum threshold passing grade determining feature.
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="min-attendance">Minimum attendance</Label>
-            <Input
-              id="min-attendance"
-              inputMode="decimal"
-              placeholder="Default: 75"
-              value={minimumAttendance}
-              onChange={(e) => setMinimumAttendance(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
           <div className="md:col-span-3 grid gap-3">
-            <div className="text-sm font-medium">Letter grade bands</div>
-            <div className="grid gap-3 md:grid-cols-5">
-              <div className="grid gap-2">
-                <div className="text-xs text-muted-foreground">A+ min</div>
-                <Input inputMode="decimal" value={bandAPlusMin} onChange={(e) => setBandAPlusMin(e.target.value)} disabled={isLoading} />
-              </div>
-              <div className="grid gap-2">
-                <div className="text-xs text-muted-foreground">A min</div>
-                <Input inputMode="decimal" value={bandAMin} onChange={(e) => setBandAMin(e.target.value)} disabled={isLoading} />
-              </div>
-              <div className="grid gap-2">
-                <div className="text-xs text-muted-foreground">A- min</div>
-                <Input inputMode="decimal" value={bandAMinusMin} onChange={(e) => setBandAMinusMin(e.target.value)} disabled={isLoading} />
-              </div>
-              <div className="grid gap-2">
-                <div className="text-xs text-muted-foreground">B+ min</div>
-                <Input inputMode="decimal" value={bandBPlusMin} onChange={(e) => setBandBPlusMin(e.target.value)} disabled={isLoading} />
-              </div>
-              <div className="grid gap-2">
-                <div className="text-xs text-muted-foreground">B min</div>
-                <Input inputMode="decimal" value={bandBMin} onChange={(e) => setBandBMin(e.target.value)} disabled={isLoading} />
-              </div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Per-subject requirements</div>
+              <div className="text-xs text-muted-foreground">{subjects.length} subjects</div>
             </div>
-          </div>
-
-          <div className="md:col-span-3 grid gap-3">
-            <div className="text-sm font-medium">Grade classification bounds</div>
-            <div className="grid gap-3 md:grid-cols-5">
-              {[
-                ["Excellent (A/A+)", excellent, setExcellent],
-                ["Very good (A-)", veryGood, setVeryGood],
-                ["Good (B+)", good, setGood],
-                ["Enough (B)", enough, setEnough],
-                ["Critical (below B)", critical, setCritical],
-              ].map(([label, v, setV]) => (
-                <div key={String(label)} className="grid gap-2">
-                  <div className="text-xs text-muted-foreground">{String(label)}</div>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="Lower"
-                    value={(v as BoundDraft).lower}
-                    onChange={(e) =>
-                      (setV as React.Dispatch<React.SetStateAction<BoundDraft>>)((prev) => ({
-                        ...prev,
-                        lower: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
-                  <Input
-                    inputMode="decimal"
-                    placeholder="Upper"
-                    value={(v as BoundDraft).upper}
-                    onChange={(e) =>
-                      (setV as React.Dispatch<React.SetStateAction<BoundDraft>>)((prev) => ({
-                        ...prev,
-                        upper: e.target.value,
-                      }))
-                    }
-                    disabled={isLoading}
-                  />
+            {isSubjectsFallback ? (
+              <div className="text-xs text-amber-700 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+                No subjects are assigned to this grade yet. Showing all subjects so you can still configure minimum days.
+              </div>
+            ) : null}
+            {subjects.length === 0 ? (
+              <div className="text-xs text-muted-foreground rounded-md border bg-muted/20 px-3 py-2">
+                No subjects found for this grade.
+              </div>
+            ) : (
+              <>
+                <div className="hidden rounded-md border md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Minimum Grade</TableHead>
+                        <TableHead>Minimum Present Days</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subjects.map((subject) => (
+                        <TableRow key={`table-${subject.id}`}>
+                          <TableCell>
+                            <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {subject.active === false ? "Inactive subject" : "Active subject"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              inputMode="decimal"
+                              placeholder="e.g. 60"
+                              required
+                              value={subjectMinimumGrades[subject.id] ?? ""}
+                              onChange={(e) =>
+                                setSubjectMinimumGrades((prev) => ({
+                                  ...prev,
+                                  [subject.id]: e.target.value,
+                                }))
+                              }
+                              disabled={isLoading}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              inputMode="decimal"
+                              placeholder="e.g. 24"
+                              required
+                              value={subjectAttendanceDays[subject.id] ?? ""}
+                              onChange={(e) =>
+                                setSubjectAttendanceDays((prev) => ({
+                                  ...prev,
+                                  [subject.id]: e.target.value,
+                                }))
+                              }
+                              disabled={isLoading}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              ))}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Use “Save criteria” to persist to <span className="font-mono">promotion_criteria_sets</span>. Prerequisite selection is recorded in the promotion run notes.
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Note: <span className="font-mono">promotion_criteria_sets</span> does not include critical bounds; “Critical” is captured in notes and is typically interpreted as below the “Enough” lower bound.
-            </div>
+
+                <div className="grid gap-3 md:hidden">
+                  {subjects.map((subject) => (
+                    <div key={`card-${subject.id}`} className="rounded-lg border bg-card p-3">
+                      <div className="mb-3">
+                        <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {subject.active === false ? "Inactive subject" : "Active subject"}
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <div className="grid gap-1">
+                          <Label className="text-xs">Minimum grade</Label>
+                          <Input
+                            inputMode="decimal"
+                            placeholder="e.g. 60"
+                            required
+                            value={subjectMinimumGrades[subject.id] ?? ""}
+                            onChange={(e) =>
+                              setSubjectMinimumGrades((prev) => ({
+                                ...prev,
+                                [subject.id]: e.target.value,
+                              }))
+                            }
+                            disabled={isLoading}
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label className="text-xs">Minimum present days</Label>
+                          <Input
+                            inputMode="decimal"
+                            placeholder="e.g. 24"
+                            required
+                            value={subjectAttendanceDays[subject.id] ?? ""}
+                            onChange={(e) =>
+                              setSubjectAttendanceDays((prev) => ({
+                                ...prev,
+                                [subject.id]: e.target.value,
+                              }))
+                            }
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="md:col-span-3 flex items-center gap-2">
             <Button
               variant="outline"
-              disabled={isLoading || criteriaSaving}
+              disabled={isLoading || criteriaSaving || !selectedYearId || !selectedGradeId}
               onClick={() => void saveCriteria()}
             >
               {criteriaSaving ? "Saving…" : "Save criteria"}
@@ -420,40 +634,8 @@ export function PromotionsPage() {
           <CardTitle>Run promotion</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="grid gap-2">
-            <Label htmlFor="year">Academic year</Label>
-            <select
-              id="year"
-              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              value={selectedYearId ?? ""}
-              onChange={(e) => setSelectedYearId(e.target.value || null)}
-              disabled={isLoading}
-            >
-              <option value="">—</option>
-              {years.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.name ?? y.id}{y.status === "active" ? " (active)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="grade">Grade</Label>
-            <select
-              id="grade"
-              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              value={selectedGradeId ?? ""}
-              onChange={(e) => setSelectedGradeId(e.target.value || null)}
-              disabled={isLoading}
-            >
-              <option value="">—</option>
-              {grades.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name ?? g.code ?? g.id}
-                </option>
-              ))}
-            </select>
+          <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            Runs promotion for all grades in the active academic year.
           </div>
 
           <div className="grid gap-2 md:col-span-3">
@@ -464,9 +646,6 @@ export function PromotionsPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-            <div className="text-xs text-muted-foreground">
-              Calls the DB RPC <span className="font-mono">run_promotion</span>.
-            </div>
           </div>
 
           <div className="md:col-span-3">
@@ -483,9 +662,69 @@ export function PromotionsPage() {
         </CardHeader>
         <CardContent>
           {result ? (
-            <pre className="overflow-auto rounded-lg border bg-muted p-3 text-xs">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+            <div className="grid gap-4">
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">All-grades promotion completed</div>
+                    <div className="mt-1 text-xs text-muted-foreground">Processed grades: {promotionSummary?.totalGrades ?? "—"}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="rounded-md border bg-background p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Total</div>
+                    <div className="mt-1 text-lg font-semibold text-foreground">{promotionSummary?.totalStudents ?? "—"}</div>
+                  </div>
+                  <div className="rounded-md border bg-emerald-50 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-emerald-700">Eligible</div>
+                    <div className="mt-1 text-lg font-semibold text-emerald-800">{promotionSummary?.eligible ?? "—"}</div>
+                  </div>
+                  <div className="rounded-md border bg-amber-50 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-amber-700">At Risk</div>
+                    <div className="mt-1 text-lg font-semibold text-amber-800">{promotionSummary?.atRisk ?? "—"}</div>
+                  </div>
+                  <div className="rounded-md border bg-rose-50 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-rose-700">Not Eligible</div>
+                    <div className="mt-1 text-lg font-semibold text-rose-800">{promotionSummary?.notEligible ?? "—"}</div>
+                  </div>
+                  <div className="rounded-md border bg-primary/10 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-primary">Graduated</div>
+                    <div className="mt-1 text-lg font-semibold text-primary">{promotionSummary?.graduated ?? "—"}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-md border bg-background">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Grade</TableHead>
+                        <TableHead>Students</TableHead>
+                        <TableHead>Eligible</TableHead>
+                        <TableHead>At Risk</TableHead>
+                        <TableHead>Not Eligible</TableHead>
+                        <TableHead>Graduated</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {promotionSummary?.gradeSummaries.map((gradeSummary) => (
+                        <TableRow key={gradeSummary.gradeId}>
+                          <TableCell>
+                            <div className="font-medium text-foreground">{gradeSummary.gradeName}</div>
+                            <div className="text-xs text-muted-foreground">Run: {gradeSummary.runId}</div>
+                          </TableCell>
+                          <TableCell>{gradeSummary.totalStudents}</TableCell>
+                          <TableCell className="text-emerald-700 font-medium">{gradeSummary.eligible}</TableCell>
+                          <TableCell className="text-amber-700 font-medium">{gradeSummary.atRisk}</TableCell>
+                          <TableCell className="text-rose-700 font-medium">{gradeSummary.notEligible}</TableCell>
+                          <TableCell className="text-primary font-medium">{gradeSummary.graduated}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="text-sm text-muted-foreground">
               No result yet.

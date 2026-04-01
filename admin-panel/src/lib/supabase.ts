@@ -7,7 +7,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as
 
 if (!supabaseUrl || !supabaseAnonKey) {
   // Fail fast in dev; in prod you'll see a clear error screen.
-  // eslint-disable-next-line no-console
   console.error(
     "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in admin-panel env.",
   );

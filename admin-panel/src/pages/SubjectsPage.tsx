@@ -77,6 +77,7 @@ export function SubjectsPage() {
   const [createPassing, setCreatePassing] = React.useState("");
   const [createWeight, setCreateWeight] = React.useState("");
   const [createActive, setCreateActive] = React.useState(true);
+  const [createIsPrerequisite, setCreateIsPrerequisite] = React.useState(false);
 
   const [isCreating, setIsCreating] = React.useState(false);
   const [savingId, setSavingId] = React.useState<string | null>(null);
@@ -173,20 +174,29 @@ export function SubjectsPage() {
   async function createSubject() {
     setError(null);
     const name = createName.trim();
+    const passingGrade = toNumberOrNull(createPassing);
     if (!name) {
       setError("Subject name is required.");
+      return;
+    }
+    if (passingGrade === null) {
+      setError("Passing grade is required.");
       return;
     }
 
     setIsCreating(true);
     try {
-      const { error: insertError } = await supabase.from("subjects").insert({
-        name,
-        grade_id: createGradeId,
-        passing_grade: toNumberOrNull(createPassing),
-        weight: toNumberOrNull(createWeight),
-        active: createActive,
-      });
+      const { error: insertError } = await supabase
+        .from("subjects")
+        .insert({
+          name,
+          grade_id: createGradeId,
+          passing_grade: passingGrade,
+          weight: toNumberOrNull(createWeight),
+          active: createActive,
+        })
+        .select("id")
+        .single();
 
       if (insertError) {
         setError(insertError.message);
@@ -198,6 +208,7 @@ export function SubjectsPage() {
       setCreatePassing("");
       setCreateWeight("");
       setCreateActive(true);
+      setCreateIsPrerequisite(false);
 
       await load();
     } finally {
@@ -214,12 +225,18 @@ export function SubjectsPage() {
     setSavingId(id);
     try {
       if (d) {
+        const passingGrade = toNumberOrNull(d.passing_grade);
+        if (passingGrade === null) {
+          setError("Passing grade is required.");
+          return;
+        }
+
         const { error: updateError } = await supabase
           .from("subjects")
           .update({
             name: d.name.trim() || null,
             grade_id: d.grade_id,
-            passing_grade: toNumberOrNull(d.passing_grade),
+            passing_grade: passingGrade,
             weight: toNumberOrNull(d.weight),
             active: d.active,
           })
@@ -332,6 +349,22 @@ export function SubjectsPage() {
           </div>
 
           <div className="md:col-span-5 flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={createIsPrerequisite}
+                  onChange={(e) => setCreateIsPrerequisite(e.target.checked)}
+                />
+                Is this subject a prerequisite?
+              </label>
+              {createIsPrerequisite ? (
+                <div className="text-xs text-muted-foreground">
+                  This marks your intent. Configure which subjects depend on it in the table below.
+                </div>
+              ) : null}
+            </div>
+
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -439,6 +472,7 @@ export function SubjectsPage() {
                         <select
                           className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                           value={p.prerequisite_subject_id ?? ""}
+                          disabled={subjectsInSameGrade.length === 0}
                           onChange={(e) =>
                             setPrerequisiteDrafts((prev) => ({
                               ...prev,

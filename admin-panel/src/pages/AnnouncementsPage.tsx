@@ -172,6 +172,11 @@ export function AnnouncementsPage() {
   }
 
   async function deleteAnnouncement(id: string) {
+    const announcement = announcements.find((item) => item.id === id);
+    if (!window.confirm(`Delete announcement "${announcement?.title ?? id}"?`)) {
+      return;
+    }
+
     setError(null);
     setDeletingId(id);
     try {

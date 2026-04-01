@@ -6,8 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/data/auth_providers.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../core/refresh/app_refresh_scope.dart';
+import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
+import 'attendance/servant_attendance_home_screen.dart';
 
 class ServantShell extends StatelessWidget {
   const ServantShell({super.key, required this.navigationShell});
@@ -147,11 +149,12 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
                       label: const Text(
-                        'Back to role selection',
+                        'Back to home',
                         style: TextStyle(fontSize: 13),
                       ),
                     ),
                     const SizedBox(height: 16),
+
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -181,33 +184,33 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: const Icon(
-                                  Icons.groups_rounded,
+                                  Icons.person_rounded,
                                   color: Color(0xFFD97706),
                                   size: 32,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 16),
                               const Text(
                                 'Servant Login',
-                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                'Sign in to manage your class',
-                                textAlign: TextAlign.center,
+                                'Enter your credentials to continue',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
+
                           Form(
                             key: _formKey,
                             child: Column(
@@ -217,32 +220,27 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                   'Email',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w600,
                                     color: Color(0xFF1E293B),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 _IconTextField(
                                   controller: _emailController,
-                                  hintText: 'Enter your email',
-                                  icon: Icons.mail_rounded,
                                   keyboardType: TextInputType.emailAddress,
+                                  hintText: 'Enter your email',
+                                  icon: Icons.person_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter your email';
                                     }
-                                    if (!value.contains('@')) {
-                                      return 'Please enter a valid email';
-                                    }
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 16),
                                 const Text(
                                   'Password',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w600,
                                     color: Color(0xFF1E293B),
                                   ),
                                 ),
@@ -278,7 +276,7 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                   child: FilledButton.icon(
                                     onPressed: _submitting ? null : _submit,
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: const Color(0xFFF59E0B),
+                                      backgroundColor: const Color(0xFFD97706),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
@@ -317,11 +315,14 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 16),
                           Align(
                             alignment: Alignment.center,
                             child: TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                // TODO: hook up password reset flow
+                              },
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFFF59E0B),
                               ),
@@ -334,6 +335,7 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 16),
                     const Align(
                       alignment: Alignment.center,
@@ -422,34 +424,40 @@ class ServantDashboardScreen extends StatelessWidget {
             // Header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
                     Color(0xFFF59E0B), // amber-500
                     Color(0xFFD97706), // amber-600
                   ],
                 ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
+                ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Text(
                     'Servant Dashboard',
                     style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 6),
                   Text(
                     'Class Management',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       color: Color(0xFFFDE68A), // amber-200
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -464,148 +472,150 @@ class ServantDashboardScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Class summary card
-                    Transform.translate(
-                      offset: const Offset(0, -20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x14374151),
-                              blurRadius: 14,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
+                    SizedBox(height: 20),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x14374151),
+                            blurRadius: 18,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Icon(
+                                  Icons.groups_rounded,
+                                  color: Color(0xFFD97706),
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Total Students',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    '$classSize',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
+                                    color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
-                                  child: const Icon(
-                                    Icons.group,
-                                    color: Color(0xFFD97706),
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total Students',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF64748B),
+                                  child: const Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Avg Attendance',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6B7280),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      '$classSize',
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0F172A),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        '$avgAttendance%',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Avg Attendance',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          '$avgAttendance%',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Pending Items',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF6B7280),
-                                          ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Pending Items',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6B7280),
+                                          fontWeight: FontWeight.w500,
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${pendingQuestions + pendingComplaints}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0F172A),
-                                          ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${pendingQuestions + pendingComplaints}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 16),
 
                     // Quick actions
                     const Text(
                       'Quick Actions',
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
+                        letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Column(
                       children: [
                         _ServantQuickActionButton(
@@ -632,7 +642,7 @@ class ServantDashboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         _ServantQuickActionButton(
-                          background: const Color(0xFF0EA5E9),
+                          background: const Color(0xFF0284C7),
                           foreground: Colors.white,
                           iconBackground: Colors.white24,
                           icon: Icons.insights_rounded,
@@ -649,17 +659,17 @@ class ServantDashboardScreen extends StatelessWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Today schedule
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x0F000000),
-                            blurRadius: 10,
+                            blurRadius: 12,
                             offset: Offset(0, 4),
                           ),
                         ],
@@ -668,12 +678,12 @@ class ServantDashboardScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 10),
+                            padding: EdgeInsets.fromLTRB(18, 14, 18, 10),
                             child: Text(
                               'Today\'s Schedule',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                                 color: Color(0xFF0F172A),
                               ),
                             ),
@@ -696,15 +706,15 @@ class ServantDashboardScreen extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     // Pending communication alert
                     if (pendingQuestions > 0 || pendingComplaints > 0)
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFFBEB), // amber-50
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: const Color(0xFFFDE68A), // amber-200
                           ),
@@ -715,9 +725,9 @@ class ServantDashboardScreen extends StatelessWidget {
                             const Icon(
                               Icons.chat_bubble_rounded,
                               color: Color(0xFFD97706),
-                              size: 20,
+                              size: 22,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,8 +736,9 @@ class ServantDashboardScreen extends StatelessWidget {
                                     'You have $pendingQuestions question${pendingQuestions == 1 ? '' : 's'} '
                                     'and $pendingComplaints complaint${pendingComplaints == 1 ? '' : 's'} pending',
                                     style: const TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 14,
                                       color: Color(0xFF92400E),
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -740,12 +751,15 @@ class ServantDashboardScreen extends StatelessWidget {
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFF92400E),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 10,
                                 ),
                               ),
                               child: const Text(
                                 'View',
-                                style: TextStyle(fontSize: 13),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -755,8 +769,6 @@ class ServantDashboardScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            const SizedBox(height: 4),
           ],
         ),
       ),
@@ -913,7 +925,7 @@ class ServantAttendanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Servant Attendance')));
+    return const ServantAttendanceHomeScreen();
   }
 }
 
@@ -959,27 +971,71 @@ class _ServantGradeEntry {
 }
 
 class _ServantGradesScreenState extends State<ServantGradesScreen> {
-  _ServantGradesView _view = _ServantGradesView.list;
-  _ServantGradeEntry? _selectedEntry;
+  Future<void> _loadSubjects() async {
+    setState(() {
+      _loadingSubjects = true;
+      _subjectsError = null;
+    });
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
 
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      final gradeId = profile?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw Exception('Servant is not assigned to a grade');
+      }
+
+      _myGradeId = gradeId;
+
+      final data = await client
+          .from('subjects')
+          .select('id, name')
+          .eq('grade_id', gradeId)
+          .eq('active', true)
+          .order('name');
+      final subjects = <_ServantGradesSubject>[];
+      for (final s in data) {
+        final m = s as Map;
+        final id = m['id']?.toString();
+        final name = m['name']?.toString();
+        if (id != null && name != null) {
+          subjects.add(_ServantGradesSubject(id: id, name: name));
+        }
+      }
+      setState(() {
+        _subjects = subjects;
+        _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
+        _loadingSubjects = false;
+      });
+    } catch (e) {
+      setState(() {
+        _subjectsError = 'Failed to load subjects';
+        _loadingSubjects = false;
+      });
+    }
+  }
+
+  // UI and logic state
+  _ServantGradeEntry? _selectedEntry;
+  String? _myGradeId;
   String? _academicYearId;
   String? _academicYearName;
   String? _academicYearStatus;
-
   bool _loadingLockState = true;
   bool _isLocked = false;
   String? _lockMessage;
-
   PromotionCriteriaSet _criteria = PromotionCriteriaSet.defaults;
   bool _loadingCriteria = false;
-
-  // List view state
   bool _showWeightedGrades = false;
   String _weightedSearch = '';
   String? _viewingScoresEntryId;
   final Map<String, String> _entryScoreSearch = {};
-
-  // Form state
   final _assessmentNameController = TextEditingController();
   final _maxScoreController = TextEditingController();
   final _weightController = TextEditingController();
@@ -987,121 +1043,184 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   final Map<String, TextEditingController> _studentScoreControllers = {};
   String _studentScoresSearch = '';
   int _studentScoresPage = 0;
-
   final _subjectNameController = TextEditingController();
+  List<_ServantGradesSubject> _subjects = [];
+  _ServantGradesSubject? _selectedSubject;
+  bool _loadingSubjects = true;
+  String? _subjectsError;
+  // Students state
+  List<_ServantGradesStudent> _students = [];
+  bool _loadingStudents = true;
+  String? _studentsError;
 
-  late final List<_ServantGradesStudent> _students = const [
-    _ServantGradesStudent(id: '1', name: 'Sarah Johnson'),
-    _ServantGradesStudent(id: '2', name: 'Michael Chen'),
-    _ServantGradesStudent(id: '3', name: 'Daniel Okoro'),
-    _ServantGradesStudent(id: '4', name: 'Ava Martinez'),
-    _ServantGradesStudent(id: '5', name: 'Samuel Lee'),
-    _ServantGradesStudent(id: '6', name: 'Grace Nwosu'),
-    _ServantGradesStudent(id: '7', name: 'Noah Smith'),
-    _ServantGradesStudent(id: '8', name: 'Mia Patel'),
-  ];
+  // Grade entries state
+  List<_ServantGradeEntry> _gradeEntries = [];
+  bool _loadingGradeEntries = true;
+  String? _gradeEntriesError;
+  // Fetch students for the servant's grade from Supabase
+  Future<void> _loadStudents() async {
+    setState(() {
+      _loadingStudents = true;
+      _studentsError = null;
+    });
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      final gradeId = profile?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw Exception('Servant is not assigned to a grade');
+      }
 
-  late final List<_ServantGradesSubject> _subjects = [
-    const _ServantGradesSubject(id: '1', name: 'Bible Studies'),
-    const _ServantGradesSubject(id: '2', name: 'Christian History'),
-    const _ServantGradesSubject(id: '3', name: 'Memory Verses'),
-    const _ServantGradesSubject(id: '4', name: 'Activities'),
-  ];
+      _myGradeId = gradeId;
 
-  late _ServantGradesSubject _selectedSubject = _subjects.first;
+      final data = await client
+          .from('profiles')
+          .select('id, name')
+          .eq('role', 'student')
+          .eq('grade_id', gradeId)
+          .order('name');
+      final students = <_ServantGradesStudent>[];
+      for (final s in data) {
+        final m = s as Map;
+        final id = m['id']?.toString();
+        final name = m['name']?.toString();
+        if (id != null && name != null) {
+          students.add(_ServantGradesStudent(id: id, name: name));
+        }
+      }
+      setState(() {
+        _students = students;
+        _loadingStudents = false;
+      });
+    } catch (e) {
+      setState(() {
+        _studentsError = 'Failed to load students';
+        _loadingStudents = false;
+      });
+    }
+  }
 
-  late final List<_ServantGradeEntry> _gradeEntries = [
-    _ServantGradeEntry(
-      id: 'g1',
-      subjectId: '1',
-      gradeType: 'Quiz 1',
-      maxScore: 20,
-      weight: 20,
-      date: DateTime(2026, 2, 10),
-      scores: const {
-        '1': 18,
-        '2': 15,
-        '3': 19,
-        '4': null,
-        '5': 16,
-        '6': 17,
-        '7': 20,
-        '8': 14,
-      },
-    ),
-    _ServantGradeEntry(
-      id: 'g2',
-      subjectId: '1',
-      gradeType: 'Midterm Exam',
-      maxScore: 100,
-      weight: 40,
-      date: DateTime(2026, 3, 1),
-      scores: const {
-        '1': 92,
-        '2': 78,
-        '3': 88,
-        '4': 0,
-        '5': 81,
-        '6': 90,
-        '7': 96,
-        '8': null,
-      },
-    ),
-    _ServantGradeEntry(
-      id: 'g3',
-      subjectId: '1',
-      gradeType: 'Final Project',
-      maxScore: 50,
-      weight: 40,
-      date: DateTime(2026, 3, 4),
-      scores: const {
-        '1': 48,
-        '2': 41,
-        '3': 46,
-        '4': 45,
-        '5': 44,
-        '6': 47,
-        '7': 49,
-        '8': 40,
-      },
-    ),
-    _ServantGradeEntry(
-      id: 'g4',
-      subjectId: '2',
-      gradeType: 'Essay',
-      maxScore: 50,
-      weight: 50,
-      date: DateTime(2026, 2, 18),
-      scores: const {
-        '1': 40,
-        '2': 35,
-        '3': 45,
-        '4': 44,
-        '5': 39,
-        '6': 47,
-        '7': 49,
-        '8': null,
-      },
-    ),
-    _ServantGradeEntry(
-      id: 'g5',
-      subjectId: '2',
-      gradeType: 'Final Exam',
-      maxScore: 100,
-      weight: 50,
-      date: DateTime(2026, 3, 3),
-      scores: const {
-        '1': 84,
-        '2': 66,
-        '3': 90,
-        '4': 75,
-        '5': 72,
-        '6': 95,
-        '7': 98,
-        '8': 64,
-      },
-    ),
-  ];
+  // Fetch grade entries for the servant's grade from Supabase
+  Future<void> _loadGradeEntries() async {
+    setState(() {
+      _loadingGradeEntries = true;
+      _gradeEntriesError = null;
+    });
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
+
+      final academicYear = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final academicYearId =
+          (academicYear?['id'] as String?) ?? _academicYearId;
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw Exception('No active academic year found');
+      }
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      final gradeId = profile?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw Exception('Servant is not assigned to a grade');
+      }
+
+      _myGradeId = gradeId;
+
+      final assessmentsRows = await client
+          .from('assessments')
+          .select(
+            'id, subject_id, grade_type, max_score, weight, assessment_date',
+          )
+          .eq('academic_year_id', academicYearId)
+          .eq('grade_id', gradeId)
+          .order('assessment_date', ascending: false);
+
+      final assessmentIds = <String>[];
+      for (final row in assessmentsRows) {
+        final id = (row['id'] as String?);
+        if (id != null && id.isNotEmpty) assessmentIds.add(id);
+      }
+
+      final scoresByAssessment = <String, Map<String, double?>>{};
+      if (assessmentIds.isNotEmpty) {
+        final scoreRows = await client
+            .from('assessment_scores')
+            .select('assessment_id, student_id, score')
+            .inFilter('assessment_id', assessmentIds);
+
+        for (final row in scoreRows) {
+          final assessmentId = row['assessment_id'] as String?;
+          final studentId = row['student_id'] as String?;
+          if (assessmentId == null || studentId == null) continue;
+          final score = (row['score'] as num?)?.toDouble();
+
+          final map = scoresByAssessment.putIfAbsent(
+            assessmentId,
+            () => <String, double?>{},
+          );
+          map[studentId] = score;
+        }
+      }
+
+      final entries = <_ServantGradeEntry>[];
+      for (final row in assessmentsRows) {
+        final id = row['id'] as String?;
+        final subjectId = row['subject_id'] as String?;
+        final gradeType = (row['grade_type'] as String?) ?? 'Assessment';
+        final maxScoreNum = row['max_score'] as num?;
+        final weightNum = row['weight'] as num?;
+        final dateStr = row['assessment_date'] as String?;
+
+        final date = dateStr == null ? null : DateTime.tryParse(dateStr);
+        if (id == null ||
+            subjectId == null ||
+            maxScoreNum == null ||
+            date == null) {
+          continue;
+        }
+
+        entries.add(
+          _ServantGradeEntry(
+            id: id,
+            subjectId: subjectId,
+            gradeType: gradeType,
+            maxScore: maxScoreNum.toInt(),
+            weight: weightNum?.toInt(),
+            date: date,
+            scores: scoresByAssessment[id] ?? <String, double?>{},
+          ),
+        );
+      }
+
+      setState(() {
+        _gradeEntries = entries;
+        _loadingGradeEntries = false;
+      });
+    } catch (e) {
+      setState(() {
+        _gradeEntriesError = 'Failed to load grade entries';
+        _loadingGradeEntries = false;
+      });
+    }
+  }
+
+  _ServantGradesView _view = _ServantGradesView.list;
 
   static const int _scoresPageSize = 30;
 
@@ -1110,6 +1229,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     super.initState();
     _loadLockState();
     _loadPromotionCriteria();
+    _loadSubjects();
+    _loadStudents();
+    _loadGradeEntries();
   }
 
   Future<void> _loadPromotionCriteria() async {
@@ -1254,8 +1376,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   List<_ServantGradeEntry> _entriesForSelectedSubject() {
+    if (_selectedSubject == null) return [];
     final entries = _gradeEntries
-        .where((e) => e.subjectId == _selectedSubject.id)
+        .where((e) => e.subjectId == _selectedSubject!.id)
         .toList();
     entries.sort((a, b) => b.date.compareTo(a.date));
     return entries;
@@ -1371,12 +1494,16 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     );
 
     if (result != true) return;
-    setState(() {
-      _gradeEntries.removeWhere((e) => e.id == entry.id);
-      if (_viewingScoresEntryId == entry.id) {
-        _viewingScoresEntryId = null;
-      }
-    });
+    try {
+      final client = SupabaseClientManager.instance.client;
+      await client.from('assessments').delete().eq('id', entry.id);
+      await _loadGradeEntries();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete assessment.')),
+      );
+    }
   }
 
   void _selectSubject(_ServantGradesSubject subject) {
@@ -1472,13 +1599,13 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     });
   }
 
-  void _saveAssessment({required bool editing}) {
+  Future<void> _saveAssessment({required bool editing}) async {
     if (_isLocked) return;
 
     final name = _assessmentNameController.text.trim();
     final maxScore = int.tryParse(_maxScoreController.text.trim());
     final weightText = _weightController.text.trim();
-    final weight = weightText.isEmpty ? null : int.tryParse(weightText);
+    final weight = weightText.isEmpty ? 0 : int.tryParse(weightText);
     final date = _assessmentDate;
 
     if (name.isEmpty || maxScore == null || maxScore <= 0 || date == null) {
@@ -1515,47 +1642,122 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       scores[student.id] = v;
     }
 
-    setState(() {
+    final subject = _selectedSubject;
+    if (subject == null) return;
+
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      final gradeId = profile?['grade_id']?.toString() ?? _myGradeId;
+      if (gradeId == null || gradeId.isEmpty) {
+        throw Exception('Servant is not assigned to a grade');
+      }
+
+      final academicYear = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final academicYearId =
+          (academicYear?['id'] as String?) ?? _academicYearId;
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw Exception('No active academic year found');
+      }
+
+      final assessmentDate = date.toIso8601String().substring(0, 10);
+
+      String assessmentId;
       if (editing) {
         final existingId = _selectedEntry?.id;
         if (existingId == null) return;
-        final index = _gradeEntries.indexWhere((e) => e.id == existingId);
-        if (index == -1) return;
-        _gradeEntries[index] = _ServantGradeEntry(
-          id: existingId,
-          subjectId: _selectedSubject.id,
-          gradeType: name,
-          maxScore: maxScore,
-          weight: weight,
-          date: date,
-          scores: scores,
-        );
+        await client
+            .from('assessments')
+            .update({
+              'subject_id': subject.id,
+              'grade_type': name,
+              'max_score': maxScore,
+              'weight': weight ?? 0,
+              'assessment_date': assessmentDate,
+            })
+            .eq('id', existingId);
+        assessmentId = existingId;
       } else {
-        final newId = 'g${DateTime.now().microsecondsSinceEpoch}';
-        _gradeEntries.add(
-          _ServantGradeEntry(
-            id: newId,
-            subjectId: _selectedSubject.id,
-            gradeType: name,
-            maxScore: maxScore,
-            weight: weight,
-            date: date,
-            scores: scores,
-          ),
-        );
+        final inserted = await client
+            .from('assessments')
+            .insert({
+              'academic_year_id': academicYearId,
+              'grade_id': gradeId,
+              'subject_id': subject.id,
+              'grade_type': name,
+              'max_score': maxScore,
+              'weight': weight ?? 0,
+              'assessment_date': assessmentDate,
+              'created_by': user.id,
+            })
+            .select('id')
+            .single();
+        assessmentId = inserted['id'] as String;
       }
-      _view = _ServantGradesView.list;
-      _selectedEntry = null;
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(editing ? 'Assessment updated.' : 'Assessment added.'),
-      ),
-    );
+      final toUpsert = <Map<String, dynamic>>[];
+      final toDeleteStudentIds = <String>[];
+      scores.forEach((studentId, score) {
+        if (score == null) {
+          toDeleteStudentIds.add(studentId);
+        } else {
+          toUpsert.add({
+            'assessment_id': assessmentId,
+            'student_id': studentId,
+            'score': score,
+          });
+        }
+      });
+
+      if (toDeleteStudentIds.isNotEmpty) {
+        await client
+            .from('assessment_scores')
+            .delete()
+            .eq('assessment_id', assessmentId)
+            .inFilter('student_id', toDeleteStudentIds);
+      }
+
+      if (toUpsert.isNotEmpty) {
+        await client
+            .from('assessment_scores')
+            .upsert(toUpsert, onConflict: 'assessment_id,student_id');
+      }
+
+      await _loadGradeEntries();
+      if (!mounted) return;
+
+      setState(() {
+        _view = _ServantGradesView.list;
+        _selectedEntry = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(editing ? 'Assessment updated.' : 'Assessment added.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save assessment.')),
+      );
+    }
   }
 
-  void _saveSubject() {
+  Future<void> _saveSubject() async {
     if (_isLocked) return;
     final name = _subjectNameController.text.trim();
     if (name.isEmpty) {
@@ -1564,16 +1766,42 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       );
       return;
     }
-    final id = 's${DateTime.now().microsecondsSinceEpoch}';
-    final subject = _ServantGradesSubject(id: id, name: name);
-    setState(() {
-      _subjects.add(subject);
-      _selectedSubject = subject;
-      _view = _ServantGradesView.list;
-    });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Subject added.')));
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      final gradeId = profile?['grade_id']?.toString() ?? _myGradeId;
+      if (gradeId == null || gradeId.isEmpty) {
+        throw Exception('Servant is not assigned to a grade');
+      }
+
+      await client.from('subjects').insert({
+        'grade_id': gradeId,
+        'name': name,
+        'active': true,
+      });
+
+      await _loadSubjects();
+      if (!mounted) return;
+      setState(() {
+        _view = _ServantGradesView.list;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Subject added.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to add subject.')));
+    }
   }
 
   Widget _pill({
@@ -1630,121 +1858,149 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final entries = _entriesForSelectedSubject();
-    final totalWeight = _totalWeightForSubject(_selectedSubject.id);
+    final List<_ServantGradeEntry> entries = _selectedSubject != null
+        ? _entriesForSelectedSubject()
+        : <_ServantGradeEntry>[];
+    final int totalWeight = _selectedSubject != null
+        ? _totalWeightForSubject(_selectedSubject!.id)
+        : 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // slate-50
       body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, _) {
-            return [
-              SliverAppBar(
-                pinned: true,
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.white,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                automaticallyImplyLeading: false,
-                toolbarHeight: 64,
-                titleSpacing: 24,
-                title: const Text(
-                  'Manage Grades',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
-                  ),
+        child: (_loadingSubjects || _loadingStudents || _loadingGradeEntries)
+            ? const Center(child: CircularProgressIndicator())
+            : (_subjectsError ?? _studentsError ?? _gradeEntriesError) != null
+            ? Center(
+                child: Text(
+                  (_subjectsError ?? _studentsError ?? _gradeEntriesError)!,
                 ),
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(92),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (!_loadingLockState &&
-                          _isLocked &&
-                          _lockMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7), // amber-100
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFFDE68A), // amber-200
-                              ),
-                            ),
-                            child: Text(
-                              _lockMessage!,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF78350F),
-                              ),
-                            ),
-                          ),
+              )
+            : _subjects.isEmpty
+            ? const Center(child: Text('No subjects found.'))
+            : NestedScrollView(
+                headerSliverBuilder: (context, _) {
+                  return [
+                    SliverAppBar(
+                      pinned: true,
+                      backgroundColor: Colors.white,
+                      surfaceTintColor: Colors.white,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      automaticallyImplyLeading: false,
+                      toolbarHeight: 64,
+                      titleSpacing: 24,
+                      title: const Text(
+                        'Manage Grades',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
                         ),
-
-                      SizedBox(
-                        height: 46,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                      ),
+                      bottom: PreferredSize(
+                        preferredSize: const Size.fromHeight(92),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            for (final s in _subjects) ...[
+                            if (!_loadingLockState &&
+                                _isLocked &&
+                                _lockMessage != null)
                               Padding(
-                                padding: const EdgeInsets.only(right: 10),
-                                child: _SubjectChip(
-                                  selected: s.id == _selectedSubject.id,
-                                  label: s.name,
-                                  onTap: () => _selectSubject(s),
+                                padding: const EdgeInsets.fromLTRB(
+                                  24,
+                                  0,
+                                  24,
+                                  10,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7), // amber-100
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFFFDE68A,
+                                      ), // amber-200
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _lockMessage!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF78350F),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ],
-                            _SubjectChip(
-                              selected: false,
-                              label: 'New Subject',
-                              tone: _ChipTone.amber,
-                              icon: Icons.add_rounded,
-                              onTap: _goToAddSubject,
-                              disabled: _isLocked,
+                            SizedBox(
+                              height: 46,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                children: [
+                                  for (final s in _subjects) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: _SubjectChip(
+                                        selected:
+                                            _selectedSubject != null &&
+                                            s.id == _selectedSubject!.id,
+                                        label: s.name,
+                                        onTap: () => _selectSubject(s),
+                                      ),
+                                    ),
+                                  ],
+                                  _SubjectChip(
+                                    selected: false,
+                                    label: 'New Subject',
+                                    tone: _ChipTone.amber,
+                                    icon: Icons.add_rounded,
+                                    onTap: _goToAddSubject,
+                                    disabled: _isLocked,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              height: 1,
+                              color: const Color(0xFFE2E8F0), // slate-200
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      Container(
-                        height: 1,
-                        color: const Color(0xFFE2E8F0), // slate-200
+                    ),
+                  ];
+                },
+                body: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: switch (_view) {
+                      _ServantGradesView.list => _buildList(
+                        entries: entries,
+                        totalWeight: totalWeight,
                       ),
-                    ],
+                      _ServantGradesView.add => _buildAssessmentForm(
+                        editing: false,
+                      ),
+                      _ServantGradesView.edit => _buildAssessmentForm(
+                        editing: true,
+                      ),
+                      _ServantGradesView.addSubject => _buildAddSubjectForm(),
+                      _ServantGradesView.missing => _buildMissingView(
+                        entries: entries,
+                      ),
+                    },
                   ),
                 ),
               ),
-            ];
-          },
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: switch (_view) {
-                _ServantGradesView.list => _buildList(
-                  entries: entries,
-                  totalWeight: totalWeight,
-                ),
-                _ServantGradesView.add => _buildAssessmentForm(editing: false),
-                _ServantGradesView.edit => _buildAssessmentForm(editing: true),
-                _ServantGradesView.addSubject => _buildAddSubjectForm(),
-                _ServantGradesView.missing => _buildMissingView(
-                  entries: entries,
-                ),
-              },
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1907,12 +2163,14 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required List<_ServantGradeEntry> entries,
     required int totalWeight,
   }) {
-    final subjectName = _selectedSubject.name;
+    final subjectName = _selectedSubject?.name ?? '';
 
-    final validScores = _students
-        .map((s) => _calculateSubjectAverage(s.id, _selectedSubject.id))
-        .whereType<int>()
-        .toList();
+    final validScores = _selectedSubject == null
+        ? <int>[]
+        : _students
+              .map((s) => _calculateSubjectAverage(s.id, _selectedSubject!.id))
+              .whereType<int>()
+              .toList();
 
     final classAvg = validScores.isEmpty
         ? null
@@ -2127,7 +2385,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required _ServantGradesStudent student,
     required List<_ServantGradeEntry> entries,
   }) {
-    final avg = _calculateSubjectAverage(student.id, _selectedSubject.id);
+    final avg = _selectedSubject == null
+        ? null
+        : _calculateSubjectAverage(student.id, _selectedSubject!.id);
     final missing = entries.where((e) => e.scores[student.id] == null).toList();
 
     return Container(
@@ -2916,7 +3176,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             ),
             const SizedBox(width: 6),
             Text(
-              'Missing Assessments - ${_selectedSubject.name}',
+              'Missing Assessments - ${_selectedSubject?.name ?? ''}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -3133,6 +3393,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   String _announcementCategory = 'general';
   final String _announcementTargetAudience = 'students';
   final String _announcementPriority = 'medium';
+  // ignore: unused_field
   String? _announcementExpiresOn;
 
   final List<_ServantAnnouncement> _announcements = [
@@ -6179,6 +6440,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildFeedbackListOnly() {
     return _buildFeedbackTab();
   }
@@ -7570,6 +7832,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     return '$y-$m-$d';
   }
 
+  // ignore: unused_element
   static String _truncate(String text, int max) {
     if (text.length <= max) return text;
     return '${text.substring(0, max).trimRight()}…';
@@ -7652,6 +7915,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     }
   }
 
+  // ignore: unused_element
   static Widget _priorityBadge(String priority) {
     switch (priority) {
       case 'high':
@@ -8135,11 +8399,358 @@ class _ServantFeedbackResponse {
   final Map<String, Object?> answers;
 }
 
-class ServantProfileScreen extends StatelessWidget {
+class ServantProfileScreen extends StatefulWidget {
   const ServantProfileScreen({super.key});
 
   @override
+  State<ServantProfileScreen> createState() => _ServantProfileScreenState();
+}
+
+class _ProfileData {
+  const _ProfileData({
+    required this.academicId,
+    required this.role,
+    required this.accountStatus,
+    this.name,
+    this.gradeName,
+    this.gradeCode,
+    this.email,
+  });
+
+  final String academicId;
+  final String? name;
+  final String role;
+  final String accountStatus;
+  final String? gradeName;
+  final String? gradeCode;
+  final String? email;
+}
+
+class _ServantProfileScreenState extends State<ServantProfileScreen> {
+  late Future<_ProfileData> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  Future<_ProfileData> _loadProfile() async {
+    final client = SupabaseClientManager.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in');
+    }
+
+    final profile = await client
+        .from('profiles')
+        .select('academic_id, name, role, grade_id, account_status')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (profile == null) {
+      throw StateError('Profile not found');
+    }
+
+    final gradeId = (profile as Map)['grade_id']?.toString();
+    String? gradeName;
+    String? gradeCode;
+    if (gradeId != null && gradeId.isNotEmpty) {
+      final grade = await client
+          .from('grades')
+          .select('name, code')
+          .eq('id', gradeId)
+          .maybeSingle();
+      gradeName = (grade as Map?)?['name']?.toString();
+      gradeCode = (grade as Map?)?['code']?.toString();
+    }
+
+    return _ProfileData(
+      academicId: (profile as Map)['academic_id']?.toString() ?? '',
+      name: profile['name']?.toString(),
+      role: profile['role']?.toString() ?? 'servant',
+      accountStatus: profile['account_status']?.toString() ?? 'active',
+      gradeName: gradeName,
+      gradeCode: gradeCode,
+      email: user.email,
+    );
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _profileFuture = _loadProfile();
+    });
+    await _profileFuture;
+  }
+
+  Future<void> _signOut() async {
+    final client = SupabaseClientManager.instance.client;
+    await client.auth.signOut();
+    if (mounted) {
+      context.go('/');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Servant Profile')));
+    const accent = Color(0xFFD97706); // amber-600
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: AppRefreshConfigurator(
+          onRefresh: _handleRefresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Account details',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFFFDE68A),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: FutureBuilder<_ProfileData>(
+                  future: _profileFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14374151),
+                              blurRadius: 18,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Could not load profile',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              snapshot.error.toString(),
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _handleRefresh,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final data = snapshot.data;
+                    if (data == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final displayName =
+                        (data.name == null || data.name!.trim().isEmpty)
+                        ? 'Servant'
+                        : data.name!.trim();
+                    final gradeText =
+                        (data.gradeName == null || data.gradeName!.isEmpty)
+                        ? 'Not assigned'
+                        : (data.gradeCode == null || data.gradeCode!.isEmpty)
+                        ? data.gradeName!
+                        : '${data.gradeName} (${data.gradeCode})';
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x14374151),
+                                blurRadius: 18,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: accent,
+                                      size: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          data.email ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.badge_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Academic ID'),
+                                subtitle: Text(data.academicId),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.class_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Grade'),
+                                subtitle: Text(gradeText),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.verified_user_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Account status'),
+                                subtitle: Text(data.accountStatus),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.work_outline,
+                                  color: accent,
+                                ),
+                                title: const Text('Role'),
+                                subtitle: Text(data.role),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Sign out'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

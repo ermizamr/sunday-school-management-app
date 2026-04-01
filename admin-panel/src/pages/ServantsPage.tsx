@@ -83,6 +83,10 @@ export function ServantsPage() {
     try {
       const current = (p.account_status ?? "active").toLowerCase();
       const next = current === "inactive" ? "active" : "inactive";
+      const actionLabel = next === "active" ? "activate" : "deactivate";
+      if (!window.confirm(`Are you sure you want to ${actionLabel} ${p.name ?? p.id}?`)) {
+        return;
+      }
 
       const { error: fnError } = await supabase.functions.invoke(
         "admin-set-account-status",

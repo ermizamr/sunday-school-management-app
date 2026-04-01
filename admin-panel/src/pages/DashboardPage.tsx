@@ -23,7 +23,7 @@ export function DashboardPage() {
 
         // Fetch Total Users (role = student) - count only since we don't need actual data here
         const { count: studentCount, error: studentError } = await supabase
-          .from("users")
+          .from("profiles")
           .select("*", { count: "exact", head: true })
           .eq("role", "student");
 
@@ -31,7 +31,7 @@ export function DashboardPage() {
 
         // Fetch Total Servants (role = servant)
         const { count: servantCount, error: servantError } = await supabase
-          .from("users")
+          .from("profiles")
           .select("*", { count: "exact", head: true })
           .eq("role", "servant");
 
@@ -62,9 +62,9 @@ export function DashboardPage() {
           activeAnnouncements: announcementCount || 0,
           currentAcademicYear: activeYear?.name || "None",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load dashboard stats", err);
-        setError(err.message || "An error occurred while loading dashboard statistics.");
+        setError(err instanceof Error ? err.message : "An error occurred while loading dashboard statistics.");
       } finally {
         setLoading(false);
       }

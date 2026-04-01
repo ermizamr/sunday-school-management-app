@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/data/auth_providers.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
+import '../../../core/refresh/app_refresh_configurator.dart';
 
 class StudentShell extends StatelessWidget {
   const StudentShell({super.key, required this.navigationShell});
@@ -103,7 +104,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Login failed. Please try again.';
+        _error = 'መግባት አልተሳካም። እባክዎን በድጋሚ ይሞክሩ።';
       });
     } finally {
       if (mounted) {
@@ -149,7 +150,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
                       label: const Text(
-                        'Back to role selection',
+                        'ወደ መነሻ ገጽ',
                         style: TextStyle(fontSize: 13),
                       ),
                     ),
@@ -193,7 +194,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                               ),
                               const SizedBox(height: 16),
                               const Text(
-                                'Student Login',
+                                'የተማሪ መግቢያ',
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
@@ -202,7 +203,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                'Enter your credentials to continue',
+                                'የእርስዎን መለያዎች ያስገቡ ለመቀየር',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
@@ -230,11 +231,11 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  hintText: 'Enter your email',
+                                  hintText: 'መታወቂያ ቁጥርዎን ያስገቡ',
                                   icon: Icons.person_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your email';
+                                      return 'እባክዎን መታወቂያ ቁጥርዎን ያስገቡ';
                                     }
                                     return null;
                                   },
@@ -251,14 +252,14 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _passwordController,
                                   obscureText: true,
-                                  hintText: 'Enter your password',
+                                  hintText: 'የይለፍ ቃልዎን ያስገቡ',
                                   icon: Icons.lock_rounded,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your password';
+                                      return 'እባክዎን የይለፍ ቃልዎን ያስገቡ';
                                     }
                                     if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
+                                      return 'የይለፍ ቃልዎ ቢያንስ 6 ፊደሎች መሆን ይኖርበታል';
                                     }
                                     return null;
                                   },
@@ -330,7 +331,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 foregroundColor: const Color(0xFF0EA5E9),
                               ),
                               child: const Text(
-                                'Forgot your password?',
+                                'የይለፍ ቃል ረሳችሁን? / Forgot password?',
                                 style: TextStyle(fontSize: 13),
                               ),
                             ),
@@ -451,7 +452,7 @@ class StudentDashboardScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Welcome back,',
+                      'እንኳን በደህና መጡ!',
                       style: TextStyle(
                         fontSize: 22,
                         color: Colors.white,
@@ -485,7 +486,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconColor: const Color(0xFF0284C7),
                               icon: Icons.calendar_month_rounded,
                               value: '$attendancePercent%',
-                              label: 'Attendance',
+                              label: 'የመገኘት መቆጣጠሪያ',
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -495,7 +496,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconColor: const Color(0xFFD97706),
                               icon: Icons.emoji_events_rounded,
                               value: '$academicAvg%',
-                              label: 'Academic Avg',
+                              label: 'አማካኝ ውጤት',
                             ),
                           ),
                         ],
@@ -538,7 +539,7 @@ class StudentDashboardScreen extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   const Expanded(
                                     child: Text(
-                                      'Communication',
+                                      'ግንኙነት',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         color: Color(0xFF0F172A),
@@ -682,7 +683,159 @@ class StudentAttendanceScreen extends StatefulWidget {
 }
 
 class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
-  String _selectedSubjectId = _attendanceSubjects.first.id;
+  bool _loadingAttendance = true;
+  String? _attendanceError;
+
+  List<_AttendanceSubject> _attendanceSubjects = const [];
+  List<_AttendanceRecord> _attendanceRecords = const [];
+  String? _selectedSubjectId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAttendanceFromBackend();
+  }
+
+  static _AttendanceStatus _attendanceStatusFromDb(String raw) {
+    switch (raw) {
+      case 'present':
+        return _AttendanceStatus.present;
+      case 'late':
+        return _AttendanceStatus.late;
+      case 'permission':
+        return _AttendanceStatus.permission;
+      case 'absent':
+      default:
+        return _AttendanceStatus.absent;
+    }
+  }
+
+  Future<void> _loadAttendanceFromBackend() async {
+    setState(() {
+      _loadingAttendance = true;
+      _attendanceError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('Not signed in');
+      }
+
+      final academicYear = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final academicYearId = academicYear?['id'] as String?;
+      final gradeId = profile?['grade_id'] as String?;
+      if (academicYearId == null || gradeId == null) {
+        throw Exception('Missing active academic year or grade assignment');
+      }
+
+      final subjectRows = await client
+          .from('subjects')
+          .select('id, name')
+          .eq('grade_id', gradeId)
+          .eq('active', true)
+          .order('name');
+
+      final subjects = subjectRows
+          .map(
+            (r) => _AttendanceSubject(
+              id: (r as Map)['id'] as String,
+              name: (r)['name'] as String? ?? 'Subject',
+            ),
+          )
+          .toList();
+
+      final subjectIds = subjects.map((s) => s.id).toList();
+
+      final Map<String, ({String subjectId, DateTime date})> sessionMeta = {};
+      if (subjectIds.isNotEmpty) {
+        final sessionRows = await client
+            .from('attendance_sessions')
+            .select('id, subject_id, session_date')
+            .eq('academic_year_id', academicYearId)
+            .eq('grade_id', gradeId)
+            .inFilter('subject_id', subjectIds)
+            .order('session_date', ascending: false);
+
+        for (final row in sessionRows) {
+          final map = row as Map;
+          final id = map['id']?.toString();
+          final subjectId = map['subject_id']?.toString();
+          final dateRaw = map['session_date']?.toString();
+          if (id == null || subjectId == null || dateRaw == null) continue;
+          final dt = DateTime.tryParse(dateRaw);
+          if (dt == null) continue;
+          sessionMeta[id] = (subjectId: subjectId, date: dt);
+        }
+      }
+
+      final sessionIds = sessionMeta.keys.toList();
+      final records = <_AttendanceRecord>[];
+      if (sessionIds.isNotEmpty) {
+        final recordRows = await client
+            .from('attendance_records')
+            .select('session_id, status')
+            .eq('student_id', userId)
+            .inFilter('session_id', sessionIds);
+
+        for (final row in recordRows) {
+          final map = row as Map;
+          final sessionId = map['session_id']?.toString();
+          final statusRaw = map['status']?.toString();
+          if (sessionId == null || statusRaw == null) continue;
+          final meta = sessionMeta[sessionId];
+          if (meta == null) continue;
+          records.add(
+            _AttendanceRecord(
+              subjectId: meta.subjectId,
+              date: meta.date,
+              status: _attendanceStatusFromDb(statusRaw),
+            ),
+          );
+        }
+      }
+
+      records.sort((a, b) => b.date.compareTo(a.date));
+
+      final prevSelected = _selectedSubjectId;
+      String? nextSelected = prevSelected;
+      if (nextSelected == null || !subjects.any((s) => s.id == nextSelected)) {
+        nextSelected = subjects.isEmpty ? null : subjects.first.id;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _attendanceSubjects = subjects;
+        _attendanceRecords = records;
+        _selectedSubjectId = nextSelected;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _attendanceError = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingAttendance = false;
+        });
+      }
+    }
+  }
 
   int _subjectPercentage(String subjectId) {
     final records = _attendanceRecords
@@ -710,7 +863,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         .where((r) => r.subjectId == subjectId)
         .toList();
     final present = records
-        .where((r) => r.status == _AttendanceStatus.present)
+        .where(
+          (r) =>
+              r.status == _AttendanceStatus.present ||
+              r.status == _AttendanceStatus.permission,
+        )
         .length;
     final late = records
         .where((r) => r.status == _AttendanceStatus.late)
@@ -763,17 +920,60 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingAttendance) {
+      return const Scaffold(
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    if (_attendanceError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Attendance')),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _attendanceError!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadAttendanceFromBackend,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_attendanceSubjects.isEmpty) {
+      return const Scaffold(
+        body: SafeArea(
+          child: Center(child: Text('No subjects found for your grade.')),
+        ),
+      );
+    }
+
+    final selectedSubjectId =
+        _selectedSubjectId ?? _attendanceSubjects.first.id;
+
     final overall = _overallPercentage();
     final subject = _attendanceSubjects.firstWhere(
-      (s) => s.id == _selectedSubjectId,
+      (s) => s.id == selectedSubjectId,
+      orElse: () => _attendanceSubjects.first,
     );
-    final subjectPercentage = _subjectPercentage(_selectedSubjectId);
-    final stats = _statusStats(_selectedSubjectId);
+    final subjectPercentage = _subjectPercentage(selectedSubjectId);
+    final stats = _statusStats(selectedSubjectId);
     final performance = _performance(subjectPercentage);
 
     final subjectRecords =
         _attendanceRecords
-            .where((r) => r.subjectId == _selectedSubjectId)
+            .where((r) => r.subjectId == selectedSubjectId)
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
 
@@ -788,6 +988,13 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     ) {
       switch (s) {
         case _AttendanceStatus.present:
+          return (
+            text: const Color(0xFF16A34A),
+            bg: const Color(0xFFDCFCE7),
+            border: const Color(0xFFBBF7D0),
+            icon: Icons.check_circle_rounded,
+          );
+        case _AttendanceStatus.permission:
           return (
             text: const Color(0xFF16A34A),
             bg: const Color(0xFFDCFCE7),
@@ -925,7 +1132,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                         separatorBuilder: (_, __) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final s = _attendanceSubjects[index];
-                          final selected = s.id == _selectedSubjectId;
+                          final selected = s.id == selectedSubjectId;
                           final p = _subjectPercentage(s.id);
                           return InkWell(
                             onTap: () =>
@@ -1159,6 +1366,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                   _AttendanceStatus.present => 'present',
                                   _AttendanceStatus.late => 'late',
                                   _AttendanceStatus.absent => 'absent',
+                                  _AttendanceStatus.permission => 'permission',
                                 };
                                 return Container(
                                   decoration: const BoxDecoration(
@@ -1478,7 +1686,7 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-enum _AttendanceStatus { present, late, absent }
+enum _AttendanceStatus { present, late, permission, absent }
 
 class _AttendanceSubject {
   const _AttendanceSubject({required this.id, required this.name});
@@ -1497,61 +1705,6 @@ class _AttendanceRecord {
   final DateTime date;
   final _AttendanceStatus status;
 }
-
-const _attendanceSubjects = <_AttendanceSubject>[
-  _AttendanceSubject(id: 'bible', name: 'Bible Studies'),
-  _AttendanceSubject(id: 'history', name: 'Christian History'),
-  _AttendanceSubject(id: 'memory', name: 'Memory Verses'),
-  _AttendanceSubject(id: 'activities', name: 'Activities'),
-];
-
-final _attendanceRecords = <_AttendanceRecord>[
-  _AttendanceRecord(
-    subjectId: 'bible',
-    date: DateTime(2026, 3, 2),
-    status: _AttendanceStatus.present,
-  ),
-  _AttendanceRecord(
-    subjectId: 'bible',
-    date: DateTime(2026, 2, 23),
-    status: _AttendanceStatus.late,
-  ),
-  _AttendanceRecord(
-    subjectId: 'bible',
-    date: DateTime(2026, 2, 16),
-    status: _AttendanceStatus.absent,
-  ),
-  _AttendanceRecord(
-    subjectId: 'history',
-    date: DateTime(2026, 3, 1),
-    status: _AttendanceStatus.present,
-  ),
-  _AttendanceRecord(
-    subjectId: 'history',
-    date: DateTime(2026, 2, 22),
-    status: _AttendanceStatus.present,
-  ),
-  _AttendanceRecord(
-    subjectId: 'memory',
-    date: DateTime(2026, 3, 1),
-    status: _AttendanceStatus.present,
-  ),
-  _AttendanceRecord(
-    subjectId: 'memory',
-    date: DateTime(2026, 2, 22),
-    status: _AttendanceStatus.absent,
-  ),
-  _AttendanceRecord(
-    subjectId: 'activities',
-    date: DateTime(2026, 3, 2),
-    status: _AttendanceStatus.present,
-  ),
-  _AttendanceRecord(
-    subjectId: 'activities',
-    date: DateTime(2026, 2, 23),
-    status: _AttendanceStatus.present,
-  ),
-];
 
 class StudentGradesScreen extends StatefulWidget {
   const StudentGradesScreen({super.key});
@@ -2791,7 +2944,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 }
 
-enum _AcademicYearStatus { active, ended }
+enum _AcademicYearStatus {
+  active,
+  // ignore: unused_field
+  ended,
+}
 
 class _GradesAcademicYear {
   const _GradesAcademicYear({required this.name, required this.status});
@@ -4308,6 +4465,7 @@ class _SubjectGrade {
   final int average;
 }
 
+// ignore: unused_element
 class _SubjectGradeTile extends StatelessWidget {
   const _SubjectGradeTile({
     required this.subject,
@@ -4472,11 +4630,353 @@ class _Complaint {
   final String date;
 }
 
-class StudentProfileScreen extends StatelessWidget {
+class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
 
   @override
+  State<StudentProfileScreen> createState() => _StudentProfileScreenState();
+}
+
+class _ProfileData {
+  const _ProfileData({
+    required this.academicId,
+    required this.role,
+    required this.accountStatus,
+    this.name,
+    this.gradeName,
+    this.gradeCode,
+    this.email,
+  });
+
+  final String academicId;
+  final String? name;
+  final String role;
+  final String accountStatus;
+  final String? gradeName;
+  final String? gradeCode;
+  final String? email;
+}
+
+class _StudentProfileScreenState extends State<StudentProfileScreen> {
+  late Future<_ProfileData> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  Future<_ProfileData> _loadProfile() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in');
+    }
+
+    final profile = await client
+        .from('profiles')
+        .select('academic_id, name, role, grade_id, account_status')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (profile == null) {
+      throw StateError('Profile not found');
+    }
+
+    final gradeId = (profile as Map)['grade_id']?.toString();
+    String? gradeName;
+    String? gradeCode;
+    if (gradeId != null && gradeId.isNotEmpty) {
+      final grade = await client
+          .from('grades')
+          .select('name, code')
+          .eq('id', gradeId)
+          .maybeSingle();
+      gradeName = (grade as Map?)?['name']?.toString();
+      gradeCode = (grade as Map?)?['code']?.toString();
+    }
+
+    return _ProfileData(
+      academicId: (profile as Map)['academic_id']?.toString() ?? '',
+      name: profile['name']?.toString(),
+      role: profile['role']?.toString() ?? 'student',
+      accountStatus: profile['account_status']?.toString() ?? 'active',
+      gradeName: gradeName,
+      gradeCode: gradeCode,
+      email: user.email,
+    );
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _profileFuture = _loadProfile();
+    });
+    await _profileFuture;
+  }
+
+  Future<void> _signOut() async {
+    final client = Supabase.instance.client;
+    await client.auth.signOut();
+    if (mounted) {
+      context.go('/');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Student Profile')));
+    const accent = Color(0xFF0284C7); // sky-600
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: AppRefreshConfigurator(
+          onRefresh: _handleRefresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
+                  ),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Account details',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFFBAE6FD),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: FutureBuilder<_ProfileData>(
+                  future: _profileFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Could not load profile',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              snapshot.error.toString(),
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _handleRefresh,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final data = snapshot.data;
+                    if (data == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final displayName =
+                        (data.name == null || data.name!.trim().isEmpty)
+                        ? 'Student'
+                        : data.name!.trim();
+                    final gradeText =
+                        (data.gradeName == null || data.gradeName!.isEmpty)
+                        ? 'Not assigned'
+                        : (data.gradeCode == null || data.gradeCode!.isEmpty)
+                        ? data.gradeName!
+                        : '${data.gradeName} (${data.gradeCode})';
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0F000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0F2FE),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: accent,
+                                      size: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          data.email ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.badge_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Academic ID'),
+                                subtitle: Text(data.academicId),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.class_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Grade'),
+                                subtitle: Text(gradeText),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.verified_user_outlined,
+                                  color: accent,
+                                ),
+                                title: const Text('Account status'),
+                                subtitle: Text(data.accountStatus),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.work_outline,
+                                  color: accent,
+                                ),
+                                title: const Text('Role'),
+                                subtitle: Text(data.role),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Sign out'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -113,6 +113,9 @@ export function AcademicYearsPage() {
 
   async function endActiveYear() {
     if (!activeYear) return;
+    if (!window.confirm(`End active academic year "${activeYear.name ?? "Unnamed"}"?`)) {
+      return;
+    }
     setError(null);
     setIsEnding(true);
     try {
@@ -132,6 +135,10 @@ export function AcademicYearsPage() {
   }
 
   async function archiveYear(yearId: string) {
+    const targetYear = years.find((year) => year.id === yearId);
+    if (!window.confirm(`Archive academic year "${targetYear?.name ?? yearId}"?`)) {
+      return;
+    }
     setError(null);
     setArchivingId(yearId);
     try {
@@ -145,8 +152,8 @@ export function AcademicYearsPage() {
       }
 
       await load();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to archive academic year.");
     } finally {
       setArchivingId(null);
     }
