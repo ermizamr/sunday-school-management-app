@@ -50,7 +50,6 @@ begin
   return;
 end;
 $$;
-
 create or replace function public.compute_subject_average_for_semester(
   p_student_id uuid,
   p_subject_id uuid,
@@ -102,7 +101,6 @@ begin
   return result;
 end;
 $$;
-
 create or replace function public.compute_attendance_percent_for_semester(
   p_student_id uuid,
   p_academic_year_id uuid,
@@ -149,7 +147,6 @@ begin
   return result;
 end;
 $$;
-
 create or replace function public.compute_overall_average_for_semester(
   p_student_id uuid,
   p_grade_id uuid,
@@ -196,7 +193,6 @@ begin
   return result;
 end;
 $$;
-
 create or replace function public.compute_year_average_from_semesters(
   p_student_id uuid,
   p_grade_id uuid,
@@ -233,7 +229,6 @@ begin
   return round(((sem1 + sem2) / 2.0)::numeric, 2);
 end;
 $$;
-
 -- Prerequisite scope policy: transcript-history based (any academic year).
 create or replace function public.has_passed_prerequisite_subject(
   p_student_id uuid,
@@ -268,7 +263,6 @@ as $$
       and py.subject_avg >= p_min_score
   );
 $$;
-
 create or replace function public.assert_subject_prerequisites(
   p_student_id uuid,
   p_subject_id uuid,
@@ -299,7 +293,6 @@ begin
   end if;
 end;
 $$;
-
 -- Promotion policy update: prerequisites do not block grade promotion anymore.
 create or replace function public.determine_promotion_status(
   p_student_id uuid,
@@ -346,7 +339,6 @@ begin
   return 'eligible';
 end;
 $$;
-
 -- Keep promotion output aligned with semester-year average.
 create or replace function public.run_promotion(
 	p_academic_year_id uuid,
@@ -449,7 +441,6 @@ begin
 	return run_id;
 end;
 $$;
-
 create or replace function public.get_my_semester_report(
   p_academic_year_id uuid,
   p_grade_id uuid,
@@ -503,7 +494,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.get_my_academic_assessment(
   p_academic_year_id uuid,
   p_grade_id uuid
@@ -533,7 +523,6 @@ begin
   );
 end;
 $$;
-
 grant execute on function public.get_semester_date_bounds(uuid, public.academic_year_period) to authenticated;
 grant execute on function public.compute_subject_average_for_semester(uuid, uuid, uuid, public.academic_year_period) to authenticated;
 grant execute on function public.compute_attendance_percent_for_semester(uuid, uuid, public.academic_year_period) to authenticated;

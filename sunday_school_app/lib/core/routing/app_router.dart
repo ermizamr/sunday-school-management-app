@@ -58,7 +58,9 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/student/communication',
               name: 'student-communication',
-              builder: (context, state) => const StudentCommunicationScreen(),
+              builder: (context, state) => StudentCommunicationScreen(
+                initialTab: state.uri.queryParameters['tab'],
+              ),
             ),
           ],
         ),
@@ -129,7 +131,9 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/servant/communication',
               name: 'servant-communication',
-              builder: (context, state) => const ServantCommunicationScreen(),
+              builder: (context, state) => ServantCommunicationScreen(
+                initialTab: state.uri.queryParameters['tab'],
+              ),
             ),
           ],
         ),

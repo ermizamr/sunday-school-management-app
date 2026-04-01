@@ -5,6 +5,7 @@ import 'core/bootstrap/bootstrap_error_screen.dart';
 import 'core/refresh/app_refresh_controller.dart';
 import 'core/refresh/app_refresh_scope.dart';
 import 'core/refresh/global_refresh_indicator.dart';
+import 'core/push/push_notifications_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/supabase/supabase_client.dart';
 
@@ -14,6 +15,13 @@ Future<void> main() async {
   Object? bootstrapError;
   try {
     await SupabaseClientManager.instance.init();
+    try {
+      await PushNotificationsService.instance.init();
+    } catch (e, st) {
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: e, stack: st, library: 'push bootstrap'),
+      );
+    }
   } catch (e, st) {
     bootstrapError = e;
     FlutterError.reportError(
@@ -54,14 +62,14 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
 
     if (widget.bootstrapError != null) {
       return MaterialApp(
-        title: 'Sunday School Management',
+        title: 'DEAS EMSS',
         theme: theme,
         home: BootstrapErrorScreen(message: widget.bootstrapError.toString()),
       );
     }
 
     return MaterialApp.router(
-      title: 'Sunday School Management',
+      title: 'DEAS EMSS',
       theme: theme,
       routerConfig: appRouter,
       builder: (context, child) {

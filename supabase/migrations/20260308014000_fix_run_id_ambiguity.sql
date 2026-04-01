@@ -23,7 +23,6 @@ using (
 		)
 	)
 );
-
 create or replace function public.run_promotion(
   p_academic_year_id uuid,
   p_grade_id uuid,

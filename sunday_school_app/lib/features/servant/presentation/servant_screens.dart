@@ -9,6 +9,7 @@ import '../../../core/refresh/app_refresh_scope.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
+import '../../../core/push/push_notifications_service.dart';
 import 'attendance/servant_attendance_home_screen.dart';
 
 class ServantShell extends StatelessWidget {
@@ -3357,16 +3358,20 @@ class _SubjectChip extends StatelessWidget {
 }
 
 class ServantCommunicationScreen extends StatelessWidget {
-  const ServantCommunicationScreen({super.key});
+  const ServantCommunicationScreen({super.key, this.initialTab});
+
+  final String? initialTab;
 
   @override
   Widget build(BuildContext context) {
-    return const _ServantCommunicationBody();
+    return _ServantCommunicationBody(initialTab: initialTab);
   }
 }
 
 class _ServantCommunicationBody extends StatefulWidget {
-  const _ServantCommunicationBody();
+  const _ServantCommunicationBody({this.initialTab});
+
+  final String? initialTab;
 
   @override
   State<_ServantCommunicationBody> createState() =>
@@ -3377,6 +3382,35 @@ enum _ServantCommTab { announcements, questions, complaints, feedback }
 
 class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   _ServantCommTab _activeTab = _ServantCommTab.announcements;
+
+  @override
+  void didUpdateWidget(covariant _ServantCommunicationBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab == widget.initialTab) return;
+    final parsed = _parseTab(widget.initialTab);
+    if (parsed == null) return;
+    setState(() {
+      _activeTab = parsed;
+      _showAnnouncementForm = false;
+      _showCreateFeedback = false;
+      _viewingFeedbackFormId = null;
+    });
+  }
+
+  static _ServantCommTab? _parseTab(String? value) {
+    final v = (value ?? '').trim().toLowerCase();
+    switch (v) {
+      case 'announcements':
+        return _ServantCommTab.announcements;
+      case 'questions':
+        return _ServantCommTab.questions;
+      case 'complaints':
+        return _ServantCommTab.complaints;
+      case 'feedback':
+        return _ServantCommTab.feedback;
+    }
+    return null;
+  }
 
   bool _showAnnouncementForm = false;
 
@@ -3640,6 +3674,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   @override
   void initState() {
     super.initState();
+    final parsed = _parseTab(widget.initialTab);
+    if (parsed != null) {
+      _activeTab = parsed;
+    }
     _loadFeedbackFromBackend();
     _loadAnnouncementsFromBackend();
     _loadQuestionsFromBackend();
@@ -3844,6 +3882,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         )
         .single();
 
+    try {
+      await client.functions.invoke(
+        'push-notify',
+        body: {
+          'event': 'announcement_created',
+          'announcementId': inserted['id'],
+        },
+      );
+    } catch (_) {}
+
     final createdAt = inserted['created_at']?.toString() ?? '';
     return _ServantAnnouncement(
       id: inserted['id'] as String,
@@ -3986,6 +4034,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             'answered_at': DateTime.now().toIso8601String(),
           })
           .eq('id', questionId);
+
+      try {
+        await client.functions.invoke(
+          'push-notify',
+          body: {'event': 'question_answered', 'questionId': questionId},
+        );
+      } catch (_) {}
       return true;
     } catch (_) {
       return false;
@@ -4100,6 +4155,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             'responded_at': DateTime.now().toIso8601String(),
           })
           .eq('id', complaintId);
+
+      try {
+        await client.functions.invoke(
+          'push-notify',
+          body: {'event': 'complaint_responded', 'complaintId': complaintId},
+        );
+      } catch (_) {}
       return true;
     } catch (_) {
       return false;
@@ -4332,6 +4394,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             }).toList(),
           );
     }
+
+    try {
+      await client.functions.invoke(
+        'push-notify',
+        body: {
+          'event': 'feedback_form_created',
+          'formId': formId,
+        },
+      );
+    } catch (_) {}
 
     final createdAt = inserted['created_at']?.toString() ?? '';
     final createdDate = createdAt.isNotEmpty
@@ -8485,6 +8557,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
 
   Future<void> _signOut() async {
     final client = SupabaseClientManager.instance.client;
+    await PushNotificationsService.instance.unregisterBeforeSignOut();
     await client.auth.signOut();
     if (mounted) {
       context.go('/');

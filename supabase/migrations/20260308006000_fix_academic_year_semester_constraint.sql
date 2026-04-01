@@ -3,7 +3,6 @@
 
 alter table public.academic_years
   drop constraint if exists academic_years_semester_dates_chk;
-
 alter table public.academic_years
   add constraint academic_years_semester_dates_chk
   check (

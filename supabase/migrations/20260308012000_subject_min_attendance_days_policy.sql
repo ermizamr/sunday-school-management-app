@@ -6,7 +6,6 @@
 
 alter table public.promotion_criteria_subjects
   add column if not exists minimum_attendance_days numeric;
-
 create or replace function public.compute_attendance_days_for_subject(
   p_student_id uuid,
   p_subject_id uuid,
@@ -38,7 +37,6 @@ as $$
     and s.subject_id = p_subject_id
     and s.academic_year_id = p_academic_year_id;
 $$;
-
 create or replace function public.get_subject_attendance_shortfalls(
   p_student_id uuid,
   p_criteria_set_id uuid,
@@ -70,7 +68,6 @@ as $$
     and coalesce(pcs.minimum_attendance_days, 0) > 0
     and att.attended_days < pcs.minimum_attendance_days;
 $$;
-
 create or replace function public.determine_promotion_status(
   p_student_id uuid,
   p_grade_id uuid,
@@ -130,7 +127,6 @@ begin
   return 'eligible';
 end;
 $$;
-
 create or replace function public.run_promotion(
   p_academic_year_id uuid,
   p_grade_id uuid,
@@ -251,6 +247,5 @@ begin
   return run_id;
 end;
 $$;
-
 grant execute on function public.compute_attendance_days_for_subject(uuid, uuid, uuid) to authenticated;
 grant execute on function public.get_subject_attendance_shortfalls(uuid, uuid, uuid) to authenticated;

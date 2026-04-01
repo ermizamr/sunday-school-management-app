@@ -77,5 +77,4 @@ begin
   );
 end;
 $$;
-
 grant execute on function public.run_promotion_for_all_grades_with_summary(uuid, text) to authenticated;

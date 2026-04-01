@@ -7,6 +7,7 @@ import '../../auth/data/auth_providers.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
+import '../../../core/push/push_notifications_service.dart';
 
 class StudentShell extends StatelessWidget {
   const StudentShell({super.key, required this.navigationShell});
@@ -3040,7 +3041,9 @@ class _PercentBar extends StatelessWidget {
 }
 
 class StudentCommunicationScreen extends StatefulWidget {
-  const StudentCommunicationScreen({super.key});
+  const StudentCommunicationScreen({super.key, this.initialTab});
+
+  final String? initialTab;
 
   @override
   State<StudentCommunicationScreen> createState() =>
@@ -3054,6 +3057,43 @@ class _StudentCommunicationScreenState
   _CommTab _activeTab = _CommTab.announcements;
   bool _showQuestionForm = false;
   bool _showComplaintForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final parsed = _parseTab(widget.initialTab);
+    if (parsed != null) {
+      _activeTab = parsed;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentCommunicationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab == widget.initialTab) return;
+    final parsed = _parseTab(widget.initialTab);
+    if (parsed == null) return;
+    setState(() {
+      _activeTab = parsed;
+      _showQuestionForm = false;
+      _showComplaintForm = false;
+    });
+  }
+
+  static _CommTab? _parseTab(String? value) {
+    final v = (value ?? '').trim().toLowerCase();
+    switch (v) {
+      case 'announcements':
+        return _CommTab.announcements;
+      case 'questions':
+        return _CommTab.questions;
+      case 'complaints':
+        return _CommTab.complaints;
+      case 'feedback':
+        return _CommTab.feedback;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4716,6 +4756,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   Future<void> _signOut() async {
     final client = Supabase.instance.client;
+    await PushNotificationsService.instance.unregisterBeforeSignOut();
     await client.auth.signOut();
     if (mounted) {
       context.go('/');

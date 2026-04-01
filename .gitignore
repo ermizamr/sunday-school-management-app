@@ -5,5 +5,11 @@ admin-panel/dist-ssr/
 
 # Admin Panel env files (keep admin-panel/.env.example)
 admin-panel/.env
+admin-panel/.env.e2e
+admin-panel/.env.e2e.*
+!admin-panel/.env.e2e.example
 admin-panel/.env.local
 admin-panel/.env.*.local
+
+# Firebase / FCM service account (never commit)
+service-account.json

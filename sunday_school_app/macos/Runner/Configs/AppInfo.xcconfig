@@ -8,7 +8,7 @@
 PRODUCT_NAME = sunday_school_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.sundaySchoolApp
+PRODUCT_BUNDLE_IDENTIFIER = com.emss.deas.ssapp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 EMSS DEAS. All rights reserved.

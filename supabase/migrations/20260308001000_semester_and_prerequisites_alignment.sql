@@ -9,7 +9,6 @@ begin
     when duplicate_object then null;
   end;
 end $$;
-
 -- 2) Subject prerequisites (course-level gating)
 create table if not exists public.subject_prerequisites (
   subject_id uuid not null references public.subjects(id) on delete cascade,
@@ -19,13 +18,10 @@ create table if not exists public.subject_prerequisites (
   primary key (subject_id, prerequisite_subject_id),
   constraint subject_prerequisites_no_self check (subject_id <> prerequisite_subject_id)
 );
-
 create index if not exists subject_prerequisites_subject_idx
   on public.subject_prerequisites(subject_id);
-
 create index if not exists subject_prerequisites_prereq_idx
   on public.subject_prerequisites(prerequisite_subject_id);
-
 -- 3) Semester-aware averages for promotion decisions
 create or replace function public.compute_overall_average_for_semester(
   p_student_id uuid,
@@ -85,7 +81,6 @@ as $$
     end
   from per_subject;
 $$;
-
 create or replace function public.compute_year_average_from_semesters(
   p_student_id uuid,
   p_grade_id uuid,
@@ -122,7 +117,6 @@ begin
   return (sem1 + sem2) / 2.0;
 end;
 $$;
-
 -- 4) Promotion status must be based on average of semester averages
 create or replace function public.determine_promotion_status(
   p_student_id uuid,
@@ -186,7 +180,6 @@ begin
   return 'eligible';
 end;
 $$;
-
 -- 5) Course enrollment/assessment gating by prerequisites
 create or replace function public.assert_subject_prerequisites(
   p_student_id uuid,
@@ -217,7 +210,6 @@ begin
   end if;
 end;
 $$;
-
 create or replace function public.enforce_assessment_prerequisites()
 returns trigger
 language plpgsql
@@ -241,13 +233,11 @@ begin
   return new;
 end;
 $$;
-
 drop trigger if exists assessment_scores_enforce_prerequisites on public.assessment_scores;
 create trigger assessment_scores_enforce_prerequisites
 before insert or update on public.assessment_scores
 for each row
 execute function public.enforce_assessment_prerequisites();
-
 -- 6) Explicit period control (semester flow does not block by averages)
 create or replace function public.set_academic_year_period(
   p_academic_year_id uuid,
@@ -269,7 +259,6 @@ begin
   where id = p_academic_year_id;
 end;
 $$;
-
 -- 7) Ensure archived action updates status as well
 create or replace function public.archive_academic_year(p_academic_year_id uuid)
 returns void
@@ -330,7 +319,6 @@ begin
   where id = p_academic_year_id;
 end;
 $$;
-
 grant execute on function public.compute_overall_average_for_semester(uuid, uuid, uuid, public.academic_year_period) to authenticated;
 grant execute on function public.compute_year_average_from_semesters(uuid, uuid, uuid) to authenticated;
 grant execute on function public.set_academic_year_period(uuid, public.academic_year_period) to authenticated;

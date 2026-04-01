@@ -3,10 +3,8 @@
 alter table public.academic_years
   add column if not exists semester1_end_date date,
   add column if not exists semester2_start_date date;
-
 alter table public.academic_years
   drop constraint if exists academic_years_semester_dates_chk;
-
 alter table public.academic_years
   add constraint academic_years_semester_dates_chk
   check (
@@ -24,7 +22,6 @@ alter table public.academic_years
       and semester2_start_date >= semester1_end_date
     )
   );
-
 create or replace function public.end_first_semester(
   p_academic_year_id uuid,
   p_semester1_end_date date
@@ -47,7 +44,6 @@ begin
     and status = 'active';
 end;
 $$;
-
 create or replace function public.start_second_semester(
   p_academic_year_id uuid,
   p_semester2_start_date date
@@ -86,7 +82,6 @@ begin
     and status = 'active';
 end;
 $$;
-
 create or replace function public.compute_overall_average_for_semester(
   p_student_id uuid,
   p_grade_id uuid,
@@ -160,7 +155,6 @@ begin
   return result;
 end;
 $$;
-
 create or replace function public.get_my_semester_report(
   p_academic_year_id uuid,
   p_grade_id uuid,
@@ -214,7 +208,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.get_my_academic_assessment(
   p_academic_year_id uuid,
   p_grade_id uuid
@@ -244,7 +237,6 @@ begin
   );
 end;
 $$;
-
 grant execute on function public.end_first_semester(uuid, date) to authenticated;
 grant execute on function public.start_second_semester(uuid, date) to authenticated;
 grant execute on function public.get_my_semester_report(uuid, uuid, public.academic_year_period) to authenticated;

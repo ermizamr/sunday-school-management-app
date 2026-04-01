@@ -62,5 +62,4 @@ begin
   );
 end;
 $$;
-
 grant execute on function public.run_promotion_with_summary(uuid, uuid, text) to authenticated;

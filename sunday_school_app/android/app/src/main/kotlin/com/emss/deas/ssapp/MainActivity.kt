@@ -1,4 +1,4 @@
-package com.example.sunday_school_app
+package com.emss.deas.ssapp
 
 import io.flutter.embedding.android.FlutterActivity
 

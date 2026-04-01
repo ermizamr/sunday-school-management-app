@@ -9,7 +9,6 @@ begin
     when duplicate_object then null;
   end;
 end $$;
-
 -- 2) Mark eligible students as graduated when there is no next grade.
 create or replace function public.run_promotion(
 	p_academic_year_id uuid,
@@ -112,7 +111,6 @@ begin
 	return run_id;
 end;
 $$;
-
 -- 3) Preserve graduated status on new-year rollover.
 create or replace function public.start_new_academic_year(
 	p_name text,

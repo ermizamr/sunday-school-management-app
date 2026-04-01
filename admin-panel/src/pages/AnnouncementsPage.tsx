@@ -42,6 +42,17 @@ type AcademicYearRow = {
   created_at?: string | null;
 };
 
+type PushNotifyResponse = {
+  ok?: boolean;
+  sent?: number;
+  success?: number;
+  reason?: string;
+  error?: string;
+  recipients?: number;
+  tokens?: number;
+  errors?: unknown[];
+};
+
 export function AnnouncementsPage() {
   const [announcements, setAnnouncements] = React.useState<AnnouncementRow[]>([]);
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
@@ -66,6 +77,7 @@ export function AnnouncementsPage() {
   const [isCreating, setIsCreating] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
 
   const activeYear = React.useMemo(
     () => years.find((y) => y.status === "active") ?? null,
@@ -124,6 +136,20 @@ export function AnnouncementsPage() {
 
   async function createAnnouncement() {
     setError(null);
+    setNotice(null);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) {
+      setError(userError.message);
+      return;
+    }
+    if (!user) {
+      setError('You must be signed in to create announcements.');
+      return;
+    }
 
     const title = createTitle.trim();
     const message = createMessage.trim();
@@ -141,20 +167,64 @@ export function AnnouncementsPage() {
 
     setIsCreating(true);
     try {
-      const { error: insertError } = await supabase.from("announcements").insert({
-        academic_year_id: createAcademicYearId,
-        grade_id: createGradeId,
-        title,
-        message,
-        category: createCategory.trim() || "general",
-        priority: createPriority.trim() || "medium",
-        expires_on: validExpires,
-        active: createActive,
-      });
+      const { data: insertedAnnouncement, error: insertError } = await supabase
+        .from("announcements")
+        .insert({
+          academic_year_id: createAcademicYearId,
+          grade_id: createGradeId,
+          title,
+          message,
+          category: createCategory.trim() || "general",
+          priority: createPriority.trim() || "medium",
+          expires_on: validExpires,
+          active: createActive,
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
 
       if (insertError) {
         setError(insertError.message);
         return;
+      }
+
+      let pushData: unknown = null;
+      if (insertedAnnouncement?.id) {
+        const { data, error: pushError } = await supabase.functions.invoke("push-notify", {
+          body: { event: "announcement_created", announcementId: insertedAnnouncement.id },
+        });
+
+        if (pushError) {
+          setNotice(
+            `Announcement created, but push notification failed: ${pushError.message}. Users will still see it when they open the app.`,
+          );
+        } else {
+          pushData = data;
+        }
+      }
+
+      // The edge function can return 200 even when nothing is sent (e.g., no tokens).
+      if (pushData && typeof pushData === "object") {
+        const response = pushData as PushNotifyResponse;
+        if (response.ok === false) {
+          setNotice(
+            `Announcement created, but push notification failed: ${response.error ?? "Unknown error"}. Users will still see it when they open the app.`,
+          );
+        }
+        const sentCount =
+          typeof response.sent === "number"
+            ? response.sent
+            : typeof response.success === "number"
+              ? response.success
+              : null;
+        if (sentCount === 0) {
+          const reason = typeof response.reason === "string" ? response.reason : "unknown";
+          const firstError = Array.isArray(response.errors) ? response.errors[0] : null;
+          const firstErrorText = firstError ? JSON.stringify(firstError) : null;
+          setNotice(
+            `Announcement created, but no push was sent (reason: ${reason}, recipients: ${response.recipients ?? "?"}, tokens: ${response.tokens ?? "?"}${firstErrorText ? `, firstError: ${firstErrorText}` : ""}). Users will still see it when they open the app.`,
+          );
+        }
       }
 
       setCreateTitle("");
@@ -206,6 +276,15 @@ export function AnnouncementsPage() {
       </div>
 
       {error ? <ErrorBanner title="Request failed" message={error} /> : null}
+      {notice ? (
+        <div
+          className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
+          role="status"
+        >
+          <div className="font-semibold text-foreground">Notice</div>
+          <div className="text-muted-foreground">{notice}</div>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader className="border-b">
