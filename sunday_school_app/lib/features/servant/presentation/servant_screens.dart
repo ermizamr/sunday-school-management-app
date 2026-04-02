@@ -109,6 +109,31 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      String? role;
+      try {
+        role = (await authRepository.fetchCurrentUserRole())
+            ?.trim()
+            .toLowerCase();
+      } catch (_) {
+        role = null;
+      }
+
+      final allowed = role == 'servant' || role == 'admin';
+      if (!allowed) {
+        try {
+          await authRepository.signOut();
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _error = role == null
+                ? l10n.authRoleVerificationFailed
+                : l10n.authRoleMismatchServant;
+          });
+        }
+        return;
+      }
+
       if (mounted) {
         context.go('/servant/dashboard');
       }
@@ -348,18 +373,6 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        l10n.authDemoMode,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -417,8 +430,12 @@ class _IconTextField extends StatelessWidget {
   }
 }
 
-class ServantDashboardScreen extends StatelessWidget {
+class ServantDashboardScreen extends StatefulWidget {
   const ServantDashboardScreen({super.key});
+
+  @override
+  State<ServantDashboardScreen> createState() =>
+      _ServantDashboardScreenState();
 
   // Minimal stand-in for FunctionResponse so we can call the Edge Function
   // with explicit headers and isolate JWT issues.
@@ -972,14 +989,24 @@ class ServantDashboardScreen extends StatelessWidget {
     nameController.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDashboardScaffold(
+    BuildContext context, {
+    required bool loading,
+    required String? error,
+    required _ServantDashboardStats? stats,
+    required VoidCallback onRetry,
+  }) {
     final l10n = AppLocalizations.of(context);
-    // Static demo data approximating the React mock data
-    const classSize = 24;
-    const avgAttendance = 85;
-    const pendingQuestions = 3;
-    const pendingComplaints = 2;
+
+    final totalStudents = stats?.totalStudents ?? 0;
+    final avgAttendance = stats?.avgAttendancePercent ?? 0;
+    final pendingQuestions = stats?.pendingQuestions ?? 0;
+    final pendingComplaints = stats?.pendingComplaints ?? 0;
+
+    final classSizeText = loading ? '—' : '$totalStudents';
+    final avgAttendanceText = loading ? '—' : '$avgAttendance%';
+    final pendingTotalText =
+        loading ? '—' : '${pendingQuestions + pendingComplaints}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // slate-50
@@ -1083,7 +1110,7 @@ class ServantDashboardScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '$classSize',
+                                    classSizeText,
                                     style: const TextStyle(
                                       fontSize: 26,
                                       fontWeight: FontWeight.bold,
@@ -1118,7 +1145,7 @@ class ServantDashboardScreen extends StatelessWidget {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        '$avgAttendance%',
+                                        avgAttendanceText,
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -1151,7 +1178,7 @@ class ServantDashboardScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${pendingQuestions + pendingComplaints}',
+                                        pendingTotalText,
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -1285,8 +1312,45 @@ class ServantDashboardScreen extends StatelessWidget {
 
                     const SizedBox(height: 18),
 
+                    if (error != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFFCA5A5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              error,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF991B1B),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton(
+                                onPressed: onRetry,
+                                child: Text(l10n.commonRetry),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+
                     // Pending communication alert
-                    if (pendingQuestions > 0 || pendingComplaints > 0)
+                    if (!loading &&
+                        (pendingQuestions > 0 || pendingComplaints > 0))
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1351,6 +1415,182 @@ class ServantDashboardScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ServantDashboardStats {
+  const _ServantDashboardStats({
+    required this.totalStudents,
+    required this.avgAttendancePercent,
+    required this.pendingQuestions,
+    required this.pendingComplaints,
+  });
+
+  final int totalStudents;
+  final int avgAttendancePercent;
+  final int pendingQuestions;
+  final int pendingComplaints;
+}
+
+class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
+  bool _loading = true;
+  String? _error;
+  _ServantDashboardStats? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadStatsFromBackend() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final client = SupabaseClientManager.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      var totalStudents = 0;
+      try {
+        final rows = await client
+            .from('profiles')
+            .select('id')
+            .eq('role', 'student')
+            .eq('grade_id', gradeId);
+        totalStudents = (rows as List).length;
+      } catch (_) {}
+
+      var pendingQuestions = 0;
+      try {
+        final rows = await client
+            .from('questions')
+            .select('id')
+            .eq('grade_id', gradeId)
+            .eq('academic_year_id', academicYearId)
+            .eq('answered', false);
+        pendingQuestions = (rows as List).length;
+      } catch (_) {}
+
+      var pendingComplaints = 0;
+      try {
+        final rows = await client
+            .from('complaints')
+            .select('id')
+            .eq('grade_id', gradeId)
+            .eq('academic_year_id', academicYearId)
+            .inFilter('status', const ['pending', 'in_review']);
+        pendingComplaints = (rows as List).length;
+      } catch (_) {}
+
+      var avgAttendancePercent = 0;
+      try {
+        final sessions = await client
+            .from('attendance_sessions')
+            .select('id')
+            .eq('grade_id', gradeId)
+            .eq('academic_year_id', academicYearId);
+
+        final sessionIds = (sessions as List)
+            .map((r) => (r as Map)['id']?.toString())
+            .whereType<String>()
+            .toList(growable: false);
+
+        if (sessionIds.isNotEmpty) {
+          final records = await client
+              .from('attendance_records')
+              .select('status')
+              .inFilter('session_id', sessionIds);
+
+          var total = 0;
+          var presentLate = 0;
+          for (final r in (records as List)) {
+            final status = (r as Map)['status']?.toString();
+            if (status == null) continue;
+            if (status == 'permission') continue;
+            total++;
+            if (status == 'present' || status == 'late') {
+              presentLate++;
+            }
+          }
+
+          avgAttendancePercent =
+              total == 0 ? 0 : ((100.0 * presentLate) / total).round();
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _stats = _ServantDashboardStats(
+          totalStudents: totalStudents,
+          avgAttendancePercent: avgAttendancePercent.clamp(0, 100),
+          pendingQuestions: pendingQuestions,
+          pendingComplaints: pendingComplaints,
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget._buildDashboardScaffold(
+      context,
+      loading: _loading,
+      error: _error,
+      stats: _stats,
+      onRetry: _loadStatsFromBackend,
     );
   }
 }
@@ -4080,111 +4320,26 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   // ignore: unused_field
   String? _announcementExpiresOn;
 
-  final List<_ServantAnnouncement> _announcements = [
-    const _ServantAnnouncement(
-      id: 'a1',
-      title: 'የፈተና መርሃ ግብር ማሻሻያ',
-      message:
-          'የመካከለኛ ፈተናዎች ቀጣይ እሁድ 9:00 ጠዋት ይጀምራሉ። እባክዎ 15 ደቂቃ ቀድመው ይመጡ እና እቃዎትን ይዘው ይምጡ።',
-      category: 'schedule',
-      createdBy: 'የፕሮግራም አስተባባሪ',
-      createdDate: '2026-03-02',
-      priority: 'high',
-      targetAudience: 'students',
-    ),
-    const _ServantAnnouncement(
-      id: 'a2',
-      title: 'የመጽሐፍ ቅዱስ ትዝታ ፈተና',
-      message:
-          'በዚህ ወር በመዝሙር 23 ላይ እንተካለን። እስከ ወሩ መጨረሻ ድረስ ሙሉውን ምዕራፍ ለማስታወስ ይሞክሩ!',
-      category: 'event',
-      createdBy: 'የክፍል አገልጋይ',
-      createdDate: '2026-03-01',
-      priority: 'medium',
-      targetAudience: 'students',
-    ),
-  ];
+  bool _loadingAnnouncements = true;
+  String? _announcementsError;
+
+  final List<_ServantAnnouncement> _announcements = [];
   String? _expandedAnnouncementId;
 
-  final List<_ServantQuestion> _questions = [
-    const _ServantQuestion(
-      id: 'q1',
-      studentId: '1',
-      studentName: 'Sarah Johnson',
-      subjectId: '101',
-      subjectName: 'የመጽሐፍ ቅዱስ ትምህርት',
-      question: 'የዘራዩ ምሳሌ ትርጉሙ ምን እንደሆነ ልታብራሩልኝ ትችላላችሁ?',
-      date: '2026-02-25',
-      answered: false,
-    ),
-    const _ServantQuestion(
-      id: 'q2',
-      studentId: '2',
-      studentName: 'Michael Chen',
-      subjectId: '102',
-      subjectName: 'ሥነ መለኮት',
-      question:
-          'በመጽደቅ (Justification) እና በቅድስና መቀደስ (Sanctification) መካከል ልዩነቱ ምንድን ነው?',
-      date: '2026-02-22',
-      answered: true,
-      answer:
-          'መጽደቅ ማለት በክርስቶስ እምነት በእግዚአብሔር ፊት ጻድቅ መባል ነው። መቀደስ ደግሞ በየቀኑ ሕይወት ቅዱስ መሆን የሚቀጥል ሂደት ነው።',
-      answeredBy: 'አገልጋይ ማርያም',
-      answeredDate: '2026-02-23',
-    ),
-    const _ServantQuestion(
-      id: 'q3',
-      studentId: '3',
-      studentName: 'Daniel Okoro',
-      subjectId: '101',
-      subjectName: 'የመጽሐፍ ቅዱስ ትምህርት',
-      question: 'ያዕቆብ 1፥22 እንዴት በየቀኑ ሕይወታችን እንደ ተማሪ ልናተግብር ይገባል?',
-      date: '2026-02-26',
-      answered: false,
-    ),
-  ];
+  bool _loadingQuestions = true;
+  String? _questionsError;
+
+  final List<_ServantQuestion> _questions = [];
 
   String _questionStatusFilter = 'all'; // all | pending | answered
   String _questionSubjectFilter = 'all';
   String? _respondingQuestionId;
   final Map<String, TextEditingController> _questionReplyControllers = {};
 
-  final List<_ServantComplaint> _complaints = [
-    const _ServantComplaint(
-      id: 'c1',
-      studentId: '4',
-      studentName: 'Ava Martinez',
-      complaint: 'በትምህርት ጊዜ ክፍሉ ብዙ ጊዜ ጮክ ይላል።',
-      category: 'facility',
-      date: '2026-02-20',
-      status: 'pending',
-    ),
-    const _ServantComplaint(
-      id: 'c2',
-      studentId: '5',
-      studentName: 'Samuel Lee',
-      complaint: 'አንዳንድ ጊዜ ትምህርቱ ዘግይቶ ይጀምራል እና ይዘት እንጠፋ ይሆናል።',
-      category: 'administration',
-      date: '2026-02-18',
-      status: 'in-review',
-      response: 'ስለ ሪፖርት እናመሰግናለን። መርሃ ግብሩን እና ማስታወሻዎችን እየስተካከልን ነው።',
-      respondedBy: 'አገልጋይ ዮሐንስ',
-      respondedDate: '2026-02-19',
-    ),
-    const _ServantComplaint(
-      id: 'c3',
-      studentId: '6',
-      studentName: 'Grace Nwosu',
-      complaint: 'በቡድኖች መካከል የውጤት ፍትሃዊነት ላይ ማብራሪያ እፈልጋለሁ።',
-      category: 'teaching',
-      date: '2026-02-16',
-      status: 'resolved',
-      response:
-          'የውጤት መመዘኛውን ተመልከተን በቡድኖች መካከል አንድ እንዲሆን አድርገነዋል። ስለ መነሳትዎ እናመሰግናለን።',
-      respondedBy: 'አገልጋይ ማርያም',
-      respondedDate: '2026-02-17',
-    ),
-  ];
+  bool _loadingComplaints = true;
+  String? _complaintsError;
+
+  final List<_ServantComplaint> _complaints = [];
 
   String _complaintStatusFilter = 'all'; // all | pending | in-review | resolved
   String _complaintCategoryFilter = 'all';
@@ -4192,7 +4347,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   final Map<String, TextEditingController> _complaintReplyControllers = {};
   final Map<String, String> _complaintNextStatus = {};
 
-  static const int _mockTotalStudents = 30;
+  int? _totalStudentsInGrade;
+
+  bool _loadingFeedback = true;
+  String? _feedbackError;
 
   final _feedbackTitleController = TextEditingController();
   final _feedbackDescriptionController = TextEditingController();
@@ -4209,113 +4367,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     TextEditingController(),
   ];
 
-  final List<_ServantFeedbackForm> _feedbackForms = [
-    _ServantFeedbackForm(
-      id: 'f1',
-      title: 'የመምህር ግምገማ - ፌብሩወሪ',
-      description: 'ስለ ትምህርቶች እና ተሳትፎ ሀሳብዎን በመካፈል መምህራንን እንዲሻሻሉ ያግዙን።',
-      type: 'teacher_evaluation',
-      createdBy: 'Admin',
-      createdDate: '2026-02-10',
-      startDate: '2026-02-10',
-      endDate: '2026-02-28',
-      status: 'active',
-      targetStudents: ['all'],
-      questions: [
-        _ServantFeedbackQuestion(
-          id: 'q1',
-          question: 'በትምህርት ጊዜ ማብራሪያዎቹ ምን ያህል ግልጽ ነበሩ?',
-          type: 'rating',
-          required: true,
-        ),
-        _ServantFeedbackQuestion(
-          id: 'q2',
-          question: 'በመምህራን የመማር ዘዴ ምን እንዲሻሻል ትመክራላችሁ?',
-          type: 'text',
-          required: false,
-        ),
-        _ServantFeedbackQuestion(
-          id: 'q3',
-          question: 'አጠቃላይ የተሳትፎ ደረጃ?',
-          type: 'multiple_choice',
-          required: true,
-          options: ['በጣም ጥሩ', 'ጥሩ', 'መካከለኛ', 'ማሻሻል ያስፈልጋል'],
-        ),
-      ],
-    ),
-    _ServantFeedbackForm(
-      id: 'f2',
-      title: 'የክፍል አካባቢ ግብረመልስ - ማርች',
-      description: 'የክፍሉን አካባቢ እና መሳሪያዎች እንዴት ማሻሻል እንደምንችል ይንገሩን።',
-      type: 'general',
-      createdBy: 'Admin',
-      createdDate: '2026-03-01',
-      startDate: '2026-03-01',
-      endDate: '2026-03-20',
-      status: 'active',
-      targetStudents: ['all'],
-      questions: [
-        _ServantFeedbackQuestion(
-          id: 'q1',
-          question: 'የክፍሉን ምቾት (ብርሃን፣ መቀመጫ፣ ድምጽ) ይገምግሙ።',
-          type: 'rating',
-          required: true,
-        ),
-        _ServantFeedbackQuestion(
-          id: 'q2',
-          question: 'መጀመሪያ የትኛውን ችግኝ እንስተካክል?',
-          type: 'multiple_choice',
-          required: true,
-          options: ['መቀመጫ', 'የአየር እንቅስቃሴ', 'ፕሮጀክተር', 'የድምጽ ስርዓት'],
-        ),
-        _ServantFeedbackQuestion(
-          id: 'q3',
-          question: 'ተጨማሪ አስተያየት ካለ?',
-          type: 'text',
-          required: false,
-        ),
-      ],
-    ),
-  ];
+  final List<_ServantFeedbackForm> _feedbackForms = [];
 
-  final List<_ServantFeedbackResponse> _feedbackResponses = [
-    _ServantFeedbackResponse(
-      id: 'fr1',
-      formId: 'f1',
-      studentId: '1',
-      studentName: 'Sarah Johnson',
-      submittedDate: '2026-02-20',
-      answers: {
-        'q1': 5,
-        'q2': 'በአጠቃላይ በጣም ግልጽ ነበር። ተጨማሪ ምሳሌዎች ቢኖሩ ይሻላል።',
-        'q3': 'በጣም ጥሩ',
-      },
-    ),
-    _ServantFeedbackResponse(
-      id: 'fr2',
-      formId: 'f1',
-      studentId: '2',
-      studentName: 'Michael Chen',
-      submittedDate: '2026-02-21',
-      answers: {
-        'q1': 4,
-        'q2': 'Sometimes a bit fast; pacing could be slower.',
-        'q3': 'Good',
-      },
-    ),
-    _ServantFeedbackResponse(
-      id: 'fr3',
-      formId: 'f2',
-      studentId: '3',
-      studentName: 'Daniel Okoro',
-      submittedDate: '2026-03-03',
-      answers: {
-        'q1': 3,
-        'q2': 'Sound system',
-        'q3': 'Projector brightness is low in the afternoon.',
-      },
-    ),
-  ];
+  bool _loadingFeedbackResponses = false;
+  String? _feedbackResponsesError;
+
+  final List<_ServantFeedbackResponse> _feedbackResponses = [];
 
   @override
   void initState() {
@@ -4374,7 +4431,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       return (userId: null, academicYearId: null, gradeId: null);
     }
 
-    if (_activeAcademicYearId != null && _myGradeId != null) {
+    if (_activeAcademicYearId != null &&
+        _myGradeId != null &&
+        _totalStudentsInGrade != null) {
       return (
         userId: userId,
         academicYearId: _activeAcademicYearId,
@@ -4384,6 +4443,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
     String? activeAcademicYearId = _activeAcademicYearId;
     String? myGradeId = _myGradeId;
+    int? totalStudentsInGrade = _totalStudentsInGrade;
 
     try {
       final academicYear = await client
@@ -4405,14 +4465,27 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       myGradeId ??= profile?['grade_id'] as String?;
     } catch (_) {}
 
+    if (totalStudentsInGrade == null && myGradeId != null) {
+      try {
+        final rows = await client
+            .from('profiles')
+            .select('id')
+            .eq('role', 'student')
+            .eq('grade_id', myGradeId);
+        totalStudentsInGrade = (rows as List).length;
+      } catch (_) {}
+    }
+
     if (mounted) {
       setState(() {
         _activeAcademicYearId = activeAcademicYearId;
         _myGradeId = myGradeId;
+        _totalStudentsInGrade = totalStudentsInGrade;
       });
     } else {
       _activeAcademicYearId = activeAcademicYearId;
       _myGradeId = myGradeId;
+      _totalStudentsInGrade = totalStudentsInGrade;
     }
 
     return (
@@ -4440,11 +4513,29 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   Future<void> _loadAnnouncementsFromBackend() async {
     final client = SupabaseClientManager.instance.client;
 
+    if (mounted) {
+      setState(() {
+        _loadingAnnouncements = true;
+        _announcementsError = null;
+      });
+    } else {
+      _loadingAnnouncements = true;
+      _announcementsError = null;
+    }
+
     final ctx = await _ensureContextLoaded();
     final userId = ctx.userId;
     final gradeId = ctx.gradeId;
     final academicYearId = ctx.academicYearId;
-    if (userId == null || gradeId == null) return;
+    if (userId == null || gradeId == null) {
+      if (!mounted) return;
+      setState(() {
+        _announcements.clear();
+        _expandedAnnouncementId = null;
+        _loadingAnnouncements = false;
+      });
+      return;
+    }
 
     try {
       var query = client
@@ -4487,8 +4578,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ..addAll(items);
         _expandedAnnouncementId = null;
       });
-    } catch (_) {
-      // Keep mock data on any error.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _announcements.clear();
+        _expandedAnnouncementId = null;
+        _announcementsError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingAnnouncements = false;
+      });
     }
   }
 
@@ -4565,11 +4666,29 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   Future<void> _loadQuestionsFromBackend() async {
     final client = SupabaseClientManager.instance.client;
 
+    if (mounted) {
+      setState(() {
+        _loadingQuestions = true;
+        _questionsError = null;
+      });
+    } else {
+      _loadingQuestions = true;
+      _questionsError = null;
+    }
+
     final ctx = await _ensureContextLoaded();
     final userId = ctx.userId;
     final gradeId = ctx.gradeId;
     final academicYearId = ctx.academicYearId;
-    if (userId == null || gradeId == null || academicYearId == null) return;
+    if (userId == null || gradeId == null || academicYearId == null) {
+      if (!mounted) return;
+      setState(() {
+        _questions.clear();
+        _respondingQuestionId = null;
+        _loadingQuestions = false;
+      });
+      return;
+    }
 
     try {
       final rows = await client
@@ -4657,8 +4776,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ..addAll(items);
         _respondingQuestionId = null;
       });
-    } catch (_) {
-      // Keep mock data on any error.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _questions.clear();
+        _respondingQuestionId = null;
+        _questionsError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingQuestions = false;
+      });
     }
   }
 
@@ -4706,11 +4835,30 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   Future<void> _loadComplaintsFromBackend() async {
     final client = SupabaseClientManager.instance.client;
 
+    if (mounted) {
+      setState(() {
+        _loadingComplaints = true;
+        _complaintsError = null;
+      });
+    } else {
+      _loadingComplaints = true;
+      _complaintsError = null;
+    }
+
     final ctx = await _ensureContextLoaded();
     final userId = ctx.userId;
     final gradeId = ctx.gradeId;
     final academicYearId = ctx.academicYearId;
-    if (userId == null || gradeId == null || academicYearId == null) return;
+    if (userId == null || gradeId == null || academicYearId == null) {
+      if (!mounted) return;
+      setState(() {
+        _complaints.clear();
+        _respondingComplaintId = null;
+        _complaintNextStatus.clear();
+        _loadingComplaints = false;
+      });
+      return;
+    }
 
     try {
       final rows = await client
@@ -4777,8 +4925,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _respondingComplaintId = null;
         _complaintNextStatus.clear();
       });
-    } catch (_) {
-      // Keep mock data on any error.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _complaints.clear();
+        _respondingComplaintId = null;
+        _complaintNextStatus.clear();
+        _complaintsError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingComplaints = false;
+      });
     }
   }
 
@@ -4824,40 +4983,66 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     }
   }
 
+  Future<bool> _deleteFeedbackFormInBackend(String id) async {
+    final client = SupabaseClientManager.instance.client;
+    try {
+      await client.from('feedback_forms').delete().eq('id', id);
+      return true;
+    } catch (_) {
+      try {
+        await client.from('feedback_submissions').delete().eq('form_id', id);
+      } catch (_) {}
+      try {
+        await client.from('feedback_questions').delete().eq('form_id', id);
+      } catch (_) {}
+      try {
+        await client.from('feedback_forms').delete().eq('id', id);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
   Future<void> _loadFeedbackFromBackend() async {
     final client = SupabaseClientManager.instance.client;
-    final userId = client.auth.currentUser?.id;
-    if (userId == null) return;
+
+    if (mounted) {
+      setState(() {
+        _loadingFeedback = true;
+        _feedbackError = null;
+      });
+    } else {
+      _loadingFeedback = true;
+      _feedbackError = null;
+    }
+
+    final ctx = await _ensureContextLoaded();
+    final userId = ctx.userId;
+    final gradeId = ctx.gradeId;
+    final academicYearId = ctx.academicYearId;
+    if (userId == null) {
+      if (!mounted) return;
+      setState(() {
+        _feedbackForms.clear();
+        _feedbackSubmissionCounts.clear();
+        _loadingFeedback = false;
+      });
+      return;
+    }
 
     try {
-      final academicYear = await client
-          .from('academic_years')
-          .select('id')
-          .eq('status', 'active')
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      final profile = await client
-          .from('profiles')
-          .select('grade_id')
-          .eq('id', userId)
-          .maybeSingle();
-
-      final activeAcademicYearId = academicYear?['id'] as String?;
-      final myGradeId = profile?['grade_id'] as String?;
-
       var query = client
           .from('feedback_forms')
           .select(
             'id, title, description, type_label, start_date, end_date, created_at, created_by, academic_year_id, grade_id, feedback_questions(id, position, type, question, required, options)',
           );
 
-      if (activeAcademicYearId != null) {
-        query = query.eq('academic_year_id', activeAcademicYearId);
+      if (academicYearId != null) {
+        query = query.eq('academic_year_id', academicYearId);
       }
-      if (myGradeId != null) {
-        query = query.eq('grade_id', myGradeId);
+      if (gradeId != null) {
+        query = query.eq('grade_id', gradeId);
       }
 
       final formsRaw = await query.order('created_at', ascending: false);
@@ -4921,37 +5106,75 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               .select('id')
               .eq('form_id', formId);
           counts[formId] = submissions.length;
-        } catch (_) {
-          // Keep existing (mock) counts if RLS blocks count.
-        }
+        } catch (_) {}
       }
 
       if (!mounted) return;
       setState(() {
-        _activeAcademicYearId = activeAcademicYearId;
-        _myGradeId = myGradeId;
-        if (forms.isNotEmpty) {
-          _feedbackForms
-            ..clear()
-            ..addAll(forms);
-        }
+        _feedbackForms
+          ..clear()
+          ..addAll(forms);
         _feedbackSubmissionCounts
           ..clear()
           ..addAll(counts);
       });
-    } catch (_) {
-      // Keep mock data on any error.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _feedbackForms.clear();
+        _feedbackSubmissionCounts.clear();
+        _feedbackError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingFeedback = false;
+      });
     }
   }
 
   Future<void> _loadFeedbackResponsesForForm(String formId) async {
     final client = SupabaseClientManager.instance.client;
+
+    if (mounted) {
+      setState(() {
+        _loadingFeedbackResponses = true;
+        _feedbackResponsesError = null;
+      });
+    } else {
+      _loadingFeedbackResponses = true;
+      _feedbackResponsesError = null;
+    }
+
     try {
       final rows = await client
           .from('feedback_submissions')
           .select('id, student_id, submitted_at, answers')
           .eq('form_id', formId)
           .order('submitted_at', ascending: false);
+
+      final studentIds = <String>{};
+      for (final r in rows) {
+        final map = r as Map;
+        final sid = map['student_id']?.toString();
+        if (sid != null && sid.isNotEmpty) studentIds.add(sid);
+      }
+
+      final studentNames = <String, String>{};
+      if (studentIds.isNotEmpty) {
+        try {
+          final profiles = await client
+              .from('profiles')
+              .select('id, name')
+              .inFilter('id', studentIds.toList());
+          for (final p in profiles) {
+            final m = p as Map;
+            final id = m['id']?.toString();
+            if (id == null) continue;
+            studentNames[id] = (m['name'] as String?) ?? 'Student';
+          }
+        } catch (_) {}
+      }
 
       final responses = rows.map((r) {
         final map = r as Map;
@@ -4965,11 +5188,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             ? submittedAt.substring(0, 10)
             : _todayIso();
 
+        final studentId = map['student_id']?.toString() ?? '';
+
         return _ServantFeedbackResponse(
           id: map['id'] as String,
           formId: formId,
-          studentId: map['student_id']?.toString() ?? '',
-          studentName: 'Student',
+          studentId: studentId,
+          studentName: studentNames[studentId] ?? 'Student',
           submittedDate: submittedDate,
           answers: answers,
         );
@@ -4981,8 +5206,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _feedbackResponses.addAll(responses);
         _feedbackSubmissionCounts[formId] = responses.length;
       });
-    } catch (_) {
-      // Leave existing mock responses.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _feedbackResponses.removeWhere((r) => r.formId == formId);
+        _feedbackSubmissionCounts.remove(formId);
+        _feedbackResponsesError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingFeedbackResponses = false;
+      });
     }
   }
 
@@ -5430,35 +5665,22 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
       if (!mounted) return;
 
-      setState(() {
-        _announcements.insert(
-          0,
-          created ??
-              _ServantAnnouncement(
-                id: 'a${DateTime.now().millisecondsSinceEpoch}',
-                title: title,
-                message: message,
-                category: _announcementCategory,
-                createdBy: l10n.commonYou,
-                createdDate: _todayIso(),
-                priority: _announcementPriority,
-                targetAudience: _announcementTargetAudience,
-                expiresOn: null,
-              ),
+      if (created == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to post announcement.')),
         );
+        return;
+      }
+
+      final createdAnnouncement = created!;
+
+      setState(() {
+        _announcements.insert(0, createdAnnouncement);
         _announcementTitleController.clear();
         _announcementMessageController.clear();
         _announcementExpiresOn = null;
         _showAnnouncementForm = false;
       });
-
-      if (created == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.servantAnnouncementsSavedLocallySyncFailed),
-          ),
-        );
-      }
     }
 
     void cancelAnnouncement() {
@@ -5676,7 +5898,43 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         ],
         if (!_showAnnouncementForm) ...[
           const SizedBox(height: 14),
-          if (_announcements.isEmpty)
+          if (_loadingAnnouncements)
+            const Center(child: CircularProgressIndicator())
+          else if (_announcementsError != null)
+            _buildSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.commAnnouncementsLoadFailed,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _announcementsError!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: _loadAnnouncementsFromBackend,
+                      child: Text(l10n.commonRetry),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (_announcements.isEmpty)
             _ServantEmptyState(
               icon: Icons.campaign_rounded,
               title: l10n.servantAnnouncementsEmptyTitle,
@@ -5985,7 +6243,43 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
         ),
         const SizedBox(height: 14),
-        if (list.isEmpty)
+        if (_loadingQuestions)
+          const Center(child: CircularProgressIndicator())
+        else if (_questionsError != null)
+          _buildSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Failed to load questions.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _questionsError!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: _loadQuestionsFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (list.isEmpty)
           _ServantEmptyState(
             icon: Icons.question_answer_rounded,
             title: l10n.commNoQuestionsYet,
@@ -6177,6 +6471,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                               );
                                           if (!mounted) return;
 
+                                          if (!saved) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Failed to send response. Please try again.',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+
                                           setState(() {
                                             final index = _questions.indexWhere(
                                               (x) => x.id == q.id,
@@ -6195,18 +6502,6 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ).clear();
                                             _respondingQuestionId = null;
                                           });
-
-                                          if (!saved) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  l10n.servantCommSavedLocallySyncFailed,
-                                                ),
-                                              ),
-                                            );
-                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(
@@ -6435,7 +6730,43 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
         ),
         const SizedBox(height: 14),
-        if (list.isEmpty)
+        if (_loadingComplaints)
+          const Center(child: CircularProgressIndicator())
+        else if (_complaintsError != null)
+          _buildSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Failed to load complaints.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _complaintsError!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: _loadComplaintsFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (list.isEmpty)
           _ServantEmptyState(
             icon: Icons.report_problem_rounded,
             title: l10n.servantCommNoComplaints,
@@ -6649,6 +6980,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                               );
                                           if (!mounted) return;
 
+                                          if (!saved) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Failed to update complaint. Please try again.',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+
                                           setState(() {
                                             final index = _complaints
                                                 .indexWhere(
@@ -6668,18 +7012,6 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ).clear();
                                             _respondingComplaintId = null;
                                           });
-
-                                          if (!saved) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  l10n.servantCommSavedLocallySyncFailed,
-                                                ),
-                                              ),
-                                            );
-                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(
@@ -6825,7 +7157,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   _SubmissionRate _submissionRateFor(_ServantFeedbackForm form) {
     final total =
         form.targetStudents.isNotEmpty && form.targetStudents.first == 'all'
-        ? _mockTotalStudents
+      ? (_totalStudentsInGrade ?? 0)
         : form.targetStudents.length;
     final submitted =
         _feedbackSubmissionCounts[form.id] ??
@@ -7024,7 +7356,43 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
         ),
         const SizedBox(height: 14),
-        if (_feedbackForms.isEmpty)
+        if (_loadingFeedback)
+          const Center(child: CircularProgressIndicator())
+        else if (_feedbackError != null)
+          _buildSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Failed to load feedback forms.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _feedbackError!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: _loadFeedbackFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_feedbackForms.isEmpty)
           _ServantEmptyState(
             icon: Icons.fact_check_rounded,
             title: l10n.servantFeedbackEmptyTitle,
@@ -7094,6 +7462,25 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       confirmLabel: l10n.commonDelete,
                                     );
                                     if (!ok) return;
+
+                                    final deleted =
+                                        await _deleteFeedbackFormInBackend(
+                                          form.id,
+                                        );
+                                    if (!mounted) return;
+
+                                    if (!deleted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Failed to delete feedback form.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
                                     setState(() {
                                       _feedbackForms.removeWhere(
                                         (f) => f.id == form.id,
@@ -7101,6 +7488,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       _feedbackResponses.removeWhere(
                                         (r) => r.formId == form.id,
                                       );
+                                      _feedbackSubmissionCounts.remove(form.id);
+                                      if (_viewingFeedbackFormId == form.id) {
+                                        _viewingFeedbackFormId = null;
+                                      }
                                     });
                                   },
                                   icon: const Icon(
@@ -8011,24 +8402,22 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     }
 
                     if (!mounted) return;
-                    setState(() {
-                      _feedbackForms.insert(
-                        0,
-                        created ??
-                            _ServantFeedbackForm(
-                              id: 'f${DateTime.now().millisecondsSinceEpoch}',
-                              title: title,
-                              description: desc,
-                              type: _feedbackType,
-                              createdBy: 'You',
-                              createdDate: _todayIso(),
-                              startDate: _feedbackStartDate,
-                              endDate: _feedbackEndDate,
-                              status: 'active',
-                              targetStudents: const ['all'],
-                              questions: questions,
-                            ),
+
+                    if (created == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Failed to create feedback form. Please try again.',
+                          ),
+                        ),
                       );
+                      return;
+                    }
+
+                    await _loadFeedbackFromBackend();
+                    if (!mounted) return;
+
+                    setState(() {
                       _showFeedbackSuccessToast = true;
                     });
 
@@ -8249,7 +8638,43 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
         ),
         const SizedBox(height: 12),
-        if (responses.isEmpty)
+        if (_loadingFeedbackResponses)
+          const Center(child: CircularProgressIndicator())
+        else if (_feedbackResponsesError != null)
+          _buildSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Failed to load responses.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _feedbackResponsesError!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () => _loadFeedbackResponsesForForm(formId),
+                    child: Text(l10n.commonRetry),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (responses.isEmpty)
           _buildSectionCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 28),

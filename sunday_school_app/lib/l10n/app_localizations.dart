@@ -860,6 +860,24 @@ abstract class AppLocalizations {
   /// **'Login failed. Please try again.'**
   String get authLoginFailedGeneric;
 
+  /// No description provided for @authRoleMismatchStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not a student account. Please select Servant role to continue.'**
+  String get authRoleMismatchStudent;
+
+  /// No description provided for @authRoleMismatchServant.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not a servant account. Please select Student role to continue.'**
+  String get authRoleMismatchServant;
+
+  /// No description provided for @authRoleVerificationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not verify your account role. Please try again.'**
+  String get authRoleVerificationFailed;
+
   /// No description provided for @authPasswordUpdateSuccess.
   ///
   /// In en, this message translates to:

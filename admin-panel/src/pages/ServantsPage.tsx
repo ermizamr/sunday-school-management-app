@@ -81,6 +81,7 @@ export function ServantsPage() {
     switch (status) {
       case "active":
         return t("servantsStatusActive");
+      case "inactive_pending_admin":
       case "inactive":
         return t("servantsStatusInactive");
       default:
@@ -94,7 +95,8 @@ export function ServantsPage() {
 
     try {
       const current = (p.account_status ?? "active").toLowerCase();
-      const next = current === "inactive" ? "active" : "inactive";
+      const isInactive = current === "inactive_pending_admin" || current === "inactive";
+      const next = isInactive ? "active" : "inactive_pending_admin";
       const actionLabel = next === "active" ? t("usersActivate") : t("usersDeactivate");
       if (!window.confirm(t("servantsConfirmToggleStatus", { action: actionLabel, name: p.name ?? p.id }))) {
         return;
@@ -153,7 +155,7 @@ export function ServantsPage() {
                 <TableBody>
                   {profiles.map((p) => {
                     const status = (p.account_status ?? "active").toLowerCase();
-                    const isInactive = status === "inactive";
+                    const isInactive = status === "inactive_pending_admin" || status === "inactive";
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">

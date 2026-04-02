@@ -59,6 +59,38 @@ export function AnnouncementsPage() {
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
   const [years, setYears] = React.useState<AcademicYearRow[]>([]);
 
+  function categoryEmoji(category: string) {
+    switch (category) {
+      case "urgent":
+        return "🚨";
+      case "grades":
+        return "📊";
+      case "schedule":
+        return "📅";
+      case "event":
+        return "🎉";
+      case "general":
+      default:
+        return "📢";
+    }
+  }
+
+  function categoryLabel(category: string) {
+    switch (category) {
+      case "urgent":
+        return t("announcementsCategoryUrgent");
+      case "grades":
+        return t("announcementsCategoryGrades");
+      case "schedule":
+        return t("announcementsCategorySchedule");
+      case "event":
+        return t("announcementsCategoryEvent");
+      case "general":
+      default:
+        return t("announcementsCategoryGeneral");
+    }
+  }
+
   const gradeNameById = React.useMemo(() => {
     return new Map(
       grades.map((g) => [g.id, g.name ?? g.code ?? g.id] as const),
@@ -327,7 +359,19 @@ export function AnnouncementsPage() {
 
           <div className="grid gap-2">
             <Label htmlFor="category">{t("announcementsCategoryLabel")}</Label>
-            <Input id="category" value={createCategory} onChange={(e) => setCreateCategory(e.target.value)} />
+            <select
+              id="category"
+              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              value={createCategory}
+              onChange={(e) => setCreateCategory(e.target.value)}
+              disabled={isLoading || isCreating}
+            >
+              {(["general", "grades", "schedule", "event", "urgent"] as const).map((category) => (
+                <option key={category} value={category}>
+                  {categoryEmoji(category)} {categoryLabel(category)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid gap-2">

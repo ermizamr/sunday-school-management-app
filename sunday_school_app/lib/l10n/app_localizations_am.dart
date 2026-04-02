@@ -422,6 +422,18 @@ class AppLocalizationsAm extends AppLocalizations {
   String get authLoginFailedGeneric => 'መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
+  String get authRoleMismatchStudent =>
+      'ይህ መለያ የተማሪ መለያ አይደለም። ለመቀጠል የአገልጋይ ሚና ይምረጡ።';
+
+  @override
+  String get authRoleMismatchServant =>
+      'ይህ መለያ የአገልጋይ መለያ አይደለም። ለመቀጠል የተማሪ ሚና ይምረጡ።';
+
+  @override
+  String get authRoleVerificationFailed =>
+      'የመለያዎን ሚና ማረጋገጥ አልተቻለም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
   String get authPasswordUpdateSuccess => 'የይለፍ ቃል ተዘምኗል።';
 
   @override

@@ -237,6 +237,9 @@
   "authForgotPassword": "የይለፍ ቃል ረሳችሁ?",
   "authDemoMode": "ሙከራ (Demo): ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል ይጠቀሙ\nጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ።",
   "authLoginFailedGeneric": "መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "authRoleMismatchStudent": "ይህ መለያ የተማሪ መለያ አይደለም። ለመቀጠል የአገልጋይ ሚና ይምረጡ።",
+  "authRoleMismatchServant": "ይህ መለያ የአገልጋይ መለያ አይደለም። ለመቀጠል የተማሪ ሚና ይምረጡ።",
+  "authRoleVerificationFailed": "የመለያዎን ሚና ማረጋገጥ አልተቻለም። እባክዎ በድጋሚ ይሞክሩ።",
   "authPasswordUpdateSuccess": "የይለፍ ቃል ተዘምኗል።",
   "authPasswordUpdateFailedGeneric": "የይለፍ ቃል ማዘመን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
 

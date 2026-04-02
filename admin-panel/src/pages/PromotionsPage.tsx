@@ -196,13 +196,9 @@ export function PromotionsPage() {
       if (forSelectedGrade.length > 0) {
         setSubjects(forSelectedGrade);
         setIsSubjectsFallback(false);
-        setSubjectMinimumGrades({});
-        setSubjectAttendanceDays({});
       } else {
         setSubjects(rows);
         setIsSubjectsFallback(rows.length > 0);
-        setSubjectMinimumGrades({});
-        setSubjectAttendanceDays({});
       }
     }
 
@@ -211,6 +207,11 @@ export function PromotionsPage() {
 
   React.useEffect(() => {
     async function loadCriteria() {
+      // Reset immediately so we don't show stale values when switching.
+      setMinimumOverallAverage("70");
+      setSubjectMinimumGrades({});
+      setSubjectAttendanceDays({});
+
       if (!selectedYearId || !selectedGradeId) return;
 
       const { data, error: loadError } = await supabase
@@ -220,7 +221,14 @@ export function PromotionsPage() {
         .eq("grade_id", selectedGradeId)
         .maybeSingle();
 
-      if (loadError || !data) return;
+      if (loadError) {
+        setError(loadError.message);
+        return;
+      }
+
+      if (!data) {
+        return;
+      }
 
       const row = data as Record<string, unknown>;
 

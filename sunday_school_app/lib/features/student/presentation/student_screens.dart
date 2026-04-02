@@ -102,6 +102,30 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      String? role;
+      try {
+        role = (await authRepository.fetchCurrentUserRole())
+            ?.trim()
+            .toLowerCase();
+      } catch (_) {
+        role = null;
+      }
+
+      if (role != 'student') {
+        try {
+          await authRepository.signOut();
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _error = role == null
+                ? l10n.authRoleVerificationFailed
+                : l10n.authRoleMismatchStudent;
+          });
+        }
+        return;
+      }
+
       if (mounted) {
         context.go('/student/dashboard');
       }
@@ -348,18 +372,6 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        l10n.authDemoMode,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -422,23 +434,173 @@ class _IconTextField extends StatelessWidget {
   }
 }
 
-class StudentDashboardScreen extends StatelessWidget {
+class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
+
+  @override
+  State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
+}
+
+class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+  bool _loading = true;
+  String? _error;
+  _StudentDashboardStats? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static int _asRoundedInt(Object? value, {int fallback = 0}) {
+    if (value is num) return value.round();
+    final parsed = num.tryParse(value?.toString() ?? '');
+    return parsed?.round() ?? fallback;
+  }
+
+  Future<void> _loadStatsFromBackend() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      final userId = user?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      final profile = await client
+          .from('profiles')
+          .select('name, grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final profileMap = (profile as Map?) ?? const <String, Object?>{};
+      final gradeId = profileMap['grade_id']?.toString();
+      final name = (profileMap['name'] as String?)?.trim();
+
+      int attendancePercent = 0;
+      int academicAvg = 0;
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        try {
+          final raw = await client.rpc(
+            'compute_attendance_percent',
+            params: {
+              'p_academic_year_id': academicYearId,
+              'p_student_id': userId,
+            },
+          );
+          attendancePercent = _asRoundedInt(raw, fallback: 0);
+        } catch (_) {}
+
+        if (gradeId != null && gradeId.isNotEmpty) {
+          try {
+            final raw = await client.rpc(
+              'compute_overall_average',
+              params: {
+                'p_academic_year_id': academicYearId,
+                'p_grade_id': gradeId,
+                'p_student_id': userId,
+              },
+            );
+            academicAvg = _asRoundedInt(raw, fallback: 0);
+          } catch (_) {}
+        }
+      }
+
+      var pendingQuestions = 0;
+      var openComplaints = 0;
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        try {
+          final rows = await client
+              .from('questions')
+              .select('id')
+              .eq('student_id', userId)
+              .eq('academic_year_id', academicYearId)
+              .eq('answered', false);
+          pendingQuestions = rows.length;
+        } catch (_) {}
+
+        try {
+          final rows = await client
+              .from('complaints')
+              .select('id, status')
+              .eq('student_id', userId)
+              .eq('academic_year_id', academicYearId)
+              .inFilter('status', const ['pending', 'in_review']);
+          openComplaints = rows.length;
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _stats = _StudentDashboardStats(
+          name: name,
+          gradeId: gradeId,
+          academicYearId: academicYearId,
+          attendancePercent: attendancePercent.clamp(0, 100),
+          academicAvg: academicAvg.clamp(0, 100),
+          pendingQuestions: pendingQuestions,
+          openComplaints: openComplaints,
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final user = Supabase.instance.client.auth.currentUser;
-    final displayName =
-        (user?.userMetadata?['name'] as String?) ??
-        user?.email ??
-        l10n.roleStudent;
 
-    const attendancePercent = 85;
-    const academicAvg = 86;
-    const pendingQuestions = 1;
-    const openComplaints = 1;
+    final displayName =
+        (_stats?.name != null && _stats!.name!.trim().isNotEmpty)
+        ? _stats!.name!.trim()
+        : user?.email ?? l10n.roleStudent;
+
+    final attendancePercent = _stats?.attendancePercent ?? 0;
+    final academicAvg = _stats?.academicAvg ?? 0;
+    final pendingQuestions = _stats?.pendingQuestions ?? 0;
+    final openComplaints = _stats?.openComplaints ?? 0;
     final pendingTotal = pendingQuestions + openComplaints;
+
+    final attendanceValue = _loading ? '—' : '$attendancePercent%';
+    final avgValue = _loading ? '—' : '$academicAvg%';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -489,6 +651,51 @@ class StudentDashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (_error != null) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                size: 18,
+                                color: Color(0xFFB91C1C),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF7F1D1D),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: _loading
+                                    ? null
+                                    : _loadStatsFromBackend,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFFB91C1C),
+                                ),
+                                child: Text(l10n.commonRetry),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Row(
                         children: [
                           Expanded(
@@ -496,7 +703,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconBackground: const Color(0xFFE0F2FE),
                               iconColor: const Color(0xFF0284C7),
                               icon: Icons.calendar_month_rounded,
-                              value: '$attendancePercent%',
+                              value: attendanceValue,
                               label: l10n.dashboardAttendanceStat,
                             ),
                           ),
@@ -506,7 +713,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconBackground: const Color(0xFFFEF3C7),
                               iconColor: const Color(0xFFD97706),
                               icon: Icons.emoji_events_rounded,
-                              value: '$academicAvg%',
+                              value: avgValue,
                               label: l10n.dashboardAverageScoreStat,
                             ),
                           ),
@@ -557,7 +764,7 @@ class StudentDashboardScreen extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                  if (pendingTotal > 0)
+                                  if (!_loading && pendingTotal > 0)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 10,
@@ -588,12 +795,12 @@ class StudentDashboardScreen extends StatelessWidget {
                                 children: [
                                   _KeyValueRow(
                                     label: l10n.dashboardPendingQuestions,
-                                    value: '$pendingQuestions',
+                                    value: _loading ? '—' : '$pendingQuestions',
                                   ),
                                   const SizedBox(height: 10),
                                   _KeyValueRow(
                                     label: l10n.dashboardOpenComplaints,
-                                    value: '$openComplaints',
+                                    value: _loading ? '—' : '$openComplaints',
                                   ),
                                 ],
                               ),
@@ -685,6 +892,26 @@ class StudentDashboardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StudentDashboardStats {
+  const _StudentDashboardStats({
+    required this.attendancePercent,
+    required this.academicAvg,
+    required this.pendingQuestions,
+    required this.openComplaints,
+    this.name,
+    this.gradeId,
+    this.academicYearId,
+  });
+
+  final String? name;
+  final String? gradeId;
+  final String? academicYearId;
+  final int attendancePercent;
+  final int academicAvg;
+  final int pendingQuestions;
+  final int openComplaints;
 }
 
 class StudentAttendanceScreen extends StatefulWidget {
@@ -1741,137 +1968,265 @@ class StudentGradesScreen extends StatefulWidget {
 class _StudentGradesScreenState extends State<StudentGradesScreen> {
   String? _expandedSubjectId;
   PromotionCriteriaSet _criteria = PromotionCriteriaSet.defaults;
-  bool _loadingCriteria = false;
 
-  final _academicYear = const _GradesAcademicYear(
-    name: '2025-2026',
+  bool _loadingGrades = true;
+  String? _gradesError;
+
+  _GradesAcademicYear _academicYear = const _GradesAcademicYear(
+    name: '',
     status: _AcademicYearStatus.active,
   );
 
-  final _currentStudent = const _GradesStudent(
-    id: '1',
-    name: 'Sarah Johnson',
+  _GradesStudent _currentStudent = const _GradesStudent(
+    id: '',
+    name: '',
     promotionStatus: _PromotionStatus.eligible,
   );
 
-  late final List<_GradesSubject> _subjects = const [
-    _GradesSubject(id: '1', name: 'Bible Studies'),
-    _GradesSubject(id: '2', name: 'Christian History'),
-    _GradesSubject(id: '3', name: 'Memory Verses'),
-    _GradesSubject(id: '4', name: 'Activities'),
-  ];
+  List<_GradesSubject> _subjects = const [];
+  List<_GradesEntry> _gradeEntries = const [];
 
-  late final List<_GradesEntry> _gradeEntries = [
-    _GradesEntry(
-      id: 'g1',
-      subjectId: '1',
-      gradeType: 'Quiz 1',
-      maxScore: 20,
-      weight: 20,
-      date: DateTime(2026, 2, 10),
-      scores: const {'1': 18, '2': 15, '3': 19, '4': null},
-    ),
-    _GradesEntry(
-      id: 'g2',
-      subjectId: '1',
-      gradeType: 'Midterm Exam',
-      maxScore: 100,
-      weight: 40,
-      date: DateTime(2026, 3, 1),
-      scores: const {'1': 92, '2': 78, '3': 88, '4': 0},
-    ),
-    _GradesEntry(
-      id: 'g3',
-      subjectId: '1',
-      gradeType: 'Final Project',
-      maxScore: 50,
-      weight: 40,
-      date: DateTime(2026, 3, 4),
-      scores: const {'1': 48, '2': 41, '3': 46, '4': 45},
-    ),
-    _GradesEntry(
-      id: 'g4',
-      subjectId: '2',
-      gradeType: 'Essay',
-      maxScore: 50,
-      weight: 50,
-      date: DateTime(2026, 2, 18),
-      scores: const {'1': 40, '2': 35, '3': 45, '4': 44},
-    ),
-    _GradesEntry(
-      id: 'g5',
-      subjectId: '2',
-      gradeType: 'Final Exam',
-      maxScore: 100,
-      weight: 50,
-      date: DateTime(2026, 3, 3),
-      scores: const {'1': 84, '2': 66, '3': 90, '4': 75},
-    ),
-    _GradesEntry(
-      id: 'g6',
-      subjectId: '3',
-      gradeType: 'Recitation',
-      maxScore: 10,
-      date: DateTime(2026, 2, 20),
-      scores: const {'1': 8, '2': 6, '3': 9, '4': 7},
-    ),
-    _GradesEntry(
-      id: 'g7',
-      subjectId: '3',
-      gradeType: 'Test',
-      maxScore: 100,
-      date: DateTime(2026, 3, 2),
-      scores: const {'1': 78, '2': 61, '3': 85, '4': 70},
-    ),
-    _GradesEntry(
-      id: 'g8',
-      subjectId: '4',
-      gradeType: 'Participation',
-      maxScore: 10,
-      date: DateTime(2026, 2, 22),
-      scores: const {'1': 9, '2': 8, '3': 10, '4': 9},
-    ),
-    _GradesEntry(
-      id: 'g9',
-      subjectId: '4',
-      gradeType: 'Final Activity',
-      maxScore: 100,
-      date: DateTime(2026, 3, 4),
-      scores: const {'1': 88, '2': 72, '3': 95, '4': 80},
-    ),
-  ];
+  int? _overallAverage;
+  final Map<String, int?> _subjectAverages = {};
 
   bool get _isYearActive => _academicYear.status == _AcademicYearStatus.active;
 
   @override
   void initState() {
     super.initState();
-    _loadPromotionCriteria();
+    _loadGradesFromBackend();
   }
 
-  Future<void> _loadPromotionCriteria() async {
-    if (_loadingCriteria) return;
+  static int _asInt(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
 
+  static _PromotionStatus _promotionStatusFromDb(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'eligible':
+        return _PromotionStatus.eligible;
+      case 'at_risk':
+        return _PromotionStatus.atRisk;
+      case 'not_eligible':
+        return _PromotionStatus.notEligible;
+    }
+    return _PromotionStatus.eligible;
+  }
+
+  Future<void> _loadGradesFromBackend() async {
     setState(() {
-      _loadingCriteria = true;
+      _loadingGrades = true;
+      _gradesError = null;
     });
 
     try {
       final client = Supabase.instance.client;
-      final repo = PromotionCriteriaRepository(client);
-      final criteria = await repo.fetchForCurrentUserActiveYear();
-      if (!mounted) return;
-      if (criteria != null) {
-        setState(() {
-          _criteria = criteria;
-        });
+      final user = client.auth.currentUser;
+      final userId = user?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
       }
-    } catch (_) {
-      // Keep defaults on any error.
+
+      final profile = await client
+          .from('profiles')
+          .select('name, grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final profileMap = (profile as Map?) ?? const <String, Object?>{};
+      final gradeId = profileMap['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final studentName =
+          (profileMap['name'] as String?)?.trim() ?? (user?.email ?? '');
+
+      Map<String, dynamic>? yearRow;
+      yearRow = await client
+          .from('academic_years')
+          .select('id, name, status')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      yearRow ??= await client
+          .from('academic_years')
+          .select('id, name, status')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final academicYearId = yearRow?['id']?.toString();
+      final academicYearName = yearRow?['name']?.toString() ?? '';
+      final yearStatusRaw = yearRow?['status']?.toString() ?? 'active';
+
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final yearStatus = yearStatusRaw == 'active'
+          ? _AcademicYearStatus.active
+          : _AcademicYearStatus.ended;
+
+      PromotionCriteriaSet? criteria;
+      try {
+        final repo = PromotionCriteriaRepository(client);
+        criteria = await repo.fetchForGradeYear(
+          academicYearId: academicYearId,
+          gradeId: gradeId,
+        );
+      } catch (_) {
+        // Keep defaults.
+      }
+
+      final subjectRows = await client
+          .from('subjects')
+          .select('id, name')
+          .eq('grade_id', gradeId)
+          .eq('active', true)
+          .order('name');
+
+      final subjects = subjectRows
+          .map(
+            (r) => _GradesSubject(
+              id: (r as Map)['id'] as String,
+              name: (r)['name'] as String? ?? 'Subject',
+            ),
+          )
+          .toList();
+
+      final subjectIds = subjects.map((s) => s.id).toList();
+
+      final entries = <_GradesEntry>[];
+      if (subjectIds.isNotEmpty) {
+        final assessmentRows = await client
+            .from('assessments')
+            .select(
+              'id, subject_id, grade_type, max_score, weight, assessment_date',
+            )
+            .eq('academic_year_id', academicYearId)
+            .eq('grade_id', gradeId)
+            .inFilter('subject_id', subjectIds)
+            .order('assessment_date', ascending: false);
+
+        final assessmentIds = <String>[];
+        for (final r in assessmentRows) {
+          final id = (r as Map)['id']?.toString();
+          if (id != null && id.isNotEmpty) assessmentIds.add(id);
+        }
+
+        final scoreByAssessmentId = <String, int?>{};
+        if (assessmentIds.isNotEmpty) {
+          final scoreRows = await client
+              .from('assessment_scores')
+              .select('assessment_id, score')
+              .eq('student_id', userId)
+              .inFilter('assessment_id', assessmentIds);
+
+          for (final r in scoreRows) {
+            final map = r as Map;
+            final aid = map['assessment_id']?.toString();
+            if (aid == null || aid.isEmpty) continue;
+            final score = map['score'];
+            scoreByAssessmentId[aid] = score == null ? null : _asInt(score);
+          }
+        }
+
+        for (final r in assessmentRows) {
+          final map = r as Map;
+          final id = map['id']?.toString();
+          final subjectId = map['subject_id']?.toString();
+          if (id == null || subjectId == null) continue;
+
+          final dateRaw = map['assessment_date']?.toString() ?? '';
+          final date = DateTime.tryParse(dateRaw) ?? DateTime.now();
+
+          final maxScore = _asInt(map['max_score'], fallback: 1);
+          final maxScoreSafe = maxScore <= 0 ? 1 : maxScore;
+
+          final weight = _asInt(map['weight']);
+          final weightValue = weight <= 0 ? null : weight;
+
+          entries.add(
+            _GradesEntry(
+              id: id,
+              subjectId: subjectId,
+              gradeType: map['grade_type']?.toString() ?? '',
+              maxScore: maxScoreSafe,
+              weight: weightValue,
+              date: date,
+              scores: {userId: scoreByAssessmentId[id]},
+            ),
+          );
+        }
+      }
+
+      int? overallAverage;
+      final subjectAverages = <String, int?>{};
+      var promotionStatus = _PromotionStatus.eligible;
+
+      try {
+        final snapRaw = await client.rpc(
+          'get_my_grading_snapshot',
+          params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
+        );
+        if (snapRaw is Map) {
+          overallAverage = _asInt(snapRaw['overall_average']);
+          promotionStatus = _promotionStatusFromDb(
+            snapRaw['status']?.toString(),
+          );
+        }
+      } catch (_) {}
+
+      try {
+        final raw = await client.rpc(
+          'get_my_subject_averages',
+          params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
+        );
+        if (raw is List) {
+          for (final item in raw) {
+            if (item is! Map) continue;
+            final sid = item['subject_id']?.toString();
+            if (sid == null || sid.isEmpty) continue;
+            final avg = item['subject_average'];
+            subjectAverages[sid] = avg == null ? null : _asInt(avg);
+          }
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _academicYear = _GradesAcademicYear(
+          name: academicYearName,
+          status: yearStatus,
+        );
+        _currentStudent = _GradesStudent(
+          id: userId,
+          name: studentName,
+          promotionStatus: promotionStatus,
+        );
+        _subjects = subjects;
+        _gradeEntries = entries;
+        _overallAverage = overallAverage;
+        _subjectAverages
+          ..clear()
+          ..addAll(subjectAverages);
+        if (criteria != null) {
+          _criteria = criteria!;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _gradesError = e.toString();
+      });
     } finally {
       if (!mounted) return;
       setState(() {
-        _loadingCriteria = false;
+        _loadingGrades = false;
       });
     }
   }
@@ -1930,6 +2285,10 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 
   int? _calculateSubjectAverage(String studentId, String subjectId) {
+    if (_subjectAverages.containsKey(subjectId)) {
+      return _subjectAverages[subjectId];
+    }
+
     final allEntries = _entriesForSubject(subjectId);
     if (allEntries.isEmpty) return 0;
 
@@ -1964,6 +2323,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 
   int _calculateOverallAverage(String studentId) {
+    final fromRpc = _overallAverage;
+    if (fromRpc != null) return fromRpc;
+
     if (_subjects.isEmpty) return 0;
 
     var total = 0;
@@ -1992,6 +2354,44 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (_loadingGrades) {
+      return const Scaffold(
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    if (_gradesError != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.navGrades)),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(_gradesError!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadGradesFromBackend,
+                  child: Text(l10n.commonRetry),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_subjects.isEmpty) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(child: Text(l10n.commonNoSubjectsForGrade)),
+        ),
+      );
+    }
+
     if (!_isYearActive) {
       return _buildFinalResults(context);
     }
@@ -3087,12 +3487,132 @@ class _StudentCommunicationScreenState
   bool _showQuestionForm = false;
   bool _showComplaintForm = false;
 
+  bool _loadingBadges = false;
+  int _announcementBadgeCount = 0;
+  int _pendingFeedbackBadgeCount = 0;
+
   @override
   void initState() {
     super.initState();
     final parsed = _parseTab(widget.initialTab);
     if (parsed != null) {
       _activeTab = parsed;
+    }
+
+    _loadBadgeCountsFromBackend();
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadBadgeCountsFromBackend() async {
+    if (_loadingBadges) return;
+
+    setState(() {
+      _loadingBadges = true;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var announcementCount = 0;
+      try {
+        var q = client.from('announcements').select('id').eq('active', true);
+
+        if (academicYearId != null && academicYearId.isNotEmpty) {
+          q = q.eq('academic_year_id', academicYearId);
+        }
+        if (gradeId != null && gradeId.isNotEmpty) {
+          q = q.or('grade_id.is.null,grade_id.eq.$gradeId');
+        }
+        final rows = await q;
+        announcementCount = (rows as List).length;
+      } catch (_) {}
+
+      var pendingFeedbackForms = 0;
+      try {
+        if (academicYearId != null &&
+            academicYearId.isNotEmpty &&
+            gradeId != null &&
+            gradeId.isNotEmpty) {
+          final today = _todayIso();
+          final forms = await client
+              .from('feedback_forms')
+              .select('id')
+              .eq('academic_year_id', academicYearId)
+              .eq('grade_id', gradeId)
+              .lte('start_date', today)
+              .gte('end_date', today);
+
+          final formIds = (forms as List)
+              .map((r) => (r as Map)['id']?.toString())
+              .whereType<String>()
+              .toList(growable: false);
+
+          if (formIds.isNotEmpty) {
+            final subs = await client
+                .from('feedback_submissions')
+                .select('form_id')
+                .eq('student_id', userId)
+                .inFilter('form_id', formIds);
+
+            final submitted = (subs as List)
+                .map((r) => (r as Map)['form_id']?.toString())
+                .whereType<String>()
+                .toSet();
+            pendingFeedbackForms = formIds
+                .where((id) => !submitted.contains(id))
+                .length;
+          }
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _announcementBadgeCount = announcementCount;
+        _pendingFeedbackBadgeCount = pendingFeedbackForms;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingBadges = false;
+      });
     }
   }
 
@@ -3127,8 +3647,8 @@ class _StudentCommunicationScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final unreadAnnouncements = 2;
-    final pendingFeedbackForms = 1;
+    final unreadAnnouncements = _announcementBadgeCount;
+    final pendingFeedbackForms = _pendingFeedbackBadgeCount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -3174,6 +3694,7 @@ class _StudentCommunicationScreenState
                               _showQuestionForm = false;
                               _showComplaintForm = false;
                             });
+                            _loadBadgeCountsFromBackend();
                           },
                         ),
                         _CommTabButton(
@@ -3211,6 +3732,7 @@ class _StudentCommunicationScreenState
                               _showQuestionForm = false;
                               _showComplaintForm = false;
                             });
+                            _loadBadgeCountsFromBackend();
                           },
                         ),
                       ],
@@ -3254,7 +3776,9 @@ class _StudentCommunicationScreenState
                           },
                         );
                       case _CommTab.feedback:
-                        return const _FeedbackSection();
+                        return _FeedbackSection(
+                          onSubmitted: _loadBadgeCountsFromBackend,
+                        );
                     }
                   },
                 ),
@@ -3335,7 +3859,7 @@ class _CommTabButton extends StatelessWidget {
   }
 }
 
-// --- Communication tab content widgets (static demo data) ---
+// --- Communication tab content widgets ---
 
 class _AnnouncementsSection extends StatefulWidget {
   const _AnnouncementsSection();
@@ -3705,34 +4229,132 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
   }
 }
 
-class _QuestionsList extends StatelessWidget {
+class _QuestionsList extends StatefulWidget {
   const _QuestionsList({required this.onAskQuestion});
 
   final VoidCallback onAskQuestion;
 
   @override
+  State<_QuestionsList> createState() => _QuestionsListState();
+}
+
+class _QuestionsListState extends State<_QuestionsList> {
+  bool _isLoading = true;
+  String? _error;
+  final List<_Question> _questions = [];
+
+  static String _dateOnly(String value) {
+    if (value.length >= 10) return value.substring(0, 10);
+    return value;
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuestionsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadQuestionsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var query = client
+          .from('questions')
+          .select(
+            'id, question, answer, answered, created_at, subject:subjects(name)',
+          )
+          .eq('student_id', userId);
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      final rows = await query
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      final items = (rows as List).map((r) {
+        final map = r as Map;
+        final createdAt = map['created_at']?.toString() ?? '';
+        final subjectRaw = map['subject'];
+        final subjectName =
+            subjectRaw is Map ? subjectRaw['name']?.toString() : null;
+        final answered = (map['answered'] as bool?) ?? false;
+
+        return _Question(
+          subject: subjectName?.trim() ?? '',
+          question: (map['question'] as String?) ?? '',
+          status: answered ? 'answered' : 'pending',
+          answered: answered,
+          answer: map['answer'] as String?,
+          date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
+        );
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _questions
+          ..clear()
+          ..addAll(items);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _questions.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final questions = [
-      _Question(
-        subject: 'bible_studies',
-        question: 'የሚቀጥለው ሳምንት ፈተና ያለፈው ወር የማስታወሻ ጥቅሶችን ይያዛል?',
-        status: 'pending',
-        answered: false,
-        date: '2025-02-27',
-      ),
-      _Question(
-        subject: 'christian_history',
-        question: 'ስለ ቀደምት የቤተክርስቲያን አባቶች ተጨማሪ ምንጮችን ማጋራት ትችላላችሁ?',
-        status: 'answered',
-        answered: true,
-        answer: 'አዎ፣ በሚቀጥለው ክፍል የንባብ ዝርዝር እና አጭር ቪዲዮ እንጋራለን።',
-        date: '2025-02-20',
-      ),
-    ];
 
-    final pending = questions.where((q) => !q.answered).toList(growable: false);
-    final answered = questions.where((q) => q.answered).toList(growable: false);
+    final pending =
+        _questions.where((q) => !q.answered).toList(growable: false);
+    final answered =
+        _questions.where((q) => q.answered).toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3740,7 +4362,7 @@ class _QuestionsList extends StatelessWidget {
         SizedBox(
           height: 44,
           child: ElevatedButton.icon(
-            onPressed: onAskQuestion,
+            onPressed: widget.onAskQuestion,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0EA5E9),
               foregroundColor: Colors.white,
@@ -3756,36 +4378,67 @@ class _QuestionsList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (pending.isNotEmpty) ...[
-          Text(
-            l10n.commPending,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 8),
-          ...pending.map((q) => _QuestionCard(question: q)),
-          const SizedBox(height: 16),
-        ],
-        if (answered.isNotEmpty) ...[
-          Text(
-            l10n.commAnswered,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 8),
-          ...answered.map((q) => _QuestionCard(question: q)),
-        ],
-        if (questions.isEmpty) ...[
-          const SizedBox(height: 40),
-          Icon(
-            Icons.chat_bubble_outline_rounded,
-            color: Colors.grey.shade300,
-            size: 48,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.commNoQuestionsYet,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF64748B)),
-          ),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Column(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 42,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadQuestionsFromBackend,
+                child: Text(l10n.commonRetry),
+              ),
+            ],
+          )
+        else if (_questions.isEmpty)
+          Column(
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: Colors.grey.shade300,
+                size: 48,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.commNoQuestionsYet,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            ],
+          )
+        else ...[
+          if (pending.isNotEmpty) ...[
+            Text(
+              l10n.commPending,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 8),
+            ...pending.map((q) => _QuestionCard(question: q)),
+            const SizedBox(height: 16),
+          ],
+          if (answered.isNotEmpty) ...[
+            Text(
+              l10n.commAnswered,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 8),
+            ...answered.map((q) => _QuestionCard(question: q)),
+          ],
         ],
       ],
     );
@@ -3800,12 +4453,9 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final subjectLabel = switch (question.subject) {
-      'bible_studies' => l10n.commSubjectBibleStudies,
-      'christian_history' => l10n.commSubjectChristianHistory,
-      'general' => l10n.commSubjectGeneral,
-      _ => l10n.commSubjectGeneral,
-    };
+    final subjectLabel = question.subject.trim().isNotEmpty
+        ? question.subject
+        : l10n.commSubjectGeneral;
     final statusColor = question.answered
         ? const Color(0xFF16A34A)
         : const Color(0xFFFBBF24); // green / amber
@@ -3916,14 +4566,197 @@ class _QuestionForm extends StatefulWidget {
 }
 
 class _QuestionFormState extends State<_QuestionForm> {
+  static const _generalSubjectValue = 'general';
+
   final _formKey = GlobalKey<FormState>();
-  String _subject = '';
+
+  bool _loadingContext = false;
+  String? _contextError;
+  String? _submitError;
+  String? _academicYearId;
+  String? _gradeId;
+  List<_QuestionSubjectOption> _subjectOptions = const [];
+
+  String _subjectValue = _generalSubjectValue;
   String _question = '';
+  bool _submitting = false;
   bool _showSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContextFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadContextFromBackend() async {
+    if (_loadingContext) return;
+
+    setState(() {
+      _loadingContext = true;
+      _contextError = null;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final subjectRows = await client
+          .from('subjects')
+          .select('id, name')
+          .eq('grade_id', gradeId)
+          .eq('active', true)
+          .order('name');
+
+      final l10n = AppLocalizations.of(context);
+      final options = <_QuestionSubjectOption>[
+        _QuestionSubjectOption(
+          value: _generalSubjectValue,
+          label: l10n.commSubjectGeneral,
+        ),
+      ];
+
+      for (final r in (subjectRows as List)) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        options.add(
+          _QuestionSubjectOption(
+            value: id,
+            label: map['name']?.toString() ?? id,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _gradeId = gradeId;
+        _academicYearId = academicYearId;
+        _subjectOptions = options;
+        if (_subjectValue.isEmpty) {
+          _subjectValue = _generalSubjectValue;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _contextError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingContext = false;
+      });
+    }
+  }
+
+  Future<void> _submitQuestionToBackend() async {
+    if (_submitting) return;
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final gradeId = _gradeId;
+      final academicYearId = _academicYearId;
+      if (gradeId == null || academicYearId == null) {
+        throw StateError('Missing class context');
+      }
+
+      final subjectId =
+          _subjectValue == _generalSubjectValue ? null : _subjectValue;
+
+      await client.from('questions').insert({
+        'student_id': userId,
+        'grade_id': gradeId,
+        'academic_year_id': academicYearId,
+        'subject_id': subjectId,
+        'question': _question.trim(),
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _showSuccess = true;
+      });
+      Future.delayed(
+        const Duration(milliseconds: 1500),
+        () {
+          if (!mounted) return;
+          setState(() {
+            _showSuccess = false;
+          });
+          widget.onCancel();
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    final subjectOptions = _subjectOptions.isNotEmpty
+        ? _subjectOptions
+        : [
+            _QuestionSubjectOption(
+              value: _generalSubjectValue,
+              label: l10n.commSubjectGeneral,
+            ),
+          ];
+
     return Form(
       key: _formKey,
       child: Column(
@@ -3963,24 +4796,18 @@ class _QuestionFormState extends State<_QuestionForm> {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  initialValue: _subject.isEmpty ? null : _subject,
-                  items: [
-                    DropdownMenuItem(
-                      value: 'bible_studies',
-                      child: Text(l10n.commSubjectBibleStudies),
-                    ),
-                    DropdownMenuItem(
-                      value: 'christian_history',
-                      child: Text(l10n.commSubjectChristianHistory),
-                    ),
-                    DropdownMenuItem(
-                      value: 'general',
-                      child: Text(l10n.commSubjectGeneral),
-                    ),
-                  ],
+                  initialValue: _subjectValue.isEmpty ? null : _subjectValue,
+                  items: subjectOptions
+                      .map(
+                        (o) => DropdownMenuItem(
+                          value: o.value,
+                          child: Text(o.label),
+                        ),
+                      )
+                      .toList(growable: false),
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
-                    setState(() => _subject = value ?? '');
+                    setState(() => _subjectValue = value ?? _generalSubjectValue);
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -4020,28 +4847,28 @@ class _QuestionFormState extends State<_QuestionForm> {
                   },
                 ),
                 const SizedBox(height: 16),
+                if (_contextError != null || _submitError != null) ...[
+                  Text(
+                    _contextError ?? _submitError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (!_formKey.currentState!.validate()) {
-                            return;
-                          }
-                          setState(() {
-                            _showSuccess = true;
-                          });
-                          Future.delayed(
-                            const Duration(milliseconds: 1500),
-                            () {
-                              if (!mounted) return;
-                              setState(() {
-                                _showSuccess = false;
-                              });
-                              widget.onCancel();
-                            },
-                          );
-                        },
+                        onPressed: (_submitting ||
+                                _loadingContext ||
+                                _gradeId == null ||
+                                _academicYearId == null)
+                            ? null
+                            : () {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
+                                _submitQuestionToBackend();
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0EA5E9),
                           foregroundColor: Colors.white,
@@ -4101,28 +4928,136 @@ class _QuestionFormState extends State<_QuestionForm> {
                 ),
               ),
             ),
+          if (_loadingContext)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );
   }
 }
 
-class _ComplaintsList extends StatelessWidget {
+class _QuestionSubjectOption {
+  const _QuestionSubjectOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
+}
+
+class _ComplaintsList extends StatefulWidget {
   const _ComplaintsList({required this.onSubmitComplaint});
 
   final VoidCallback onSubmitComplaint;
 
   @override
+  State<_ComplaintsList> createState() => _ComplaintsListState();
+}
+
+class _ComplaintsListState extends State<_ComplaintsList> {
+  bool _isLoading = true;
+  String? _error;
+  final List<_Complaint> _complaints = [];
+
+  static String _dateOnly(String value) {
+    if (value.length >= 10) return value.substring(0, 10);
+    return value;
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComplaintsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadComplaintsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var query = client
+          .from('complaints')
+          .select('id, category, status, complaint, created_at')
+          .eq('student_id', userId);
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      final rows = await query
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      final items = (rows as List).map((r) {
+        final map = r as Map;
+        final createdAt = map['created_at']?.toString() ?? '';
+        return _Complaint(
+          category: map['category']?.toString() ?? 'other',
+          status: map['status']?.toString() ?? 'pending',
+          text: map['complaint']?.toString() ?? '',
+          date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
+        );
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _complaints
+          ..clear()
+          ..addAll(items);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _complaints.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final complaints = [
-      _Complaint(
-        category: 'teacher',
-        status: 'pending',
-        text: 'በእንቅስቃሴዎች ጊዜ ክፍሉ ብዙ ጫጫታ ይሆናል።',
-        date: '2025-02-25',
-      ),
-    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4130,7 +5065,7 @@ class _ComplaintsList extends StatelessWidget {
         SizedBox(
           height: 44,
           child: ElevatedButton.icon(
-            onPressed: onSubmitComplaint,
+            onPressed: widget.onSubmitComplaint,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0EA5E9),
               foregroundColor: Colors.white,
@@ -4146,21 +5081,51 @@ class _ComplaintsList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (complaints.isEmpty) ...[
-          const SizedBox(height: 40),
-          Icon(
-            Icons.report_problem_outlined,
-            color: Colors.grey.shade300,
-            size: 48,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.commNoComplaintsSubmitted,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF64748B)),
-          ),
-        ] else
-          ...complaints.map((c) => _ComplaintCard(complaint: c)),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Column(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 42,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadComplaintsFromBackend,
+                child: Text(l10n.commonRetry),
+              ),
+            ],
+          )
+        else if (_complaints.isEmpty)
+          Column(
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.report_problem_outlined,
+                color: Colors.grey.shade300,
+                size: 48,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.commNoComplaintsSubmitted,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            ],
+          )
+        else
+          ..._complaints.map((c) => _ComplaintCard(complaint: c)),
       ],
     );
   }
@@ -4201,6 +5166,7 @@ class _ComplaintCard extends StatelessWidget {
 
     final statusLabel = switch (complaint.status) {
       'pending' => l10n.commPending,
+      'in_review' => l10n.commInReview,
       'resolved' => l10n.commResolved,
       _ => complaint.status,
     };
@@ -4279,11 +5245,152 @@ class _ComplaintForm extends StatefulWidget {
 
 class _ComplaintFormState extends State<_ComplaintForm> {
   final _formKey = GlobalKey<FormState>();
+
+  bool _loadingContext = false;
+  String? _contextError;
+  String? _submitError;
+  String? _academicYearId;
+  String? _gradeId;
+
   String _category = '';
   String _title = '';
   String _description = '';
   bool _anonymous = false;
+  bool _submitting = false;
   bool _showSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContextFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadContextFromBackend() async {
+    if (_loadingContext) return;
+
+    setState(() {
+      _loadingContext = true;
+      _contextError = null;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _gradeId = gradeId;
+        _academicYearId = academicYearId;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _contextError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loadingContext = false;
+      });
+    }
+  }
+
+  Future<void> _submitComplaintToBackend() async {
+    if (_submitting) return;
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final gradeId = _gradeId;
+      final academicYearId = _academicYearId;
+      if (gradeId == null || academicYearId == null) {
+        throw StateError('Missing class context');
+      }
+
+      final title = _title.trim();
+      final description = _description.trim();
+      final complaintText = title.isEmpty ? description : '$title\n\n$description';
+
+      await client.from('complaints').insert({
+        'student_id': userId,
+        'grade_id': gradeId,
+        'academic_year_id': academicYearId,
+        'category': _category.isEmpty ? null : _category,
+        'complaint': complaintText,
+        'status': 'pending',
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _showSuccess = true;
+      });
+      Future.delayed(
+        const Duration(milliseconds: 1500),
+        () {
+          if (!mounted) return;
+          setState(() {
+            _showSuccess = false;
+          });
+          widget.onCancel();
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4446,18 +5553,15 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (!_formKey.currentState!.validate()) return;
-                          setState(() => _showSuccess = true);
-                          Future.delayed(
-                            const Duration(milliseconds: 1500),
-                            () {
-                              if (!mounted) return;
-                              setState(() => _showSuccess = false);
-                              widget.onCancel();
-                            },
-                          );
-                        },
+                        onPressed: (_submitting ||
+                                _loadingContext ||
+                                _gradeId == null ||
+                                _academicYearId == null)
+                            ? null
+                            : () {
+                                if (!_formKey.currentState!.validate()) return;
+                                _submitComplaintToBackend();
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0EA5E9),
                           foregroundColor: Colors.white,
@@ -4485,6 +5589,13 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                     ),
                   ],
                 ),
+                if (_contextError != null || _submitError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _contextError ?? _submitError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ],
             ),
           ),
@@ -4517,22 +5628,594 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                 ),
               ),
             ),
+          if (_loadingContext)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );
   }
 }
 
-class _FeedbackSection extends StatelessWidget {
-  const _FeedbackSection();
+class _FeedbackSection extends StatefulWidget {
+  const _FeedbackSection({required this.onSubmitted});
+
+  final VoidCallback onSubmitted;
+
+  @override
+  State<_FeedbackSection> createState() => _FeedbackSectionState();
+}
+
+class _FeedbackSectionState extends State<_FeedbackSection> {
+  bool _isLoading = true;
+  String? _error;
+
+  final List<_StudentFeedbackForm> _forms = [];
+  _StudentFeedbackForm? _activeForm;
+
+  final _formKey = GlobalKey<FormState>();
+  bool _submitting = false;
+  String? _submitError;
+
+  final Map<String, TextEditingController> _textControllers = {};
+  final Map<String, Object?> _answers = {};
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeedbackFormsFromBackend();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _resetAnswerState() {
+    _submitError = null;
+    _answers.clear();
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    _textControllers.clear();
+  }
+
+  TextEditingController _textControllerFor(String questionId) {
+    return _textControllers.putIfAbsent(
+      questionId,
+      () => TextEditingController(
+        text: (_answers[questionId] as String?) ?? '',
+      ),
+    );
+  }
+
+  Future<void> _loadFeedbackFormsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final today = _todayIso();
+      final rows = await client
+          .from('feedback_forms')
+          .select(
+            'id, title, description, start_date, end_date, created_at, feedback_questions(id, position, type, question, required, options)',
+          )
+          .eq('academic_year_id', academicYearId)
+          .eq('grade_id', gradeId)
+          .lte('start_date', today)
+          .gte('end_date', today)
+          .order('created_at', ascending: false);
+
+      final forms = <_StudentFeedbackForm>[];
+      final formIds = <String>[];
+
+      for (final r in (rows as List)) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        formIds.add(id);
+
+        final questionsRaw =
+            (map['feedback_questions'] as List<dynamic>? ?? const []);
+        questionsRaw.sort((a, b) {
+          final pa = (a as Map)['position'] as int? ?? 0;
+          final pb = (b as Map)['position'] as int? ?? 0;
+          return pa.compareTo(pb);
+        });
+
+        final questions = questionsRaw.map((q) {
+          final qMap = q as Map;
+          final optionsRaw = qMap['options'];
+          final options = optionsRaw is List
+              ? optionsRaw.whereType<String>().toList()
+              : const <String>[];
+
+          return _StudentFeedbackQuestion(
+            id: qMap['id']?.toString() ?? '',
+            question: qMap['question']?.toString() ?? '',
+            type: qMap['type']?.toString() ?? 'text',
+            required: (qMap['required'] as bool?) ?? true,
+            options: options,
+          );
+        }).where((q) => q.id.isNotEmpty).toList(growable: false);
+
+        forms.add(
+          _StudentFeedbackForm(
+            id: id,
+            title: map['title']?.toString() ?? '',
+            description: map['description']?.toString() ?? '',
+            startDate: map['start_date']?.toString() ?? today,
+            endDate: map['end_date']?.toString() ?? today,
+            questions: questions,
+          ),
+        );
+      }
+
+      final submittedFormIds = <String>{};
+      if (formIds.isNotEmpty) {
+        try {
+          final subs = await client
+              .from('feedback_submissions')
+              .select('form_id')
+              .eq('student_id', userId)
+              .inFilter('form_id', formIds);
+
+          for (final s in (subs as List)) {
+            final fid = (s as Map)['form_id']?.toString();
+            if (fid != null && fid.isNotEmpty) submittedFormIds.add(fid);
+          }
+        } catch (_) {}
+      }
+
+      final pendingForms =
+          forms.where((f) => !submittedFormIds.contains(f.id)).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _forms
+          ..clear()
+          ..addAll(pendingForms);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _forms.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _openForm(_StudentFeedbackForm form) {
+    setState(() {
+      _activeForm = form;
+      _resetAnswerState();
+    });
+  }
+
+  void _closeForm() {
+    setState(() {
+      _activeForm = null;
+      _resetAnswerState();
+    });
+  }
+
+  Future<void> _submitActiveForm() async {
+    if (_submitting) return;
+
+    final form = _activeForm;
+    if (form == null) return;
+
+    final l10n = AppLocalizations.of(context);
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      setState(() {
+        _submitError = l10n.servantGradesFillRequiredFieldsError;
+      });
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final answers = <String, Object?>{};
+      for (final q in form.questions) {
+        switch (q.type) {
+          case 'text':
+            final text = _textControllerFor(q.id).text.trim();
+            answers[q.id] = text;
+            _answers[q.id] = text;
+            break;
+          case 'rating':
+            answers[q.id] = _answers[q.id];
+            break;
+          case 'multiple_choice':
+            answers[q.id] = _answers[q.id];
+            break;
+          default:
+            final text = _textControllerFor(q.id).text.trim();
+            answers[q.id] = text;
+            _answers[q.id] = text;
+        }
+      }
+
+      await client.from('feedback_submissions').insert({
+        'form_id': form.id,
+        'student_id': userId,
+        'answers': answers,
+      });
+
+      if (!mounted) return;
+      _closeForm();
+      widget.onSubmitted();
+      await _loadFeedbackFormsFromBackend();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Column(
+        children: [
+          const SizedBox(height: 24),
+          Icon(
+            Icons.error_outline_rounded,
+            size: 42,
+            color: Colors.red.shade300,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _loadFeedbackFormsFromBackend,
+            child: Text(l10n.commonRetry),
+          ),
+        ],
+      );
+    }
+
+    final activeForm = _activeForm;
+    if (activeForm != null) {
+      return Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.fact_check_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          activeForm.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (activeForm.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      activeForm.description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  ...activeForm.questions.map((q) {
+                    final label = q.required
+                        ? '${q.question} *'
+                        : q.question;
+
+                    Widget field;
+                    if (q.type == 'rating') {
+                      final current = _answers[q.id];
+                      field = DropdownButtonFormField<int>(
+                        initialValue: current is int ? current : null,
+                        decoration: _dropdownDecoration,
+                        items: List.generate(
+                          5,
+                          (i) => DropdownMenuItem(
+                            value: i + 1,
+                            child: Text('${i + 1}'),
+                          ),
+                        ),
+                        onChanged: _submitting
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _answers[q.id] = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null) return l10n.servantFeedbackRequiredLabel;
+                          return null;
+                        },
+                      );
+                    } else if (q.type == 'multiple_choice') {
+                      final current = _answers[q.id];
+                      final options = q.options;
+                      field = DropdownButtonFormField<String>(
+                        initialValue: current is String ? current : null,
+                        decoration: _dropdownDecoration,
+                        items: options
+                            .map(
+                              (o) => DropdownMenuItem(
+                                value: o,
+                                child: Text(o),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (_submitting || options.isEmpty)
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _answers[q.id] = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return l10n.servantFeedbackRequiredLabel;
+                          }
+                          return null;
+                        },
+                      );
+                    } else {
+                      field = TextFormField(
+                        controller: _textControllerFor(q.id),
+                        maxLines: 2,
+                        decoration: _textareaDecoration,
+                        enabled: !_submitting,
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return l10n.servantFeedbackRequiredLabel;
+                          }
+                          return null;
+                        },
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          field,
+                        ],
+                      ),
+                    );
+                  }),
+                  if (_submitError != null) ...[
+                    Text(
+                      _submitError!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _submitting ? null : _submitActiveForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0EA5E9),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: Text(l10n.commonSubmit),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton(
+                        onPressed: _submitting ? null : _closeForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(l10n.commonCancel),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_forms.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.fact_check_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.commNoActiveFeedbackForms,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.commFeedbackEmptySubtitle,
+                  style:
+                      const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
+      children: _forms.map((form) {
+        final due = EthiopianDateFormatter.formatFlexible(form.endDate);
+        final subtitle = l10n.servantFeedbackQuestionsAndDueLine(
+          form.questions.length,
+          due,
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -4556,27 +6239,84 @@ class _FeedbackSection extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    l10n.commNoActiveFeedbackForms,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+                  Expanded(
+                    child: Text(
+                      form.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
+              if (form.description.trim().isNotEmpty)
+                Text(
+                  form.description,
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+              const SizedBox(height: 8),
               Text(
-                l10n.commFeedbackEmptySubtitle,
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => _openForm(form),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0EA5E9),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(l10n.commonSubmit),
+                ),
               ),
             ],
           ),
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
+}
+
+class _StudentFeedbackForm {
+  const _StudentFeedbackForm({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.startDate,
+    required this.endDate,
+    required this.questions,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String startDate;
+  final String endDate;
+  final List<_StudentFeedbackQuestion> questions;
+}
+
+class _StudentFeedbackQuestion {
+  const _StudentFeedbackQuestion({
+    required this.id,
+    required this.question,
+    required this.type,
+    required this.required,
+    required this.options,
+  });
+
+  final String id;
+  final String question;
+  final String type;
+  final bool required;
+  final List<String> options;
 }
 
 // --- Shared helpers and data classes ---

@@ -428,6 +428,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authLoginFailedGeneric => 'Login failed. Please try again.';
 
   @override
+  String get authRoleMismatchStudent =>
+      'This account is not a student account. Please select Servant role to continue.';
+
+  @override
+  String get authRoleMismatchServant =>
+      'This account is not a servant account. Please select Student role to continue.';
+
+  @override
+  String get authRoleVerificationFailed =>
+      'Could not verify your account role. Please try again.';
+
+  @override
   String get authPasswordUpdateSuccess => 'Password updated.';
 
   @override

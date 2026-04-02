@@ -48,7 +48,6 @@ type Draft = {
   grade_id: string | null;
   passing_grade: string;
   weight: string;
-  active: boolean;
 };
 
 function toNumberOrNull(value: string): number | null {
@@ -77,11 +76,11 @@ export function SubjectsPage() {
   const [createGradeId, setCreateGradeId] = React.useState<string | null>(null);
   const [createPassing, setCreatePassing] = React.useState("");
   const [createWeight, setCreateWeight] = React.useState("");
-  const [createActive, setCreateActive] = React.useState(true);
   const [createIsPrerequisite, setCreateIsPrerequisite] = React.useState(false);
 
   const [isCreating, setIsCreating] = React.useState(false);
   const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
@@ -151,7 +150,6 @@ export function SubjectsPage() {
             ? ""
             : String(s.passing_grade),
         weight: s.weight === null || s.weight === undefined ? "" : String(s.weight),
-        active: s.active ?? true,
       }
     );
   }
@@ -194,7 +192,6 @@ export function SubjectsPage() {
           grade_id: createGradeId,
           passing_grade: passingGrade,
           weight: toNumberOrNull(createWeight),
-          active: createActive,
         })
         .select("id")
         .single();
@@ -208,7 +205,6 @@ export function SubjectsPage() {
       setCreateGradeId(null);
       setCreatePassing("");
       setCreateWeight("");
-      setCreateActive(true);
       setCreateIsPrerequisite(false);
 
       await load();
@@ -239,7 +235,6 @@ export function SubjectsPage() {
             grade_id: d.grade_id,
             passing_grade: passingGrade,
             weight: toNumberOrNull(d.weight),
-            active: d.active,
           })
           .eq("id", id);
 
@@ -280,6 +275,44 @@ export function SubjectsPage() {
       await load();
     } finally {
       setSavingId(null);
+    }
+  }
+
+  function isDeleteBlocked(message: string): boolean {
+    const m = (message ?? "").toLowerCase();
+    return (
+      m.includes("foreign key") ||
+      m.includes("violates foreign key") ||
+      m.includes("update or delete on table")
+    );
+  }
+
+  async function deleteSubject(subject: SubjectRow) {
+    const name = subject.name ?? subject.id;
+    if (!window.confirm(t("subjectsConfirmDelete", { name }))) {
+      return;
+    }
+
+    setError(null);
+    setDeletingId(subject.id);
+    try {
+      const { error: deleteError } = await supabase
+        .from("subjects")
+        .delete()
+        .eq("id", subject.id);
+
+      if (deleteError) {
+        setError(
+          isDeleteBlocked(deleteError.message)
+            ? t("subjectsDeleteBlocked")
+            : deleteError.message,
+        );
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -366,15 +399,6 @@ export function SubjectsPage() {
               ) : null}
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={createActive}
-                onChange={(e) => setCreateActive(e.target.checked)}
-              />
-              {t("subjectsActiveLabel")}
-            </label>
-
             <Button disabled={isCreating} onClick={() => void createSubject()}>
               {isCreating ? t("commonCreating") : t("commonCreate")}
             </Button>
@@ -417,7 +441,6 @@ export function SubjectsPage() {
                   <TableHead>{t("subjectsTablePrereqMin")}</TableHead>
                   <TableHead>{t("subjectsTablePassing")}</TableHead>
                   <TableHead>{t("subjectsTableWeight")}</TableHead>
-                  <TableHead>{t("subjectsTableActive")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -538,32 +561,25 @@ export function SubjectsPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={d.active}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [s.id]: {
-                                  ...d,
-                                  active: e.target.checked,
-                                },
-                              }))
-                            }
-                          />
-                          {d.active ? t("commonYes") : t("commonNo")}
-                        </label>
-                      </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}
-                          onClick={() => void saveSubject(s.id)}
-                        >
-                          {savingId === s.id ? t("commonSaving") : t("commonSave")}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}
+                            onClick={() => void saveSubject(s.id)}
+                          >
+                            {savingId === s.id ? t("commonSaving") : t("commonSave")}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={deletingId === s.id}
+                            onClick={() => void deleteSubject(s)}
+                          >
+                            {deletingId === s.id ? t("commonDeleting") : t("commonDelete")}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

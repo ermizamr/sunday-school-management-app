@@ -9,10 +9,71 @@ import '../../features/servant/presentation/servant_screens.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+String? _cachedRoleUserId;
+String? _cachedRole;
+bool _cachedRoleLoaded = false;
+Future<void>? _roleFetchInProgress;
+
+void _clearRoleCache() {
+  _cachedRoleUserId = null;
+  _cachedRole = null;
+  _cachedRoleLoaded = false;
+  _roleFetchInProgress = null;
+}
+
+Future<String?> _resolveCurrentUserRole() async {
+  String? userId;
+  try {
+    userId = Supabase.instance.client.auth.currentUser?.id;
+  } catch (_) {
+    return null;
+  }
+
+  if (userId == null) {
+    _clearRoleCache();
+    return null;
+  }
+
+  final resolvedUserId = userId;
+
+  if (_cachedRoleUserId != resolvedUserId) {
+    _clearRoleCache();
+    _cachedRoleUserId = resolvedUserId;
+  }
+
+  if (_cachedRoleLoaded) return _cachedRole;
+
+  final inProgress = _roleFetchInProgress;
+  if (inProgress != null) {
+    await inProgress;
+    return _cachedRole;
+  }
+
+  final fetch = _roleFetchInProgress = () async {
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('role')
+          .eq('id', resolvedUserId)
+          .maybeSingle();
+
+      _cachedRole = profile?['role']?.toString().trim().toLowerCase();
+    } catch (_) {
+      _cachedRole = null;
+    } finally {
+      _cachedRoleLoaded = true;
+      _roleFetchInProgress = null;
+    }
+  }();
+
+  await fetch;
+  return _cachedRole;
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/',
-  redirect: (context, state) {
+  redirect: (context, state) async {
     final path = state.uri.path;
     Session? session;
     try {
@@ -31,6 +92,22 @@ final GoRouter appRouter = GoRouter(
       if (path.startsWith('/student/') && path != '/student/login') {
         return '/student/login';
       }
+
+      return null;
+    }
+
+    // Enforce role separation even when authenticated.
+    if (path.startsWith('/student/') && path != '/student/login') {
+      final role = await _resolveCurrentUserRole();
+      if (role == null) return '/';
+      if (role != 'student') return '/servant/dashboard';
+    }
+
+    if (path.startsWith('/servant/') && path != '/servant/login') {
+      final role = await _resolveCurrentUserRole();
+      if (role == null) return '/';
+      final allowed = role == 'servant' || role == 'admin';
+      if (!allowed) return '/student/dashboard';
     }
 
     return null;

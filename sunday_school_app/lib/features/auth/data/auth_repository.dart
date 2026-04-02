@@ -31,6 +31,23 @@ class AuthRepository {
       password: password,
     );
   }
+
+  Future<String?> fetchCurrentUserRole() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final profile = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return profile?['role']?.toString();
+  }
+
+  Future<void> signOut() {
+    return _client.auth.signOut();
+  }
 }
 
 AuthRepository createAuthRepository() {

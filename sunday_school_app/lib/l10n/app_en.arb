@@ -237,6 +237,9 @@
   "authForgotPassword": "Forgot your password?",
   "authDemoMode": "Demo mode: use any valid email & password\nwhile backend is being wired fully.",
   "authLoginFailedGeneric": "Login failed. Please try again.",
+  "authRoleMismatchStudent": "This account is not a student account. Please select Servant role to continue.",
+  "authRoleMismatchServant": "This account is not a servant account. Please select Student role to continue.",
+  "authRoleVerificationFailed": "Could not verify your account role. Please try again.",
   "authPasswordUpdateSuccess": "Password updated.",
   "authPasswordUpdateFailedGeneric": "Could not update password. Please try again.",
 
