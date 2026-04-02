@@ -540,15 +540,6 @@ class ServantDashboardScreen extends StatefulWidget {
     }
   }
 
-  String _generateAcademicId(Random random) {
-    final fourDigits = random.nextInt(9000) + 1000;
-    final ethYear = EthiopianCalendar.fromGregorianDateTime(
-      DateTime.now(),
-    ).year;
-    final yy = (ethYear % 100).toString().padLeft(2, '0');
-    return '${fourDigits.toString().padLeft(4, '0')}/$yy';
-  }
-
   bool _looksLikeAcademicIdConflict(Object error) {
     final msg = error.toString().toLowerCase();
     return msg.contains('academic') &&
@@ -660,12 +651,9 @@ class ServantDashboardScreen extends StatefulWidget {
   }) async {
     final client = SupabaseClientManager.instance.client;
     await _ensureSignedInAndFreshToken(client);
-
-    final random = Random.secure();
     Object? lastError;
 
     for (var attempt = 0; attempt < 5; attempt++) {
-      final academicId = _generateAcademicId(random);
       try {
         var authRetried = false;
         late ({int status, dynamic data}) response;
@@ -690,9 +678,7 @@ class ServantDashboardScreen extends StatefulWidget {
               body: {
                 'name': name,
                 'grade_id': gradeId,
-                'academic_id': academicId,
                 'role': 'student',
-                'password': academicId,
               },
             );
           } catch (e) {
@@ -747,7 +733,6 @@ class ServantDashboardScreen extends StatefulWidget {
         final data = response.data;
         if (data is Map) {
           final m = Map<String, dynamic>.from(data);
-          m['academic_id'] ??= academicId;
           return m;
         }
         throw Exception('Unexpected response from server');

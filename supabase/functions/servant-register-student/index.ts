@@ -30,6 +30,15 @@ function pad2(n: number) {
   return n.toString().padStart(2, "0");
 }
 
+function parseAcademicIdPrefix(academicId: string) {
+  const m = academicId.match(/^(\d{4})\/(\d{2})$/);
+  if (!m) return null;
+  const prefix = Number(m[1]);
+  const yy = m[2];
+  if (!Number.isFinite(prefix) || prefix < 1 || prefix > 9999) return null;
+  return { prefix, yy };
+}
+
 function isGregorianLeapYear(year: number) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
@@ -72,16 +81,35 @@ function ethiopianYearFromGregorianDate(date: Date): number {
   return isOnOrAfterNewYear ? year - 7 : year - 8;
 }
 
-function generateAcademicId(): string {
+async function allocateNextAcademicId(adminClient: any): Promise<string> {
   const ethYear = ethiopianYearFromGregorianDate(new Date());
   const yy = pad2(ethYear % 100);
 
-  const bytes = new Uint8Array(2);
-  crypto.getRandomValues(bytes);
-  const raw = (bytes[0] << 8) + bytes[1];
-  const fourDigits = (raw % 9000) + 1000;
+  const { data: rows, error } = await adminClient
+    .from("profiles")
+    .select("academic_id")
+    // Match only the expected format: dddd/yy
+    .like("academic_id", `____/${yy}`)
+    .range(0, 9998);
 
-  return `${fourDigits}/${yy}`;
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const used = new Set<number>();
+  for (const row of (rows ?? []) as Array<{ academic_id: string | null }>) {
+    const aid = (row.academic_id ?? "").toString().trim();
+    const parsed = parseAcademicIdPrefix(aid);
+    if (parsed && parsed.yy === yy) used.add(parsed.prefix);
+  }
+
+  let prefix = 1;
+  while (used.has(prefix) && prefix <= 9999) prefix++;
+  if (prefix > 9999) {
+    throw new Error("No available academic_id remaining.");
+  }
+
+  return `${prefix.toString().padStart(4, "0")}/${yy}`;
 }
 
 function isUniqueViolation(message: string) {
@@ -207,17 +235,29 @@ serve(async (req: Request) => {
       return jsonResponse(created);
     }
 
-    for (let i = 0; i < 10; i++) {
-      const academicId = generateAcademicId();
+    // Allocate sequentially: 0001/yy, 0002/yy, ...
+    let lastErr: string | null = null;
+    for (let i = 0; i < 25; i++) {
+      let academicId: string;
+      try {
+        academicId = await allocateNextAcademicId(guard.adminClient);
+      } catch (e) {
+        return jsonResponse(
+          { error: e instanceof Error ? e.message : "Unable to allocate academic ID" },
+          { status: 500 },
+        );
+      }
+
       const created = await tryCreate(academicId);
       if (created.ok) return jsonResponse(created);
+      lastErr = created.error;
       if (created.status !== 409) {
         return jsonResponse({ error: created.error }, { status: created.status });
       }
     }
 
     return jsonResponse(
-      { error: "Unable to generate a unique academic ID." },
+      { error: lastErr ?? "Unable to allocate a unique academic ID." },
       { status: 500 },
     );
   } catch (e) {

@@ -3,8 +3,8 @@
 
   "appTitle": "DEAS EMSS",
 
-  "roleSelectionTitle": "ሰንበት ት/ቤት",
-  "roleSelectionSubtitle": "ዲጂታል አስተዳደር ሥርዓት",
+  "roleSelectionTitle": "እግዚአብሔር ምስሌነ",
+  "roleSelectionSubtitle": "የተከታታይ ትምህርት ዲጂታል አስተዳደር ሥርዓት",
   "roleStudent": "ተማሪ",
   "roleStudentSubtitle": "ውጤት፣ መገኘት እና ግንኙነት ይመልከቱ",
   "roleServant": "አገልጋይ",
@@ -210,9 +210,9 @@
   "authServantLoginTitle": "የአገልጋይ መግቢያ",
   "authLoginSubtitle": "ለመቀጠል የመለያ መረጃዎን ያስገቡ",
 
-  "authEmailLabel": "የተማሪ መለያ",
+  "authEmailLabel": "መለያ",
   "authPasswordLabel": "የይለፍ ቃል",
-  "authEmailHint": "የተማሪ መለያዎን ያስገቡ",
+  "authEmailHint": "መለያዎን ያስገቡ",
   "authPasswordHint": "የይለፍ ቃልዎን ያስገቡ",
   "authNewPasswordLabel": "አዲስ የይለፍ ቃል",
   "authNewPasswordHint": "አዲስ የይለፍ ቃል ያስገቡ",

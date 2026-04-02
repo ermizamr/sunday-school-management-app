@@ -160,23 +160,28 @@ export function UsersPage() {
     const password = createPassword.trim();
     const email = createEmail.trim();
 
-    if (!academicId || !name || !password || !createGradeId) {
+    if (!name || !createGradeId) {
       setError(t("usersValidationRequired"));
       return;
     }
 
     setIsCreating(true);
     try {
+      const body: Record<string, unknown> = {
+        email: email || undefined,
+        role: "student",
+        name,
+        grade_id: createGradeId,
+      };
+
+      if (academicId) body.academic_id = academicId;
+      if (password) body.password = password;
+
       const { data, error: invokeError } = await supabase.functions.invoke(
         "admin-create-user",
         {
           body: {
-            email: email || undefined,
-            password,
-            role: "student",
-            academic_id: academicId,
-            name,
-            grade_id: createGradeId,
+            ...body,
           },
         },
       );
@@ -189,6 +194,11 @@ export function UsersPage() {
       if ((data as { error?: string } | null)?.error) {
         setError((data as { error: string }).error);
         return;
+      }
+
+      const assignedAcademicId = (data as { academic_id?: string } | null)?.academic_id;
+      if (assignedAcademicId) {
+        window.alert(`${t("usersAcademicIdLabel")}: ${assignedAcademicId}`);
       }
 
       setCreateEmail("");

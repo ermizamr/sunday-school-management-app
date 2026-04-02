@@ -69,7 +69,7 @@ export const am = {
   usersSubtitle: "ከተማሪዎች፣ የክፍል ምደባ እና ትምህርታዊ መለያ ጋር የተገናኙ ጉዳዮችን እዚህ ያስተዳድሩ።",
   usersCreateUserTitle: "ተማሪ ለመመዝገብ",
   usersAcademicIdLabel: "ትምህርታዊ መለያ",
-  usersAcademicIdPlaceholder: "ለምሳሌ፣ 0101/18",
+  usersAcademicIdPlaceholder: "ባዶ ከተዉ በራሱ ይመደባል (0001/yy ጀምሮ)",
   usersNameLabel: "ስም",
   usersNamePlaceholder: "ሙሉ ስም",
   usersPasswordLabel: "የይለፍ ቃል",
@@ -93,7 +93,7 @@ export const am = {
   usersPromptNewPassword: " ለ {name} አዲስ የይለፍ ቃል ሊሰጡ ነው። እርግጠኛ ነዎት?",
   usersActivate: "በመማር ላይ አድርግ",
   usersDeactivate: "በመማር ላይ",
-  usersValidationRequired: "ትምህርታዊ መለያ፣ ስም፣ የይለፍ ቃል እና ክፍል ያስፈልጋሉ።",
+  usersValidationRequired: "ስም እና ክፍል ያስፈልጋሉ። ትምህርታዊ መለያ/የይለፍ ቃል ካልተሞሉ በራሳቸው ይመደባሉ።",
   usersGraduatedReadOnlyError:
     "ተመራቂ ተጠቃሚዎች በዚህ መቀያየሪያ ውስጥ ለመቀየር ተቆልፈዋል። ካስፈለገ በbackend admin tools ይቀይሩ።",
   usersConfirmToggleStatus: "እርግጠኛ ነዎት የሚፈልጉት እርምጃ ({action}) በ{name} ላይ እንዲፈጸም?",
