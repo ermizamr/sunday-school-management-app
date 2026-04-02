@@ -11,6 +11,8 @@ import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/push/push_notifications_service.dart';
 
+const Color accent = Color(0xFF0284C7); // sky-600
+
 class StudentShell extends StatelessWidget {
   const StudentShell({super.key, required this.navigationShell});
 
@@ -25,7 +27,6 @@ class StudentShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF0284C7); // sky-600
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: navigationShell,
@@ -592,10 +593,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loading = false;
       });
+      }
     }
   }
 
@@ -615,8 +617,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final openComplaints = _stats?.openComplaints ?? 0;
     final pendingTotal = pendingQuestions + openComplaints;
 
-    final attendanceValue = _loading ? '—' : '$attendancePercent%';
-    final avgValue = _loading ? '—' : '$academicAvg%';
+    final attendanceValue = _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$attendancePercent%';
+    final avgValue = _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$academicAvg%';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -811,12 +813,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 children: [
                                   _KeyValueRow(
                                     label: l10n.dashboardPendingQuestions,
-                                    value: _loading ? '—' : '$pendingQuestions',
+                                    value: _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$pendingQuestions',
                                   ),
                                   const SizedBox(height: 10),
                                   _KeyValueRow(
                                     label: l10n.dashboardOpenComplaints,
-                                    value: _loading ? '—' : '$openComplaints',
+                                    value: _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$openComplaints',
                                   ),
                                 ],
                               ),
@@ -1140,7 +1142,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   String _formatDate(DateTime date) {
-    const weekdays = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
+    const weekdays = ['ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€¦Ã‚Â¾', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€¦Ã‚Â¾', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Âµ', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥', 'ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â³ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€¦Ã¢â‚¬Å“', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Âµ'];
     final wd = weekdays[(date.weekday - 1).clamp(0, 6)];
     return '$wd, ${EthiopianDateFormatter.formatDateTime(date)}';
   }
@@ -1392,7 +1394,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: _attendanceSubjects.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, _unused) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final s = _attendanceSubjects[index];
                           final selected = s.id == selectedSubjectId;
@@ -2231,7 +2233,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           ..clear()
           ..addAll(subjectAverages);
         if (criteria != null) {
-          _criteria = criteria!;
+          _criteria = criteria;
         }
       });
     } catch (e) {
@@ -2240,10 +2242,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         _gradesError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loadingGrades = false;
       });
+      }
     }
   }
 
@@ -2526,7 +2529,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withAlpha(51),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -2604,7 +2607,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withAlpha(51),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -2906,7 +2909,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withAlpha(51),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -3287,7 +3290,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                                   entry
                                                                       .maxScore,
                                                                 )
-                                                              : '—',
+                                                              : 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â',
                                                           style:
                                                               const TextStyle(
                                                                 fontSize: 12,
@@ -3625,10 +3628,11 @@ class _StudentCommunicationScreenState
         _pendingFeedbackBadgeCount = pendingFeedbackForms;
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loadingBadges = false;
       });
+      }
     }
   }
 
@@ -4107,7 +4111,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                     children: [
                       const Padding(
                         padding: EdgeInsets.only(top: 2),
-                        child: Text('📢', style: TextStyle(fontSize: 22)),
+                        child: Text('ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¢', style: TextStyle(fontSize: 22)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -4151,7 +4155,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                                     color: badgeBg,
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                      color: badgeBg.withOpacity(0.8),
+                                      color: badgeBg.withAlpha(204),
                                     ),
                                   ),
                                   child: Text(
@@ -4627,6 +4631,7 @@ class _QuestionFormState extends State<_QuestionForm> {
   }
 
   Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     if (_loadingContext) return;
 
     setState(() {
@@ -4662,7 +4667,6 @@ class _QuestionFormState extends State<_QuestionForm> {
           .eq('active', true)
           .order('name');
 
-      final l10n = AppLocalizations.of(context);
       final options = <_QuestionSubjectOption>[
         _QuestionSubjectOption(
           value: _generalSubjectValue,
@@ -4697,10 +4701,11 @@ class _QuestionFormState extends State<_QuestionForm> {
         _contextError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loadingContext = false;
       });
+      }
     }
   }
 
@@ -4752,10 +4757,11 @@ class _QuestionFormState extends State<_QuestionForm> {
         _submitError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _submitting = false;
       });
+      }
     }
   }
 
@@ -5303,6 +5309,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
   }
 
   Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     if (_loadingContext) return;
 
     setState(() {
@@ -5342,10 +5349,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
         _contextError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _loadingContext = false;
       });
+      }
     }
   }
 
@@ -5400,10 +5408,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
         _submitError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _submitting = false;
       });
+      }
     }
   }
 
@@ -5936,10 +5945,11 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
         _submitError = e.toString();
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _submitting = false;
       });
+      }
     }
   }
 
@@ -6057,8 +6067,9 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                               },
                         validator: (value) {
                           if (!q.required) return null;
-                          if (value == null)
+                          if (value == null) {
                             return l10n.servantFeedbackRequiredLabel;
+                          }
                           return null;
                         },
                       );
@@ -6628,7 +6639,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF0284C7); // sky-600
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -6979,10 +6989,11 @@ class _StudentChangePasswordScreenState
         _error = l10n.authPasswordUpdateFailedGeneric;
       });
     } finally {
-      if (!mounted) return;
+      if (mounted) {
       setState(() {
         _submitting = false;
       });
+      }
     }
   }
 

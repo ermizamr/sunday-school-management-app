@@ -55,7 +55,7 @@ class AnalyticsHeaderTabs extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+              color: isSelected ? Colors.white : Colors.white.withAlpha(51),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

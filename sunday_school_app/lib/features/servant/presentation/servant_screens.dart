@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:sunday_school_app/l10n/app_localizations.dart';
@@ -18,6 +17,13 @@ import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/push/push_notifications_service.dart';
 import 'attendance/servant_attendance_home_screen.dart';
+
+void _debugLog(String message) {
+  assert(() {
+    debugPrint(message);
+    return true;
+  }());
+}
 
 class ServantShell extends StatelessWidget {
   const ServantShell({super.key, required this.navigationShell});
@@ -622,7 +628,7 @@ class ServantDashboardScreen extends StatefulWidget {
       // If the refresh didn't rotate an already-expired token, treat auth as broken.
       if (isTokenExpired(afterToken)) {
         // Helpful diagnostic without leaking tokens.
-        print(
+        _debugLog(
           'RegisterStudent: token still expired after refresh (before=$beforeExp, after=$afterExp)',
         );
         throw const _AuthRequiredException();
@@ -632,7 +638,9 @@ class ServantDashboardScreen extends StatefulWidget {
       if (beforeToken != null &&
           beforeToken == afterToken &&
           isTokenExpired(beforeToken)) {
-        print('RegisterStudent: refreshSession did not rotate expired token');
+        _debugLog(
+          'RegisterStudent: refreshSession did not rotate expired token',
+        );
         throw const _AuthRequiredException();
       }
     } catch (e) {
@@ -667,7 +675,7 @@ class ServantDashboardScreen extends StatefulWidget {
           }
 
           // Use print (not debugPrint) so it always shows up in flutter run.
-          print(
+          _debugLog(
             'RegisterStudent: invoking admin-create-user '
             '(tokenLen=${accessToken.length}, expiresAt=${session?.expiresAt}, uid=${client.auth.currentUser?.id}, ${_accessTokenDebugSummary(accessToken)})',
           );
@@ -675,14 +683,10 @@ class ServantDashboardScreen extends StatefulWidget {
           try {
             response = await _invokeAdminCreateUserViaHttp(
               client: client,
-              body: {
-                'name': name,
-                'grade_id': gradeId,
-                'role': 'student',
-              },
+              body: {'name': name, 'grade_id': gradeId, 'role': 'student'},
             );
           } catch (e) {
-            print(
+            _debugLog(
               'RegisterStudent: admin-create-user HTTP invoke error '
               '(type=${e.runtimeType}, msg=$e)',
             );
@@ -690,18 +694,18 @@ class ServantDashboardScreen extends StatefulWidget {
           }
 
           if (response.status == 401) {
-            print(
+            _debugLog(
               'RegisterStudent: admin-create-user HTTP 401 '
               '(body=${response.data})',
             );
             try {
               final userRes = await client.auth.getUser();
-              print(
+              _debugLog(
                 'RegisterStudent: auth.getUser() after 401 '
                 '(ok=${userRes.user != null}, userId=${userRes.user?.id})',
               );
             } catch (e) {
-              print(
+              _debugLog(
                 'RegisterStudent: auth.getUser() after 401 threw '
                 '(type=${e.runtimeType}, msg=$e)',
               );
@@ -719,7 +723,7 @@ class ServantDashboardScreen extends StatefulWidget {
 
         if (response.status != 200) {
           final data = response.data;
-          print(
+          _debugLog(
             'RegisterStudent: admin-create-user HTTP non-200 '
             '(status=${response.status}, body=$data)',
           );
@@ -933,7 +937,7 @@ class ServantDashboardScreen extends StatefulWidget {
                         if (grades.isEmpty) ...[
                           const SizedBox(height: 8),
                           const Text(
-                            'ክፍሎች አልተገኙም።',
+                            'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢',
                             style: TextStyle(color: Colors.red),
                           ),
                           if (gradesLoadError != null) ...[
@@ -1003,10 +1007,14 @@ class ServantDashboardScreen extends StatefulWidget {
     final pendingQuestions = stats?.pendingQuestions ?? 0;
     final pendingComplaints = stats?.pendingComplaints ?? 0;
 
-    final classSizeText = loading ? '—' : '$totalStudents';
-    final avgAttendanceText = loading ? '—' : '$avgAttendance%';
+    final classSizeText = loading
+        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
+        : '$totalStudents';
+    final avgAttendanceText = loading
+        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
+        : '$avgAttendance%';
     final pendingTotalText = loading
-        ? '—'
+        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
         : '${pendingQuestions + pendingComplaints}';
 
     return Scaffold(
@@ -1576,10 +1584,11 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1682,7 +1691,7 @@ class _ServantQuickActionButton extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: foreground.withOpacity(0.85),
+                      color: foreground.withAlpha(217),
                     ),
                   ),
                 ],
@@ -2096,10 +2105,11 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     } catch (_) {
       // Keep defaults on any error.
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingCriteria = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingCriteria = false;
+        });
+      }
     }
   }
 
@@ -4586,10 +4596,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _announcementsError = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingAnnouncements = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingAnnouncements = false;
+        });
+      }
     }
   }
 
@@ -4784,10 +4795,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _questionsError = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingQuestions = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingQuestions = false;
+        });
+      }
     }
   }
 
@@ -4934,10 +4946,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _complaintsError = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingComplaints = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingComplaints = false;
+        });
+      }
     }
   }
 
@@ -5126,10 +5139,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _feedbackError = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingFeedback = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingFeedback = false;
+        });
+      }
     }
   }
 
@@ -5214,10 +5228,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _feedbackResponsesError = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingFeedbackResponses = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingFeedbackResponses = false;
+        });
+      }
     }
   }
 
@@ -5574,16 +5589,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     String categoryEmoji(String category) {
       switch (category) {
         case 'urgent':
-          return '🚨';
+          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨';
         case 'grades':
-          return '📊';
+          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ';
         case 'schedule':
-          return '📅';
+          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦';
         case 'event':
-          return '🎉';
+          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°';
         case 'general':
         default:
-          return '📢';
+          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢';
       }
     }
 
@@ -5672,7 +5687,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return;
       }
 
-      final createdAnnouncement = created!;
+      final createdAnnouncement = created;
 
       setState(() {
         _announcements.insert(0, createdAnnouncement);
@@ -7948,7 +7963,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             bottom: 2,
                                           ),
                                           child: Text(
-                                            '• $o',
+                                            'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ $o',
                                             style: const TextStyle(
                                               fontSize: 12,
                                               color: Color(0xFF64748B),
@@ -9071,7 +9086,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   // ignore: unused_element
   static String _truncate(String text, int max) {
     if (text.length <= max) return text;
-    return '${text.substring(0, max).trimRight()}…';
+    return '${text.substring(0, max).trimRight()}ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦';
   }
 
   static Widget _tinyPill({

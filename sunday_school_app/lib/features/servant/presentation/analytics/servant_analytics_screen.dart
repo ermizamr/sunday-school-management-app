@@ -109,7 +109,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [cs.primary, cs.primary.withOpacity(0.9)],
+                          colors: [cs.primary, cs.primary.withAlpha(230)],
                         ),
                       ),
                       child: SafeArea(
@@ -129,7 +129,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withAlpha(51),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(
@@ -862,7 +862,7 @@ class _StudentsView extends StatelessWidget {
           headerGradient: LinearGradient(
             colors: [
               Colors.green.shade50,
-              Colors.green.shade100.withOpacity(0.4),
+              Colors.green.shade100.withAlpha(102),
             ],
           ),
           borderColor: Colors.green.shade100,
@@ -888,7 +888,7 @@ class _StudentsView extends StatelessWidget {
             headerGradient: LinearGradient(
               colors: [
                 Colors.amber.shade50,
-                Colors.amber.shade100.withOpacity(0.35),
+                Colors.amber.shade100.withAlpha(89),
               ],
             ),
             borderColor: Colors.amber.shade100,
@@ -912,10 +912,7 @@ class _StudentsView extends StatelessWidget {
             icon: Icons.menu_book_rounded,
             iconColor: Colors.red.shade700,
             headerGradient: LinearGradient(
-              colors: [
-                Colors.red.shade50,
-                Colors.red.shade100.withOpacity(0.35),
-              ],
+              colors: [Colors.red.shade50, Colors.red.shade100.withAlpha(89)],
             ),
             borderColor: Colors.red.shade100,
             rows: [
