@@ -421,6 +421,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authForgotPassword => 'Forgot your password?';
 
   @override
+  String get authForgotPasswordDialogTitle => 'Change password';
+
+  @override
+  String get authForgotPasswordDialogBody =>
+      'To change your password, please contact your class admin.';
+
+  @override
   String get authDemoMode =>
       'Demo mode: use any valid email & password\nwhile backend is being wired fully.';
 

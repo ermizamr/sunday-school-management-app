@@ -235,6 +235,8 @@
 
   "authLoginButton": "Login",
   "authForgotPassword": "Forgot your password?",
+  "authForgotPasswordDialogTitle": "Change password",
+  "authForgotPasswordDialogBody": "To change your password, please contact your class admin.",
   "authDemoMode": "Demo mode: use any valid email & password\nwhile backend is being wired fully.",
   "authLoginFailedGeneric": "Login failed. Please try again.",
   "authRoleMismatchStudent": "This account is not a student account. Please select Servant role to continue.",

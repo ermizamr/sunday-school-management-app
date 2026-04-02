@@ -357,7 +357,24 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                             alignment: Alignment.center,
                             child: TextButton(
                               onPressed: () {
-                                // TODO: hook up password reset flow
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text(
+                                      l10n.authForgotPasswordDialogTitle,
+                                    ),
+                                    content: Text(
+                                      l10n.authForgotPasswordDialogBody,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text(l10n.commonOk),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFF0EA5E9),
@@ -371,7 +388,6 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                         ],
                       ),
                     ),
-
                   ],
                 ),
               ),
@@ -4308,16 +4324,15 @@ class _QuestionsListState extends State<_QuestionsList> {
         query = query.eq('academic_year_id', academicYearId);
       }
 
-      final rows = await query
-          .order('created_at', ascending: false)
-          .limit(50);
+      final rows = await query.order('created_at', ascending: false).limit(50);
 
       final items = (rows as List).map((r) {
         final map = r as Map;
         final createdAt = map['created_at']?.toString() ?? '';
         final subjectRaw = map['subject'];
-        final subjectName =
-            subjectRaw is Map ? subjectRaw['name']?.toString() : null;
+        final subjectName = subjectRaw is Map
+            ? subjectRaw['name']?.toString()
+            : null;
         final answered = (map['answered'] as bool?) ?? false;
 
         return _Question(
@@ -4351,10 +4366,12 @@ class _QuestionsListState extends State<_QuestionsList> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final pending =
-        _questions.where((q) => !q.answered).toList(growable: false);
-    final answered =
-        _questions.where((q) => q.answered).toList(growable: false);
+    final pending = _questions
+        .where((q) => !q.answered)
+        .toList(growable: false);
+    final answered = _questions
+        .where((q) => q.answered)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4706,8 +4723,9 @@ class _QuestionFormState extends State<_QuestionForm> {
         throw StateError('Missing class context');
       }
 
-      final subjectId =
-          _subjectValue == _generalSubjectValue ? null : _subjectValue;
+      final subjectId = _subjectValue == _generalSubjectValue
+          ? null
+          : _subjectValue;
 
       await client.from('questions').insert({
         'student_id': userId,
@@ -4721,16 +4739,13 @@ class _QuestionFormState extends State<_QuestionForm> {
       setState(() {
         _showSuccess = true;
       });
-      Future.delayed(
-        const Duration(milliseconds: 1500),
-        () {
-          if (!mounted) return;
-          setState(() {
-            _showSuccess = false;
-          });
-          widget.onCancel();
-        },
-      );
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
+        setState(() {
+          _showSuccess = false;
+        });
+        widget.onCancel();
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -4807,7 +4822,9 @@ class _QuestionFormState extends State<_QuestionForm> {
                       .toList(growable: false),
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
-                    setState(() => _subjectValue = value ?? _generalSubjectValue);
+                    setState(
+                      () => _subjectValue = value ?? _generalSubjectValue,
+                    );
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -4858,7 +4875,8 @@ class _QuestionFormState extends State<_QuestionForm> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: (_submitting ||
+                        onPressed:
+                            (_submitting ||
                                 _loadingContext ||
                                 _gradeId == null ||
                                 _academicYearId == null)
@@ -5023,9 +5041,7 @@ class _ComplaintsListState extends State<_ComplaintsList> {
         query = query.eq('academic_year_id', academicYearId);
       }
 
-      final rows = await query
-          .order('created_at', ascending: false)
-          .limit(50);
+      final rows = await query.order('created_at', ascending: false).limit(50);
 
       final items = (rows as List).map((r) {
         final map = r as Map;
@@ -5354,7 +5370,9 @@ class _ComplaintFormState extends State<_ComplaintForm> {
 
       final title = _title.trim();
       final description = _description.trim();
-      final complaintText = title.isEmpty ? description : '$title\n\n$description';
+      final complaintText = title.isEmpty
+          ? description
+          : '$title\n\n$description';
 
       await client.from('complaints').insert({
         'student_id': userId,
@@ -5369,16 +5387,13 @@ class _ComplaintFormState extends State<_ComplaintForm> {
       setState(() {
         _showSuccess = true;
       });
-      Future.delayed(
-        const Duration(milliseconds: 1500),
-        () {
-          if (!mounted) return;
-          setState(() {
-            _showSuccess = false;
-          });
-          widget.onCancel();
-        },
-      );
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
+        setState(() {
+          _showSuccess = false;
+        });
+        widget.onCancel();
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -5553,7 +5568,8 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: (_submitting ||
+                        onPressed:
+                            (_submitting ||
                                 _loadingContext ||
                                 _gradeId == null ||
                                 _academicYearId == null)
@@ -5716,9 +5732,8 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
   TextEditingController _textControllerFor(String questionId) {
     return _textControllers.putIfAbsent(
       questionId,
-      () => TextEditingController(
-        text: (_answers[questionId] as String?) ?? '',
-      ),
+      () =>
+          TextEditingController(text: (_answers[questionId] as String?) ?? ''),
     );
   }
 
@@ -5777,21 +5792,24 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
           return pa.compareTo(pb);
         });
 
-        final questions = questionsRaw.map((q) {
-          final qMap = q as Map;
-          final optionsRaw = qMap['options'];
-          final options = optionsRaw is List
-              ? optionsRaw.whereType<String>().toList()
-              : const <String>[];
+        final questions = questionsRaw
+            .map((q) {
+              final qMap = q as Map;
+              final optionsRaw = qMap['options'];
+              final options = optionsRaw is List
+                  ? optionsRaw.whereType<String>().toList()
+                  : const <String>[];
 
-          return _StudentFeedbackQuestion(
-            id: qMap['id']?.toString() ?? '',
-            question: qMap['question']?.toString() ?? '',
-            type: qMap['type']?.toString() ?? 'text',
-            required: (qMap['required'] as bool?) ?? true,
-            options: options,
-          );
-        }).where((q) => q.id.isNotEmpty).toList(growable: false);
+              return _StudentFeedbackQuestion(
+                id: qMap['id']?.toString() ?? '',
+                question: qMap['question']?.toString() ?? '',
+                type: qMap['type']?.toString() ?? 'text',
+                required: (qMap['required'] as bool?) ?? true,
+                options: options,
+              );
+            })
+            .where((q) => q.id.isNotEmpty)
+            .toList(growable: false);
 
         forms.add(
           _StudentFeedbackForm(
@@ -5821,8 +5839,9 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
         } catch (_) {}
       }
 
-      final pendingForms =
-          forms.where((f) => !submittedFormIds.contains(f.id)).toList();
+      final pendingForms = forms
+          .where((f) => !submittedFormIds.contains(f.id))
+          .toList();
 
       if (!mounted) return;
       setState(() {
@@ -6014,9 +6033,7 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                   ],
                   const SizedBox(height: 16),
                   ...activeForm.questions.map((q) {
-                    final label = q.required
-                        ? '${q.question} *'
-                        : q.question;
+                    final label = q.required ? '${q.question} *' : q.question;
 
                     Widget field;
                     if (q.type == 'rating') {
@@ -6040,7 +6057,8 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                               },
                         validator: (value) {
                           if (!q.required) return null;
-                          if (value == null) return l10n.servantFeedbackRequiredLabel;
+                          if (value == null)
+                            return l10n.servantFeedbackRequiredLabel;
                           return null;
                         },
                       );
@@ -6052,10 +6070,7 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                         decoration: _dropdownDecoration,
                         items: options
                             .map(
-                              (o) => DropdownMenuItem(
-                                value: o,
-                                child: Text(o),
-                              ),
+                              (o) => DropdownMenuItem(value: o, child: Text(o)),
                             )
                             .toList(growable: false),
                         onChanged: (_submitting || options.isEmpty)
@@ -6195,8 +6210,10 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                 const SizedBox(height: 6),
                 Text(
                   l10n.commFeedbackEmptySubtitle,
-                  style:
-                      const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
@@ -6255,7 +6272,10 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
               if (form.description.trim().isNotEmpty)
                 Text(
                   form.description,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               const SizedBox(height: 8),
               Text(

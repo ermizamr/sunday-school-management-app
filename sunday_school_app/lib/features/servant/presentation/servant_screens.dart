@@ -358,7 +358,24 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                             alignment: Alignment.center,
                             child: TextButton(
                               onPressed: () {
-                                // TODO: hook up password reset flow
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text(
+                                      l10n.authForgotPasswordDialogTitle,
+                                    ),
+                                    content: Text(
+                                      l10n.authForgotPasswordDialogBody,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text(l10n.commonOk),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFFF59E0B),
@@ -372,7 +389,6 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                         ],
                       ),
                     ),
-
                   ],
                 ),
               ),
@@ -434,8 +450,7 @@ class ServantDashboardScreen extends StatefulWidget {
   const ServantDashboardScreen({super.key});
 
   @override
-  State<ServantDashboardScreen> createState() =>
-      _ServantDashboardScreenState();
+  State<ServantDashboardScreen> createState() => _ServantDashboardScreenState();
 
   // Minimal stand-in for FunctionResponse so we can call the Edge Function
   // with explicit headers and isolate JWT issues.
@@ -1005,8 +1020,9 @@ class ServantDashboardScreen extends StatefulWidget {
 
     final classSizeText = loading ? '—' : '$totalStudents';
     final avgAttendanceText = loading ? '—' : '$avgAttendance%';
-    final pendingTotalText =
-        loading ? '—' : '${pendingQuestions + pendingComplaints}';
+    final pendingTotalText = loading
+        ? '—'
+        : '${pendingQuestions + pendingComplaints}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // slate-50
@@ -1318,9 +1334,7 @@ class ServantDashboardScreen extends StatefulWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFFFCA5A5),
-                          ),
+                          border: Border.all(color: const Color(0xFFFCA5A5)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1556,8 +1570,9 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
             }
           }
 
-          avgAttendancePercent =
-              total == 0 ? 0 : ((100.0 * presentLate) / total).round();
+          avgAttendancePercent = total == 0
+              ? 0
+              : ((100.0 * presentLate) / total).round();
         }
       } catch (_) {}
 
@@ -7157,7 +7172,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   _SubmissionRate _submissionRateFor(_ServantFeedbackForm form) {
     final total =
         form.targetStudents.isNotEmpty && form.targetStudents.first == 'all'
-      ? (_totalStudentsInGrade ?? 0)
+        ? (_totalStudentsInGrade ?? 0)
         : form.targetStudents.length;
     final submitted =
         _feedbackSubmissionCounts[form.id] ??
@@ -7470,8 +7485,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                     if (!mounted) return;
 
                                     if (!deleted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             'Failed to delete feedback form.',

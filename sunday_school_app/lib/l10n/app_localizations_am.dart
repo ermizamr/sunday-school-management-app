@@ -15,7 +15,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get roleSelectionTitle => 'ሰንበት ት/ቤት';
 
   @override
-  String get roleSelectionSubtitle => 'ዲጂታል አስተዳደር ስርዓት';
+  String get roleSelectionSubtitle => 'ዲጂታል አስተዳደር ሥርዓት';
 
   @override
   String get roleStudent => 'ተማሪ';
@@ -145,7 +145,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get profileNotAssigned => 'አልተመደበም';
 
   @override
-  String get profileAcademicIdLabel => 'የትምህርት መለያ';
+  String get profileAcademicIdLabel => 'ትምህርታዊ መለያ';
 
   @override
   String get profileGradeLabel => 'ክፍል';
@@ -160,13 +160,13 @@ class AppLocalizationsAm extends AppLocalizations {
   String get profileChangePassword => 'የይለፍ ቃል ቀይር';
 
   @override
-  String get profileChangePasswordSubtitle => 'ለመለያዎ አዲስ የይለፍ ቃል ያቀናብሩ';
+  String get profileChangePasswordSubtitle => 'ለመለያዎ አዲስ የይለፍ ቃል ያስገቡ';
 
   @override
-  String get accountStatusActive => 'ንቁ';
+  String get accountStatusActive => 'በሥራ ላይ';
 
   @override
-  String get accountStatusInactive => 'ያልነቃ';
+  String get accountStatusInactive => 'የማይሠራ';
 
   @override
   String get accountStatusSuspended => 'ታግዷል';
@@ -368,13 +368,13 @@ class AppLocalizationsAm extends AppLocalizations {
   String get authLoginSubtitle => 'ለመቀጠል የመለያ መረጃዎን ያስገቡ';
 
   @override
-  String get authEmailLabel => 'ኢሜይል';
+  String get authEmailLabel => 'የተማሪ መለያ';
 
   @override
   String get authPasswordLabel => 'የይለፍ ቃል';
 
   @override
-  String get authEmailHint => 'ኢሜይልዎን ያስገቡ';
+  String get authEmailHint => 'የተማሪ መለያዎን ያስገቡ';
 
   @override
   String get authPasswordHint => 'የይለፍ ቃልዎን ያስገቡ';
@@ -412,7 +412,14 @@ class AppLocalizationsAm extends AppLocalizations {
   String get authLoginButton => 'ግባ';
 
   @override
-  String get authForgotPassword => 'የይለፍ ቃል ረሳችሁ?';
+  String get authForgotPassword => 'የይለፍ ቃል ረስተዋል?';
+
+  @override
+  String get authForgotPasswordDialogTitle => 'የይለፍ ቃል መቀየር';
+
+  @override
+  String get authForgotPasswordDialogBody =>
+      'የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ክፍል ኃላፊ\"ን ያነጋግሩ።';
 
   @override
   String get authDemoMode =>

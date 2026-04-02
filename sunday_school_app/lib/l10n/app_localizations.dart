@@ -848,6 +848,18 @@ abstract class AppLocalizations {
   /// **'Forgot your password?'**
   String get authForgotPassword;
 
+  /// No description provided for @authForgotPasswordDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get authForgotPasswordDialogTitle;
+
+  /// No description provided for @authForgotPasswordDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To change your password, please contact your class admin.'**
+  String get authForgotPasswordDialogBody;
+
   /// No description provided for @authDemoMode.
   ///
   /// In en, this message translates to:
