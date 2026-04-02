@@ -16,6 +16,7 @@ import { AnnouncementsPage } from "./pages/AnnouncementsPage";
 import { ServantsPage } from "./pages/ServantsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { GraduatesPage } from "./pages/GraduatesPage";
+import { t } from "./i18n/t";
 
 const router = createBrowserRouter([
   { path: "/sign-in", element: <SignInPage /> },
@@ -52,7 +53,7 @@ const router = createBrowserRouter([
     path: "*",
     element: (
       <div className="min-h-svh flex items-center justify-center text-sm text-muted-foreground">
-        Not found
+        {t("commonNotFound")}
       </div>
     ),
   },

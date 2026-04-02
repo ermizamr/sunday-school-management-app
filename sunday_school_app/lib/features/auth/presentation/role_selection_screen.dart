@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -7,6 +8,7 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -45,16 +47,17 @@ class RoleSelectionScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Sunday School',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      l10n.roleSelectionTitle,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             color: const Color(0xFF020617), // slate-900
                             fontWeight: FontWeight.w600,
                           ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Digital Management System',
-                      style: TextStyle(
+                    Text(
+                      l10n.roleSelectionSubtitle,
+                      style: const TextStyle(
                         color: Color(0xFF64748B), // slate-500
                       ),
                     ),
@@ -68,8 +71,8 @@ class RoleSelectionScreen extends StatelessWidget {
                           iconBackground: const Color(0xFFE0F2FE), // sky-100
                           iconColor: const Color(0xFF0284C7), // sky-600
                           icon: Icons.school_rounded,
-                          title: 'Student',
-                          subtitle: 'View grades, attendance & communication',
+                          title: l10n.roleStudent,
+                          subtitle: l10n.roleStudentSubtitle,
                           borderHighlight: const Color(0xFF7DD3FC), // sky-300
                         ),
                         const SizedBox(height: 16),
@@ -78,16 +81,16 @@ class RoleSelectionScreen extends StatelessWidget {
                           iconBackground: const Color(0xFFFEF3C7), // amber-100
                           iconColor: const Color(0xFFD97706), // amber-600
                           icon: Icons.groups_rounded,
-                          title: 'Servant',
-                          subtitle: 'Manage class, grades & attendance',
+                          title: l10n.roleServant,
+                          subtitle: l10n.roleServantSubtitle,
                           borderHighlight: const Color(0xFFFCD34D), // amber-300
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 24),
-                    const Text(
-                      'Select your role to continue',
+                    Text(
+                      l10n.roleSelectPrompt,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -146,7 +149,9 @@ class _RoleCardState extends State<_RoleCard> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: _pressed ? widget.borderHighlight : const Color(0xFFE2E8F0), // slate-200
+              color: _pressed
+                  ? widget.borderHighlight
+                  : const Color(0xFFE2E8F0), // slate-200
               width: 2,
             ),
             boxShadow: const [
@@ -167,11 +172,7 @@ class _RoleCardState extends State<_RoleCard> {
                   color: widget.iconBackground,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.iconColor,
-                  size: 28,
-                ),
+                child: Icon(widget.icon, color: widget.iconColor, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(

@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
@@ -76,6 +77,17 @@ export function ServantsPage() {
     void load();
   }, [load]);
 
+  function statusLabel(status: string): string {
+    switch (status) {
+      case "active":
+        return t("servantsStatusActive");
+      case "inactive":
+        return t("servantsStatusInactive");
+      default:
+        return status;
+    }
+  }
+
   async function toggleAccountStatus(p: ProfileRow) {
     setError(null);
     setActionId(p.id);
@@ -83,8 +95,8 @@ export function ServantsPage() {
     try {
       const current = (p.account_status ?? "active").toLowerCase();
       const next = current === "inactive" ? "active" : "inactive";
-      const actionLabel = next === "active" ? "activate" : "deactivate";
-      if (!window.confirm(`Are you sure you want to ${actionLabel} ${p.name ?? p.id}?`)) {
+      const actionLabel = next === "active" ? t("usersActivate") : t("usersDeactivate");
+      if (!window.confirm(t("servantsConfirmToggleStatus", { action: actionLabel, name: p.name ?? p.id }))) {
         return;
       }
 
@@ -109,33 +121,33 @@ export function ServantsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Servants</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("servantsTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Review servant accounts and activate/deactivate access.
+          {t("servantsSubtitle")}
         </p>
       </div>
 
-      {error ? <ErrorBanner title="Request failed" message={error} /> : null}
+      {error ? <ErrorBanner title={t("commonRequestFailed")} message={error} /> : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Servant accounts</CardTitle>
+          <CardTitle>{t("servantsAccountsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : profiles.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No servants found.</div>
+            <div className="text-sm text-muted-foreground">{t("servantsNoneFound")}</div>
           ) : (
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Academic ID</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>{t("servantsTableName")}</TableHead>
+                    <TableHead>{t("servantsTableAcademicId")}</TableHead>
+                    <TableHead>{t("servantsTableGrade")}</TableHead>
+                    <TableHead>{t("servantsTableStatus")}</TableHead>
+                    <TableHead className="text-right">{t("servantsTableAction")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -159,7 +171,7 @@ export function ServantsPage() {
                                 : "text-foreground"
                             }
                           >
-                            {status}
+                            {statusLabel(status)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -170,10 +182,10 @@ export function ServantsPage() {
                             onClick={() => void toggleAccountStatus(p)}
                           >
                             {actionId === p.id
-                              ? "Working…"
+                              ? t("commonWorking")
                               : isInactive
-                                ? "Activate"
-                                : "Deactivate"}
+                                ? t("usersActivate")
+                                : t("usersDeactivate")}
                           </Button>
                         </TableCell>
                       </TableRow>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../../core/supabase/supabase_client.dart';
@@ -405,6 +406,7 @@ class _ServantAttendanceHomeScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Scaffold(
         body: SafeArea(child: Center(child: CircularProgressIndicator())),
@@ -413,7 +415,7 @@ class _ServantAttendanceHomeScreenState
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Attendance')),
+        appBar: AppBar(title: Text(l10n.navAttendance)),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -424,7 +426,7 @@ class _ServantAttendanceHomeScreenState
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadInitial,
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
             ),
@@ -451,28 +453,31 @@ class _ServantAttendanceHomeScreenState
                   colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Attendance',
-                    style: TextStyle(
+                    l10n.navAttendance,
+                    style: const TextStyle(
                       fontSize: 22,
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Choose a subject and a date',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFBAE6FD)),
+                    l10n.servantAttendanceChooseSubjectAndDate,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFBAE6FD),
+                    ),
                   ),
                 ],
               ),
             ),
             if (_subjects.isEmpty)
-              const Expanded(
-                child: Center(child: Text('No subjects found for your grade.')),
+              Expanded(
+                child: Center(child: Text(l10n.commonNoSubjectsForGrade)),
               )
             else ...[
               SizedBox(
@@ -559,9 +564,9 @@ class _ServantAttendanceHomeScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Minimum days absent',
-                              style: TextStyle(
+                            Text(
+                              l10n.servantAttendanceMinimumDaysAbsent,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF0F172A),
@@ -574,8 +579,9 @@ class _ServantAttendanceHomeScreenState
                                   child: TextField(
                                     controller: _minAbsentController,
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter minimum absent days',
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          l10n.servantAttendanceMinAbsentHint,
                                       border: OutlineInputBorder(),
                                       isDense: true,
                                     ),
@@ -595,14 +601,16 @@ class _ServantAttendanceHomeScreenState
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text('Search'),
+                                      : Text(l10n.commonSearch),
                                 ),
                               ],
                             ),
                             if (_minAbsentApplied != null) ...[
                               const SizedBox(height: 12),
                               Text(
-                                'Students absent for at least $_minAbsentApplied day(s):',
+                                l10n.servantAttendanceStudentsAbsentAtLeast(
+                                  _minAbsentApplied!,
+                                ),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF64748B),
@@ -610,9 +618,11 @@ class _ServantAttendanceHomeScreenState
                               ),
                               const SizedBox(height: 8),
                               if (_minAbsentResults.isEmpty)
-                                const Text(
-                                  'No students match.',
-                                  style: TextStyle(color: Color(0xFF334155)),
+                                Text(
+                                  l10n.servantAttendanceNoStudentsMatch,
+                                  style: const TextStyle(
+                                    color: Color(0xFF334155),
+                                  ),
                                 )
                               else
                                 ListView.separated(
@@ -636,7 +646,9 @@ class _ServantAttendanceHomeScreenState
                                           ),
                                         ),
                                         Text(
-                                          '${r.absentDays} absent',
+                                          l10n.servantAttendanceAbsentDays(
+                                            r.absentDays,
+                                          ),
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Color(0xFFDC2626),
@@ -657,17 +669,17 @@ class _ServantAttendanceHomeScreenState
                       ElevatedButton.icon(
                         onPressed: () => _addOrOpenDate(context),
                         icon: const Icon(Icons.add),
-                        label: const Text('Add date'),
+                        label: Text(l10n.commonAddDate),
                       ),
                       const SizedBox(height: 12),
 
                       // Previous dates
                       Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Previous dates',
-                              style: TextStyle(
+                              l10n.servantAttendancePreviousDates,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF0F172A),
@@ -686,9 +698,9 @@ class _ServantAttendanceHomeScreenState
                       if (selectedSubjectId == null)
                         const SizedBox.shrink()
                       else if (sessions.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Text('No attendance dates yet.'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(l10n.servantAttendanceNoDatesYet),
                         )
                       else
                         Container(

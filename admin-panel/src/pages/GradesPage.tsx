@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -127,24 +128,24 @@ export function GradesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Grades</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("gradesTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Create and update grades.
+          {t("gradesSubtitle")}
         </p>
       </div>
 
       {error ? (
-        <ErrorBanner title="Request failed" message={error} />
+        <ErrorBanner title={t("commonRequestFailed")} message={error} />
       ) : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Add grade</CardTitle>
+          <CardTitle>{t("gradesAddGradeTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-3" onSubmit={createGrade}>
             <div className="grid gap-2">
-              <Label htmlFor="gradeName">Name</Label>
+              <Label htmlFor="gradeName">{t("gradesNameLabel")}</Label>
               <Input
                 id="gradeName"
                 value={newName}
@@ -153,7 +154,7 @@ export function GradesPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="gradeCode">Code</Label>
+              <Label htmlFor="gradeCode">{t("gradesCodeLabel")}</Label>
               <Input
                 id="gradeCode"
                 value={newCode}
@@ -161,7 +162,7 @@ export function GradesPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="gradeSort">Sort order</Label>
+              <Label htmlFor="gradeSort">{t("gradesSortOrderLabel")}</Label>
               <Input
                 id="gradeSort"
                 type="number"
@@ -171,7 +172,7 @@ export function GradesPage() {
             </div>
             <div className="md:col-span-3">
               <Button type="submit" disabled={isCreating}>
-                {isCreating ? "Creating…" : "Create"}
+                {isCreating ? t("commonCreating") : t("commonCreate")}
               </Button>
             </div>
           </form>
@@ -180,18 +181,18 @@ export function GradesPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>All grades</CardTitle>
+          <CardTitle>{t("gradesAllGradesTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Sort</TableHead>
+                  <TableHead>{t("gradesNameLabel")}</TableHead>
+                  <TableHead>{t("gradesCodeLabel")}</TableHead>
+                  <TableHead>{t("gradesTableSort")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -246,7 +247,7 @@ export function GradesPage() {
                           disabled={!drafts[g.id] || savingId === g.id}
                           onClick={() => void saveGrade(g.id)}
                         >
-                          {savingId === g.id ? "Saving…" : "Save"}
+                          {savingId === g.id ? t("commonSaving") : t("commonSave")}
                         </Button>
                       </TableCell>
                     </TableRow>

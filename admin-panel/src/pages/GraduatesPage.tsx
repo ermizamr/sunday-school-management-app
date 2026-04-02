@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import {
@@ -91,20 +92,20 @@ export function GraduatesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Graduates</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("graduatesTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Students marked as graduated after last-year promotion.
+          {t("graduatesSubtitle")}
         </p>
       </div>
 
-      {error ? <ErrorBanner title="Request failed" message={error} /> : null}
+      {error ? <ErrorBanner title={t("commonRequestFailed")} message={error} /> : null}
 
       <Card>
         <CardHeader className="border-b flex flex-col gap-4 items-start sm:flex-row sm:items-center sm:justify-between py-5">
-          <CardTitle>All graduates</CardTitle>
+          <CardTitle>{t("graduatesAllTitle")}</CardTitle>
           <div className="w-full sm:w-72">
             <Input
-              placeholder="Search by name or Academic ID..."
+              placeholder={t("graduatesSearchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-background"
@@ -113,22 +114,22 @@ export function GraduatesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Academic ID</TableHead>
-                  <TableHead>Last Grade</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("graduatesTableName")}</TableHead>
+                  <TableHead>{t("graduatesTableAcademicId")}</TableHead>
+                  <TableHead>{t("graduatesTableLastGrade")}</TableHead>
+                  <TableHead>{t("graduatesTableStatus")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProfiles.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                      No graduated students found.
+                      {t("graduatesNoneFound")}
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -141,7 +142,7 @@ export function GraduatesPage() {
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex rounded-full bg-primary/15 px-2 py-1 text-xs font-medium text-primary">
-                        graduated
+                        {t("graduatesStatusGraduated")}
                       </span>
                     </TableCell>
                   </TableRow>

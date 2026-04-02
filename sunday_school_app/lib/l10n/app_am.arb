@@ -1,0 +1,815 @@
+{
+  "@@locale": "am",
+
+  "appTitle": "DEAS EMSS",
+
+  "roleSelectionTitle": "ሰንበት ት/ቤት",
+  "roleSelectionSubtitle": "ዲጂታል አስተዳደር ስርዓት",
+  "roleStudent": "ተማሪ",
+  "roleStudentSubtitle": "ውጤት፣ መገኘት እና ግንኙነት ይመልከቱ",
+  "roleServant": "አገልጋይ",
+  "roleServantSubtitle": "ክፍል፣ ውጤት እና መገኘት ያስተዳድሩ",
+  "roleSelectPrompt": "ለመቀጠል ሚናዎን ይምረጡ",
+
+  "navHome": "መነሻ",
+  "navAttendance": "መገኘት",
+  "navGrades": "ውጤት",
+  "navCommunication": "ግንኙነት",
+  "navProfile": "መገለጫ",
+
+  "commonBackToHome": "ወደ መነሻ ገጽ",
+  "commonRetry": "እንደገና ሞክር",
+  "commonSearch": "ፈልግ",
+  "commonSave": "አስቀምጥ",
+  "commonSend": "ላክ",
+  "commonSubmit": "አስገባ",
+  "commonOk": "እሺ",
+  "commonCancel": "ሰርዝ",
+  "commonDelete": "አጥፋ",
+  "commonHigh": "ከፍተኛ",
+  "commonMedium": "መካከለኛ",
+  "commonLow": "ዝቅተኛ",
+  "commonAll": "ሁሉም",
+  "commonStatus": "ሁኔታ",
+  "commonUpdate": "አዘምን",
+  "commonTryChangingFilters": "ማጣሪያዎቹን በመቀየር ይሞክሩ።",
+  "commonBack": "ወደ ኋላ",
+  "commonPrev": "ቀዳሚ",
+  "commonNext": "ቀጣይ",
+  "commonPending": "በመጠባበቅ ላይ",
+  "commonQuestionShort": "ጥ{number}",
+  "@@commonQuestionShort": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "commonDate": "ቀን",
+  "commonYou": "እርስዎ",
+  "commonAddDate": "ቀን ጨምር",
+  "commonNa": "አይመለከትም",
+  "commonNoSubjectsForGrade": "ለክፍልዎ ትምህርቶች አልተገኙም።",
+
+  "commonWarningMessage": "⚠️ {message}",
+  "@@commonWarningMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+
+  "commonSignOut": "ውጣ",
+
+  "profileAccountDetailsSubtitle": "የመለያ ዝርዝሮች",
+  "profileLoadFailedTitle": "መገለጫውን መጫን አልተሳካም",
+  "profileNotAssigned": "አልተመደበም",
+  "profileAcademicIdLabel": "የትምህርት መለያ",
+  "profileGradeLabel": "ክፍል",
+  "profileAccountStatusLabel": "የመለያ ሁኔታ",
+  "profileRoleLabel": "ሚና",
+  "profileChangePassword": "የይለፍ ቃል ቀይር",
+  "profileChangePasswordSubtitle": "ለመለያዎ አዲስ የይለፍ ቃል ያቀናብሩ",
+
+  "accountStatusActive": "ንቁ",
+  "accountStatusInactive": "ያልነቃ",
+  "accountStatusSuspended": "ታግዷል",
+  "accountStatusDisabled": "ተሰናክሏል",
+
+  "servantGradesDeleteAssessmentTitle": "ምዘና ይሰረዝ?",
+  "servantGradesDeleteAssessmentBody": "\"{name}\" ይሰረዝ? ይህ መመለስ አይቻልም።",
+  "@@servantGradesDeleteAssessmentBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesDeleteAssessmentFailed": "ምዘናውን መሰረዝ አልተሳካም።",
+  "servantGradesFillRequiredFieldsError": "እባክዎ አስፈላጊ መስኮችን ሁሉ ይሙሉ።",
+  "servantGradesWeightRangeError": "ክብደት በ0 እና 100 መካከል መሆን አለበት።",
+  "servantGradesInvalidScore": "ለ{student} የገባው ውጤት ልክ አይደለም። 0-{maxScore} መሆን አለበት።",
+  "@@servantGradesInvalidScore": {
+    "placeholders": {
+      "student": {
+        "type": "String"
+      },
+      "maxScore": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesAssessmentUpdated": "ምዘናው ተዘምኗል።",
+  "servantGradesAssessmentAdded": "ምዘና ተጨምሯል።",
+  "servantGradesSaveAssessmentFailed": "ምዘናውን ማስቀመጥ አልተሳካም።",
+  "servantGradesSubjectNameRequired": "የትምህርት ስም ያስፈልጋል።",
+  "servantGradesSubjectAdded": "ትምህርት ተጨምሯል።",
+  "servantGradesSubjectAddFailed": "ትምህርት ማከል አልተሳካም።",
+
+  "servantGradesAddNewAssessment": "አዲስ ምዘና ጨምር",
+  "servantGradesHideGrades": "ውጤቶችን ደብቅ",
+  "servantGradesAllGrades": "ሁሉም ውጤቶች",
+  "servantGradesMissing": "ያልተሞላ",
+  "servantGradesTotalWeightLabel": "ጠቅላላ ክብደት:",
+  "servantGradesTotalWeightExceeds": "ጠቅላላ ክብደት 100% በላይ ነው",
+  "servantGradesRemainingToReach100": "100% ለማድረስ {remaining}% ቀርቷል",
+  "@@servantGradesRemainingToReach100": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+
+  "servantGradesAddAssessmentTitle": "ምዘና ጨምር",
+  "servantGradesEditAssessmentTitle": "ምዘና አስተካክል",
+  "servantGradesClassAvgLabel": "የክፍል አማካኝ: {percent}%",
+  "@@servantGradesClassAvgLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesStudentScoresOptional": "የተማሪ ውጤቶች (አማራጭ)",
+  "servantGradesSearchStudentsHint": "ተማሪዎችን ፈልግ...",
+  "servantGradesPageLabel": "ገጽ {current} / {total}",
+  "@@servantGradesPageLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesScoreHint": "ውጤት",
+  "servantGradesAddSubjectTitle": "ትምህርት ጨምር",
+  "servantGradesSubjectNameHint": "የትምህርት ስም (ለምሳሌ፦ ስነ መለኮት)",
+
+  "servantGradesManageTitle": "ውጤቶችን አስተዳድር",
+  "servantGradesNewSubjectChip": "አዲስ ትምህርት",
+  "servantGradesWeightedTitle": "የተማሪ ክብደታዊ ውጤት - {subjectName}",
+  "@@servantGradesWeightedTitle": {
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesWeightedBasedOn": "{count,plural,=1{በ1 ምዘና ላይ ተመስርቶ፣ ጠቅላላ ክብደት {totalWeight}%} other{በ{count} ምዘናዎች ላይ ተመስርቶ፣ ጠቅላላ ክብደት {totalWeight}%}}",
+  "@@servantGradesWeightedBasedOn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "totalWeight": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesWeightedSearchByStudentNameHint": "በተማሪ ስም ፈልግ...",
+  "servantGradesWeightedStudentNameHeader": "የተማሪ ስም",
+  "servantGradesWeightedScoreHeader": "ክብደታዊ ውጤት",
+  "servantGradesWeightedGradeHeader": "ደረጃ",
+  "servantGradesWeightedClassAverageLabel": "የክፍል አማካኝ",
+  "servantGradesWeightedHighestLabel": "ከፍተኛ",
+  "servantGradesWeightedLowestLabel": "ዝቅተኛ",
+  "servantGradesMissingLabel": "ያልተሞላ:",
+  "servantGradesIncomplete": "ያልተሟላ",
+  "servantGradesMissingCount": "{count} ያልተሞላ",
+  "@@servantGradesMissingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesMaxPoints": "ከፍተኛ: {maxScore} ነጥብ",
+  "@@servantGradesMaxPoints": {
+    "placeholders": {
+      "maxScore": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesEditGradesTooltip": "ውጤቶችን አስተካክል",
+  "servantGradesDeleteAssessmentTooltip": "ምዘና ሰርዝ",
+  "servantGradesClassAverageLabel": "የክፍል አማካኝ",
+  "servantGradesHideStudentScores": "የተማሪ ውጤቶችን ደብቅ",
+  "servantGradesViewStudentScores": "የተማሪ ውጤቶችን አሳይ",
+  "servantGradesNoAssessmentsYetTitle": "እስካሁን ምዘና የለም",
+  "servantGradesNoAssessmentsYetBody": "ለዚህ ትምህርት የተማሪ ውጤቶችን ለመከታተል ምዘና ያክሉ።",
+  "servantGradesAssessmentNameHint": "የምዘና ስም (ለምሳሌ፦ ኩዊዝ 1)",
+  "servantGradesMaxScoreHint": "ከፍተኛ ነጥብ",
+  "servantGradesWeightPercentOptionalHint": "ክብደት % (አማራጭ)",
+
+  "authStudentLoginTitle": "የተማሪ መግቢያ",
+  "authServantLoginTitle": "የአገልጋይ መግቢያ",
+  "authLoginSubtitle": "ለመቀጠል የመለያ መረጃዎን ያስገቡ",
+
+  "authEmailLabel": "ኢሜይል",
+  "authPasswordLabel": "የይለፍ ቃል",
+  "authEmailHint": "ኢሜይልዎን ያስገቡ",
+  "authPasswordHint": "የይለፍ ቃልዎን ያስገቡ",
+  "authNewPasswordLabel": "አዲስ የይለፍ ቃል",
+  "authNewPasswordHint": "አዲስ የይለፍ ቃል ያስገቡ",
+  "authConfirmPasswordLabel": "የይለፍ ቃል አረጋግጥ",
+  "authConfirmPasswordHint": "አዲሱን የይለፍ ቃል እንደገና ያስገቡ",
+
+  "authEmailRequiredError": "እባክዎ ኢሜይልዎን ያስገቡ",
+  "authPasswordRequiredError": "እባክዎ የይለፍ ቃልዎን ያስገቡ",
+  "authConfirmPasswordRequiredError": "እባክዎ የይለፍ ቃልዎን ያረጋግጡ",
+  "authPasswordMismatchError": "የይለፍ ቃሎቹ አይዛመዱም",
+
+  "authPasswordMinLengthError": "የይለፍ ቃል ቢያንስ {min} ፊደሎች መሆን አለበት",
+  "@@authPasswordMinLengthError": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+
+  "authLoginButton": "ግባ",
+  "authForgotPassword": "የይለፍ ቃል ረሳችሁ?",
+  "authDemoMode": "ሙከራ (Demo): ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል ይጠቀሙ\nጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ።",
+  "authLoginFailedGeneric": "መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "authPasswordUpdateSuccess": "የይለፍ ቃል ተዘምኗል።",
+  "authPasswordUpdateFailedGeneric": "የይለፍ ቃል ማዘመን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+
+  "dashboardWelcome": "እንኳን በደህና መጡ!",
+  "dashboardAttendanceStat": "የመገኘት መቆጣጠሪያ",
+  "dashboardAverageScoreStat": "አማካኝ ውጤት",
+
+  "dashboardCommunicationTitle": "ግንኙነት",
+
+  "dashboardPendingCount": "{count} በመጠባበቅ ላይ",
+  "@@dashboardPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "dashboardPendingQuestions": "በመጠባበቅ ላይ ያሉ ጥያቄዎች",
+  "dashboardOpenComplaints": "ክፍት ቅሬታዎች",
+  "dashboardGoToCommunication": "ወደ ግንኙነት ይሂዱ",
+
+  "dashboardQuickActions": "ፈጣን እርምጃዎች",
+  "dashboardViewGrades": "ውጤት ይመልከቱ",
+
+  "attendanceTrackSubtitle": "የክፍል ተሳትፎዎን ይከታተሉ",
+  "attendanceOverallTitle": "አጠቃላይ መገኘት",
+  "attendanceAcrossAllSubjects": "በሁሉም ትምህርቶች",
+
+  "attendancePercentLabel": "{percent}% መገኘት",
+  "@@attendancePercentLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+
+  "attendancePresent": "ተገኝቷል",
+  "attendanceLate": "ዘግይቷል",
+  "attendanceAbsent": "አልተገኘም",
+  "attendancePermission": "በፈቃድ",
+
+  "attendancePerformanceExcellent": "በጣም ጥሩ መገኘት!",
+  "attendancePerformanceGreat": "ጥሩ መገኘት!",
+  "attendancePerformanceGood": "መልካም መገኘት",
+  "attendancePerformanceNeedsImprovement": "መገኘት መሻሻል ያስፈልጋል",
+
+  "attendanceHistoryTitle": "የመገኘት ታሪክ",
+  "attendanceSessionsRecorded": "{count} ስብሰባ ተመዝግቧል",
+  "@@attendanceSessionsRecorded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceNoRecordsYet": "እስካሁን የመገኘት መዝገብ የለም",
+  "attendanceImproveTitle": "መገኘትዎን ያሻሽሉ",
+  "attendanceImproveBody": "መደበኛ መገኘት ለመማርና ለደረጃ ማደግ አስፈላጊ ነው። ሁሉንም ክፍሎች ለመሳተፍ እና በሰዓቱ ለመድረስ ይሞክሩ።",
+
+  "servantAttendanceChooseSubjectAndDate": "ትምህርትና ቀን ይምረጡ",
+  "servantAttendanceMinimumDaysAbsent": "አነስተኛ የቀረ ቀናት",
+  "servantAttendanceMinAbsentHint": "ቢያንስ የቀሩትን ቀናት ያስገቡ",
+
+  "servantAttendanceStudentsAbsentAtLeast": "ቢያንስ {days} ቀን የቀሩ ተማሪዎች:",
+  "@@servantAttendanceStudentsAbsentAtLeast": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+
+  "servantAttendanceNoStudentsMatch": "ተመሳሳይ ተማሪ አልተገኘም።",
+  "servantAttendanceAbsentDays": "{days} ቀን ቀርቷል",
+  "@@servantAttendanceAbsentDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAttendancePreviousDates": "ቀደም ያሉ ቀናት",
+  "servantAttendanceNoDatesYet": "እስካሁን የመገኘት ቀናት የሉም።",
+  "servantAttendanceSearchStudentsHint": "ተማሪዎችን ፈልግ",
+  "servantAttendanceSaved": "መገኘት ተመዝግቧል",
+  "servantAttendanceSaveFailed": "መገኘት ማስቀመጥ አልተሳካም",
+
+  "commAnnouncements": "ማስታወቂያዎች",
+  "commQuestions": "ጥያቄዎች",
+  "commComplaints": "ቅሬታዎች",
+  "commFeedback": "አስተያየት",
+
+  "servantCommSubtitle": "ማስታወቂያዎች፣ ጥያቄዎች፣ ቅሬታዎች እና አስተያየት።",
+
+  "commNoAnnouncements": "ማስታወቂያ የለም",
+  "commAnnouncementsEmptySubtitle": "ለአዳዲስ መረጃዎች ቆይተው ይመለሱ",
+  "commAnnouncementsLoadFailed": "ማስታወቂያዎችን መጫን አልተሳካም።",
+
+    "commAnnouncementCategoryUrgent": "አስቸኳይ",
+    "commAnnouncementCategoryGrades": "ውጤቶች",
+    "commAnnouncementCategorySchedule": "መርሃ ግብር",
+    "commAnnouncementCategoryEvent": "ዝግጅት",
+    "commAnnouncementCategoryGeneral": "አጠቃላይ",
+
+  "commPostedBy": "በ{name} ተለጥፏል",
+  "@@commPostedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "commAskQuestion": "ጥያቄ ጠይቅ",
+  "commPending": "በመጠባበቅ ላይ",
+  "commAnswered": "ተመልሷል",
+  "commInReview": "በግምገማ ላይ",
+  "commResolved": "ተፈትቷል",
+  "commNoQuestionsYet": "እስካሁን ጥያቄ የለም",
+  "commResponseLabel": "መልስ:",
+
+  "servantCommNoComplaints": "ምንም ቅሬታ የለም",
+  "servantCommRespond": "መልስ ስጥ",
+  "servantCommTypeResponseHint": "መልስዎን ይጻፉ...",
+  "servantCommEnterResponseError": "እባክዎ መልስ ያስገቡ።",
+  "servantCommSavedLocallySyncFailed": "በአካባቢ ተቀምጧል፤ ማስተካከል አልተሳካም።",
+  "servantCommSendResponse": "መልስ ላክ",
+
+  "servantCommDeleteQuestionTitle": "ጥያቄውን ማጥፋት?",
+  "servantCommDeleteQuestionBody": "ይህ ጥያቄ በቋሚነት ይሰረዛል።",
+  "servantCommDeleteQuestionPermissionDenied": "ጥያቄዎችን ለማጥፋት ፈቃድ ላይኖርዎ ይችላል።",
+
+  "servantCommDeleteComplaintTitle": "ቅሬታውን ማጥፋት?",
+  "servantCommDeleteComplaintBody": "ይህ ቅሬታ በቋሚነት ይሰረዛል።",
+  "servantCommDeleteFromServerFailed": "ከሰርቨሩ ላይ ማጥፋት አልተቻለም።",
+
+    "commSubjectBibleStudies": "የመጽሐፍ ቅዱስ ትምህርት",
+    "commSubjectChristianHistory": "የክርስትና ታሪክ",
+    "commSubjectGeneral": "አጠቃላይ",
+
+  "commSubjectLabel": "ትምህርት",
+  "commYourQuestionLabel": "ጥያቄዎ",
+  "commQuestionHint": "ጥያቄዎን እዚህ ይጻፉ...",
+  "commSelectSubjectError": "እባክዎ ትምህርት ይምረጡ",
+  "commEnterQuestionError": "እባክዎ ጥያቄዎን ያስገቡ",
+  "commQuestionSubmitted": "ጥያቄው ተላክ!",
+
+  "commSubmitComplaint": "ቅሬታ አቅርብ",
+  "commNoComplaintsSubmitted": "እስካሁን ቅሬታ አልተላከም",
+
+  "commCategoryLabel": "ምድብ",
+  "commCategoryTeacher": "አስተማሪ",
+  "commCategoryFacility": "መገልገያ",
+  "commCategoryCourse": "ትምህርት",
+  "commCategoryAdministrative": "አስተዳደር",
+  "commCategoryOther": "ሌላ",
+  "commSelectCategoryError": "እባክዎ ምድብ ይምረጡ",
+
+  "commTitleLabel": "ርዕስ",
+  "commComplaintTitleHint": "ለቅሬታዎ አጭር ርዕስ",
+  "commEnterTitleError": "እባክዎ ርዕስ ያስገቡ",
+  "commDescriptionLabel": "መግለጫ",
+  "commComplaintDescriptionHint": "ቅሬታዎን በዝርዝር ይጻፉ...",
+  "commEnterDescriptionError": "እባክዎ መግለጫ ያስገቡ",
+  "commSubmitAnonymously": "ስም ሳይጠቀስ አቅርብ",
+  "commComplaintSubmitted": "ቅሬታው ተላክ!",
+
+    "commNoActiveFeedbackForms": "ንቁ የግብረመልስ ቅጾች የሉም",
+    "commFeedbackEmptySubtitle": "አገልጋዩ በወደፊት የግብረመልስ ቅጾችን ሊካፈል ይችላል። ከጊዜ በኋላ ይመለሱ።",
+
+  "bootstrapErrorTitle": "መተግበሪያው መጀመር አልቻለም",
+  "bootstrapErrorFix": "መፍትሄ: የSupabase ቅንብር ያረጋግጡ",
+  "bootstrapErrorVerifyPath": "lib/core/config/supabase_config.dart ውስጥ ያሉ እሴቶችን ያረጋግጡ",
+
+  "servantDashboardTitle": "የአገልጋይ ዳሽቦርድ",
+  "servantDashboardSubtitle": "የክፍል አስተዳደር",
+  "servantTotalStudents": "ጠቅላላ ተማሪዎች",
+
+  "servantDashboardAvgAttendanceLabel": "አማካኝ መገኘት",
+  "servantDashboardPendingItemsLabel": "በመጠባበቅ ላይ",
+  "servantDashboardQuickActionsTitle": "ፈጣን እርምጃዎች",
+  "servantDashboardMarkAttendanceTitle": "መገኘት ምልክት አድርግ",
+  "servantDashboardMarkAttendanceSubtitle": "የዛሬን መገኘት መዝግብ",
+  "servantDashboardAddGradesTitle": "ውጤት ጨምር",
+  "servantDashboardAddGradesSubtitle": "የተማሪ ውጤቶችን አስገባ ወይም አዘምን",
+  "servantRegisterStudentQuickActionTitle": "ተማሪ መመዝገብ",
+  "servantRegisterStudentQuickActionSubtitle": "አዲስ ተማሪ ወደ ክፍል ጨምር",
+  "servantRegisterStudentTitle": "ተማሪ መመዝገብ",
+  "servantRegisterStudentFullNameLabel": "የተማሪው ሙሉ ስም",
+  "servantRegisterStudentFullNameHint": "ለምሳሌ፡ ዮሐንስ ዶ",
+  "servantRegisterStudentGradeLabel": "የሚመዘገብበት ክፍል",
+  "servantRegisterStudentSubmit": "መመዝገብ",
+  "servantRegisterStudentNameRequired": "የተማሪውን ሙሉ ስም ያስገቡ",
+  "servantRegisterStudentGradeRequired": "ክፍል ይምረጡ",
+  "servantRegisterStudentSuccessTitle": "ተማሪ ተመዝግቧል",
+  "servantRegisterStudentSuccessMessage": "አካዳሚክ መለያ፡ {academicId}\nየመጀመሪያ የይለፍ ቃል፡ ከአካዳሚክ መለያው ጋር አንድ ነው",
+  "@@servantRegisterStudentSuccessMessage": {
+    "placeholders": {
+      "academicId": { "type": "String" }
+    }
+  },
+  "servantDashboardGradeAnalyticsSubtitle": "የአፈጻጸም ግንዛቤ እና አዝማሚያ",
+  "servantDashboardTodayScheduleTitle": "የዛሬ መርሃ ግብር",
+  "servantDashboardSundaySchoolClassTitle": "የሰንበት ት/ቤት ክፍል",
+  "servantDashboardSundaySchoolClassTime": "9:00 ጠዋት - 10:30 ጠዋት",
+  "servantDashboardBibleStudyReviewTitle": "የመጽሐፍ ቅዱስ ጥናት ግምገማ",
+  "servantDashboardBibleStudyReviewTime": "10:30 ጠዋት - 11:00 ጠዋት",
+  "servantDashboardPendingMessage": "{qCount,plural,=1{1 ጥያቄ} other{{qCount} ጥያቄዎች}} እና {cCount,plural,=1{1 ቅሬታ} other{{cCount} ቅሬታዎች}} በመጠባበቅ ላይ አሉ።",
+  "@@servantDashboardPendingMessage": {
+    "placeholders": {
+      "qCount": {
+        "type": "int"
+      },
+      "cCount": {
+        "type": "int"
+      }
+    }
+  },
+  "servantDashboardViewButton": "ይመልከቱ",
+
+  "servantAnalyticsTitle": "የክፍል ትንተና",
+  "servantAnalyticsLoadFailed": "ትንተናውን መጫን አልተሳካም።",
+
+  "servantAnalyticsSubtitle": "የአፈጻጸም ግንዛቤ እና አዝማሚያዎች",
+
+  "servantAnalyticsMetricClassAverage": "የክፍል አማካኝ",
+  "servantAnalyticsStudentsWithGradesLabel": "{graded}/{total} ተማሪዎች",
+  "@@servantAnalyticsStudentsWithGradesLabel": {
+    "placeholders": {
+      "graded": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "servantAnalyticsMetricAtRisk": "በአደጋ ላይ",
+  "servantAnalyticsAtRiskPercentOfClass": "ከክፍሉ {percent}%",
+  "@@servantAnalyticsAtRiskPercentOfClass": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "servantAnalyticsMetricTopPerformers": "ከፍተኛ አፈጻጸም",
+  "servantAnalyticsTopPerformersThreshold": "≥ 90% ያላቸው ተማሪዎች",
+  "servantAnalyticsMetricMissingWork": "የጎደለ ስራ",
+  "servantAnalyticsMissingWorkSubtitle": "ያልተሟሉ ተማሪዎች",
+
+  "servantAnalyticsGradeDistributionTitle": "የውጤት ስርጭት",
+  "servantAnalyticsSubjectPerformanceTitle": "የትምህርት አፈጻጸም",
+  "servantAnalyticsPerformanceByAssessmentTypeTitle": "በምዘና አይነት የተለያየ አፈጻጸም",
+
+  "servantAnalyticsKeyInsightsTitle": "ዋና ግንዛቤዎች",
+  "servantAnalyticsNoInsightsYet": "እስካሁን ግንዛቤ የለም።",
+  "servantAnalyticsInsightClassPerformingWell": "ክፍሉ በ80%+ አማካኝ ጥሩ እየሰራ ነው",
+  "servantAnalyticsInsightAtRiskStudents": "{count,plural,=1{1 ተማሪ ተጨማሪ ድጋፍ ያስፈልገዋል (ከ70% በታች)} other{{count} ተማሪዎች ተጨማሪ ድጋፍ ያስፈልጋቸዋል (ከ70% በታች)}}",
+  "@@servantAnalyticsInsightAtRiskStudents": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsInsightIncompleteAssessments": "{count,plural,=1{1 ተማሪ ያልተሟሉ ምዘናዎች አሉት} other{{count} ተማሪዎች ያልተሟሉ ምዘናዎች አሏቸው}}",
+  "@@servantAnalyticsInsightIncompleteAssessments": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsInsightTopPerformers": "{count,plural,=1{1 ተማሪ እጅግ ጥሩ እየሰራ ነው (ከፍተኛ 1)} other{{count} ተማሪዎች እጅግ ጥሩ እየሰሩ ናቸው (ከፍተኛ {count})}}",
+  "@@servantAnalyticsInsightTopPerformers": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "servantAnalyticsSelectSubjectTitle": "ትምህርት ይምረጡ",
+  "servantAnalyticsHighestLabel": "ከፍተኛ",
+  "servantAnalyticsLowestLabel": "ዝቅተኛ",
+  "servantAnalyticsIncompleteLabel": "ያልተሟላ",
+  "servantAnalyticsBackToSubjects": "ወደ ትምህርቶች ተመለስ",
+  "servantAnalyticsAssessmentBreakdownTitle": "የምዘና ዝርዝር",
+  "servantAnalyticsCompletedOutOf": "{completed}/{total} ተጠናቋል",
+  "@@servantAnalyticsCompletedOutOf": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "servantAnalyticsTopPerformersSubtitle": "ከፍተኛ አማካኝ ያላቸው ተማሪዎች",
+  "servantAnalyticsStudentsNeedingSupportTitle": "ድጋፍ የሚያስፈልጋቸው ተማሪዎች",
+  "servantAnalyticsStudentsNeedingSupportSubtitle": "ከ70% በታች አማካኝ - ትኩረት ይፈልጋል",
+  "servantAnalyticsNeedsHelp": "እርዳታ ያስፈልጋል",
+  "servantAnalyticsIncompleteAssessmentsTitle": "ያልተሟሉ ምዘናዎች",
+  "servantAnalyticsIncompleteAssessmentsSubtitle": "የጎደለ ስራ ያላቸው ተማሪዎች",
+  "servantAnalyticsSubjectsLabel": "{count,plural,=1{ትምህርት} other{ትምህርቶች}}",
+  "@@servantAnalyticsSubjectsLabel": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsAndMore": "እና ሌሎች {count}...",
+  "@@servantAnalyticsAndMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsNoStudentsToDisplay": "ለማሳየት ተማሪ የለም።",
+
+  "studentFinalResultsTitle": "የመጨረሻ ውጤቶች",
+  "studentGradesAcademicYearLabel": "የትምህርት ዘመን {yearName}",
+  "@@studentGradesAcademicYearLabel": {
+    "placeholders": {
+      "yearName": { "type": "String" }
+    }
+  },
+  "studentFinalResultsFinalGradeLabel": "የመጨረሻ ውጤት",
+
+  "studentFinalResultsPromotionStatusLabel": "የማዕረግ ሁኔታ",
+  "studentFinalResultsPromotionPromotedTitle": "ተሻሽሏል",
+  "studentFinalResultsPromotionPromotedMessage": "እንኳን ደስ አለዎት! ወደ ቀጣዩ ክፍል ተሻሽለዋል።",
+  "studentFinalResultsPromotionAtRiskTitle": "በአደጋ ላይ",
+  "studentFinalResultsPromotionAtRiskMessage": "ወደ ቀጣይ ክፍል ላይ ላትሻሽሉ ይችላሉ። እባክዎ ከመምህርዎ ጋር ያማክሩ።",
+  "studentFinalResultsPromotionNotPromotedTitle": "አልተሻሽለም",
+  "studentFinalResultsPromotionNotPromotedMessage": "የማሻሻያ መስፈርቶችን አላሟሉም። እባክዎ ከመምህርዎ ጋር ያማክሩ።",
+
+  "studentFinalResultsFinalSubjectGradesTitle": "የትምህርት መጨረሻ ውጤቶች",
+  "studentFinalResultsFinalSummaryTitle": "የመጨረሻ ማጠቃለያ",
+  "studentGradesHighestGradeLabel": "ከፍተኛ ውጤት",
+  "studentGradesLowestGradeLabel": "ዝቅተኛ ውጤት",
+  "studentGradesOverallAverageLabel": "አጠቃላይ አማካኝ",
+  "studentFinalResultsAcademicYearEndedMessage": "የትምህርት ዘመኑ ተጠናቋል። እነዚህ ለ{yearName} የመጨረሻ ውጤቶችዎ ናቸው። እረፍትዎን ይደሰቱ እና በቀጣዩ የትምህርት ዘመን እንገናኛለን!",
+  "@@studentFinalResultsAcademicYearEndedMessage": {
+    "placeholders": {
+      "yearName": { "type": "String" }
+    }
+  },
+
+  "studentGradesKeepUpExcellentWork": "ጥሩ ስራዎን ቀጥሉ!",
+  "studentGradesAssessmentsCount": "{count,plural,=1{1 ምዘና} other{{count} ምዘናዎች}}",
+  "@@studentGradesAssessmentsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "studentGradesAssessmentBreakdownTitle": "የምዘና ዝርዝር",
+  "studentGradesMissingAssessmentsWarning": "{count,plural,=1{⚠️ በዚህ ትምህርት 1 ምዘና ያልተሞላ አለ። ውጤትዎ በተጠናቀቁ ምዘናዎች ላይ ብቻ ይተመናል።} other{⚠️ በዚህ ትምህርት {count} ምዘናዎች ያልተሞሉ አሉ። ውጤትዎ በተጠናቀቁ ምዘናዎች ላይ ብቻ ይተመናል።}}",
+  "@@studentGradesMissingAssessmentsWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "studentGradesPointsLabel": "{score}/{maxScore} ነጥብ",
+  "@@studentGradesPointsLabel": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "maxScore": { "type": "int" }
+    }
+  },
+  "studentGradesPerformanceSummaryTitle": "የአፈጻጸም ማጠቃለያ",
+  "studentGradesTotalSubjectsLabel": "ጠቅላላ ትምህርቶች",
+
+  "servantGradesLoadSubjectsFailed": "ትምህርቶችን መጫን አልተሳካም።",
+  "servantGradesLoadStudentsFailed": "ተማሪዎችን መጫን አልተሳካም።",
+  "servantGradesLoadGradeEntriesFailed": "የውጤት ምዝገባዎችን መጫን አልተሳካም።",
+  "servantGradesLockedByAdminSettings": "የውጤት አስተዳደር በአስተዳዳሪ ቅንብሮች ታግዷል።",
+  "servantGradesThisAcademicYear": "ይህ የትምህርት ዓመት",
+  "servantGradesAcademicYearEndedLocked": "የትምህርት ዓመት {yearName} ተጠናቋል። የውጤት አስተዳደር ታግዷል።",
+  "@@servantGradesAcademicYearEndedLocked": {
+    "placeholders": {
+      "yearName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesLocked": "የውጤት አስተዳደር ታግዷል።",
+  "servantGradesDefaultAssessmentType": "ምዘና",
+
+  "servantGradesMissingAssessmentsTitle": "ያልተሟሉ ምዘናዎች - {subjectName}",
+  "@@servantGradesMissingAssessmentsTitle": {
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesStudentsWithIncompleteAssessments": "ያልተሟሉ ምዘናዎች ያላቸው ተማሪዎች: {count}",
+  "@@servantGradesStudentsWithIncompleteAssessments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesNoMissingAssessmentsFound": "ያልተሟሉ ምዘናዎች አልተገኙም።",
+
+  "servantAnnouncementsEnterTitleAndMessageError": "እባክዎ ርዕስ እና መልዕክት ያስገቡ።",
+  "servantAnnouncementsSavedLocallySyncFailed": "በአካባቢ ተቀምጧል፤ ማመሳሰል አልተሳካም።",
+  "servantAnnouncementsCreateTitle": "ማስታወቂያ ፍጠር",
+  "servantAnnouncementsCategoryLabel": "ምድብ",
+  "servantAnnouncementsSelectCategoryHint": "ምድብ ይምረጡ",
+  "servantAnnouncementsTitleHint": "ርዕስ",
+  "servantAnnouncementsMessageLabel": "መልዕክት",
+  "servantAnnouncementsMessageHint": "ማስታወቂያዎን ይጻፉ...",
+  "servantAnnouncementsPostButton": "አሳትም",
+  "servantAnnouncementsEmptyTitle": "እስካሁን ማስታወቂያ የለም",
+  "servantAnnouncementsEmptySubtitle": "ለተማሪዎች ዝማኔዎችን ለማጋራት ማስታወቂያ ይፍጠሩ።",
+  "servantAnnouncementsReadCount": "{read} / {total} ተነብቧል",
+  "@@servantAnnouncementsReadCount": {
+    "placeholders": {
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAnnouncementsTarget": "ዒላማ: {audience}",
+  "@@servantAnnouncementsTarget": {
+    "placeholders": {
+      "audience": {
+        "type": "String"
+      }
+    }
+  },
+  "servantAnnouncementsStudentsReadCount": "{count,plural,=1{1 ተማሪ አንብቧል} other{{count} ተማሪዎች አንብበዋል}}",
+  "@@servantAnnouncementsStudentsReadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAnnouncementsDeleteTitle": "ማስታወቂያ ይሰረዝ?",
+  "servantAnnouncementsDeleteBody": "ማስታወቂያው ለሁሉም ይሰረዛል።",
+  "servantAnnouncementsDeleteFailed": "ማስታወቂያውን መሰረዝ አልተሳካም።",
+
+  "profileErrorNotSignedIn": "ገብተው አይገኙም።",
+  "profileErrorNotFound": "መገለጫ አልተገኘም።",
+
+  "servantFeedbackSelectTypeTitle": "አይነት ይምረጡ",
+  "servantFeedbackTypeTeacherEvaluation": "የአስተማሪ ግምገማ",
+  "servantFeedbackTypeCourseEvaluation": "የትምህርት ግምገማ",
+  "servantFeedbackTypeSemesterEvaluation": "የሴሚስተር ግምገማ",
+  "servantFeedbackTypeGeneral": "አጠቃላይ",
+
+  "servantFeedbackCreateFormButton": "የግብረመልስ ቅጽ ፍጠር",
+  "servantFeedbackEmptyTitle": "እስካሁን የግብረመልስ ቅጾች የሉም",
+  "servantFeedbackEmptySubtitle": "የተማሪ ግብረመልስ ለመሰብሰብ ቅጽ ይፍጠሩ",
+  "servantFeedbackActiveFormsLabel": "ንቁ ቅጾች",
+  "servantFeedbackStatusActive": "ንቁ",
+  "servantFeedbackStatusExpired": "ጊዜው አልፎታል",
+  "servantFeedbackQuestionsCount": "{count,plural,=1{1 ጥያቄ} other{{count} ጥያቄዎች}}",
+  "@@servantFeedbackQuestionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackDeleteFormTitle": "የግብረመልስ ቅጽ ይሰረዝ?",
+  "servantFeedbackDeleteFormBody": "ቅጹን እና የተማሪዎች {responseCount} ምላሾችን በቋሚነት ይሰርዛል። ይህ እርምጃ መመለስ አይቻልም።",
+  "@@servantFeedbackDeleteFormBody": {
+    "placeholders": {
+      "responseCount": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackDueLabel": "የመጨረሻ ቀን: {date}",
+  "@@servantFeedbackDueLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "servantFeedbackResponsesCount": "{submitted}/{total} ምላሾች",
+  "@@servantFeedbackResponsesCount": {
+    "placeholders": {
+      "submitted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackViewAnalyticsButton": "ትንተና ይመልከቱ",
+
+  "servantFeedbackCreateFormTitle": "የግብረመልስ ቅጽ ፍጠር",
+  "servantFeedbackCreateFormSubmitButton": "ቅጽ ፍጠር",
+  "servantFeedbackTitleLabel": "ርዕስ",
+  "servantFeedbackTitleHint": "ለምሳሌ፦ የአጋማሽ ሴሚስተር የአስተማሪ ግምገማ",
+  "servantFeedbackDescriptionLabel": "መግለጫ",
+  "servantFeedbackDescriptionHint": "የግብረመልስ ቅጹን አጭር መግለጫ",
+  "servantFeedbackTypeLabel": "አይነት",
+  "servantFeedbackStartDateLabel": "መጀመሪያ:",
+  "servantFeedbackEndDateLabel": "መጨረሻ:",
+  "servantFeedbackQuestionsSectionTitle": "ጥያቄዎች",
+  "servantFeedbackTextResponsesReceived": "{count,plural,=0{0 የጽሑፍ መልስ ተቀብለናል} =1{1 የጽሑፍ መልስ ተቀብለናል} other{{count} የጽሑፍ መልሶች ተቀብለናል}}",
+  "@@servantFeedbackTextResponsesReceived": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackQuestionsAddedCount": "{count,plural,=0{ምንም ጥያቄ አልተጨመረም} =1{1 ጥያቄ ተጨምሯል} other{{count} ጥያቄዎች ተጨምረዋል}}",
+  "@@servantFeedbackQuestionsAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackAddQuestionButton": "ጥያቄ ጨምር",
+  "servantFeedbackRequiredLabel": "አስፈላጊ",
+  "servantFeedbackNewQuestionTitle": "አዲስ ጥያቄ",
+  "servantFeedbackQuestionTextLabel": "የጥያቄ ጽሁፍ",
+  "servantFeedbackQuestionTextHint": "ጥያቄዎን ያስገቡ...",
+  "servantFeedbackQuestionTypeLabel": "የጥያቄ አይነት",
+  "servantFeedbackQuestionTypeRating": "ደረጃ (1-5)",
+  "servantFeedbackQuestionTypeText": "ጽሁፍ",
+  "servantFeedbackQuestionTypeMultipleChoice": "ብዙ ምርጫ",
+  "servantFeedbackRequiredQuestionLabel": "አስፈላጊ?",
+  "servantFeedbackYes": "አዎ",
+  "servantFeedbackNo": "አይ",
+  "servantFeedbackOptionsLabel": "ምርጫዎች",
+  "servantFeedbackOptionHint": "ምርጫ {number}",
+  "@@servantFeedbackOptionHint": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackAddOptionButton": "ምርጫ ጨምር",
+  "servantFeedbackMultipleChoiceNeedsTwoOptions": "የብዙ ምርጫ ጥያቄዎች ቢያንስ 2 ምርጫዎች ያስፈልጋቸዋል።",
+
+  "servantFeedbackFormNotFoundTitle": "ቅጹ አልተገኘም",
+  "servantFeedbackFormNotFoundSubtitle": "እባክዎ ወደ ኋላ ተመልሰው እንደገና ይሞክሩ።",
+  "servantFeedbackAnalyticsTitle": "የግብረመልስ ትንተና",
+  "servantFeedbackQuestionsAndDueLine": "{count,plural,=1{1 ጥያቄ} other{{count} ጥያቄዎች}} • የመጨረሻ ቀን: {date}",
+  "@@servantFeedbackQuestionsAndDueLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "servantFeedbackSubmissionStatisticsTitle": "የማስገባት ስታቲስቲክስ",
+  "servantFeedbackSubmittedLabel": "የተላኩ",
+  "servantFeedbackPendingLabel": "ቀርቷል",
+  "servantFeedbackRateLabel": "መጠን",
+  "servantFeedbackNoResponsesTitle": "እስካሁን ምላሾች የሉም",
+  "servantFeedbackNoResponsesSubtitle": "ተማሪዎች ግብረመልስ ሲያስገቡ ትንተናው እዚህ ይታያል",
+  "servantFeedbackAverageRatingLabel": "አማካኝ ደረጃ",
+  "servantFeedbackDistributionLabel": "ስርጭት:",
+  "servantFeedbackResponsesCountLabel": "{count,plural,=1{1 ምላሽ} other{{count} ምላሾች}}",
+  "@@servantFeedbackResponsesCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackEnterTitleError": "እባክዎ ርዕስ ያስገቡ።",
+  "servantFeedbackEnterDescriptionError": "እባክዎ መግለጫ ያስገቡ።",
+  "servantFeedbackAddAtLeastOneQuestionError": "እባክዎ በግብረመልስ ቅጹ ውስጥ ቢያንስ አንድ ጥያቄ ያክሉ።",
+  "servantFeedbackValidDatesError": "እባክዎ ትክክለኛ የመጀመሪያ እና የመጨረሻ ቀናት (YYYY-MM-DD) ያስገቡ።",
+  "servantFeedbackEndAfterStartError": "የመጨረሻ ቀን ከመጀመሪያ ቀን በኋላ መሆን አለበት።",
+  "servantFeedbackSelectTypeError": "እባክዎ አይነት ይምረጡ።"
+}

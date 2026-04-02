@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 import { corsHeaders, corsPreflightResponse, jsonResponse } from "../_shared/cors.ts";
-import { requireAdmin } from "../_shared/admin_guard.ts";
+import { requireServantOrAdmin } from "../_shared/servant_guard.ts";
 
 type CreateUserBody = {
   email?: string;
@@ -15,27 +15,61 @@ type CreateUserBody = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return corsPreflightResponse();
 
-  const guard = await requireAdmin(req);
+  const guard = await requireServantOrAdmin(req);
   if (!guard.ok) {
     return jsonResponse(guard.body, { status: guard.status, headers: corsHeaders });
+  }
+
+  function academicIdToEmail(academicId: string) {
+    // Academic IDs can contain '/', which may not pass email validation.
+    // Map it to a deterministic local address.
+    const local = academicId
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return `${local || "student"}@school.local`;
   }
 
   try {
     const body = (await req.json()) as Partial<CreateUserBody>;
 
     const password = (body.password ?? "").trim();
-    const role = (body.role ?? "").trim().toLowerCase();
+    const requestedRole = (body.role ?? "").trim().toLowerCase();
     const academicId = (body.academic_id ?? "").trim();
     const name = (body.name ?? "").trim();
     const allowedRoles = new Set(["student", "servant"]);
 
-    if (!password || !role || !academicId || !name) {
+    if (!password || !academicId || !name) {
       return jsonResponse(
         {
-          error: "Missing required fields: password, role, academic_id, name.",
+          error: "Missing required fields: password, academic_id, name.",
         },
         { status: 400 },
       );
+    }
+
+    const callerRole = guard.callerRole;
+
+    let role: string;
+    if (callerRole === "admin") {
+      if (!requestedRole) {
+        return jsonResponse(
+          { error: "Missing required field: role." },
+          { status: 400 },
+        );
+      }
+      role = requestedRole;
+    } else {
+      // Servants may only create student accounts.
+      if (requestedRole && requestedRole !== "student") {
+        return jsonResponse(
+          { error: "Forbidden: servants can only create students." },
+          { status: 403 },
+        );
+      }
+      role = "student";
     }
 
     if (!allowedRoles.has(role)) {
@@ -47,7 +81,18 @@ serve(async (req) => {
       );
     }
 
-    const email = (body.email ?? "").trim() || `${academicId}@school.local`;
+    // Student registrations must include a grade.
+    if (role === "student") {
+      const gradeId = (body.grade_id ?? "").toString().trim();
+      if (!gradeId) {
+        return jsonResponse(
+          { error: "Missing required field: grade_id." },
+          { status: 400 },
+        );
+      }
+    }
+
+    const email = (body.email ?? "").trim() || academicIdToEmail(academicId);
 
     const { data: created, error: createError } =
       await guard.adminClient.auth.admin.createUser({
@@ -57,8 +102,12 @@ serve(async (req) => {
       });
 
     if (createError || !created.user) {
+      const msg = createError?.message ?? "Failed to create user";
+      if (msg.toLowerCase().includes("already registered")) {
+        return jsonResponse({ error: msg }, { status: 409 });
+      }
       return jsonResponse(
-        { error: createError?.message ?? "Failed to create user" },
+        { error: msg },
         { status: 400 },
       );
     }
@@ -77,10 +126,16 @@ serve(async (req) => {
       });
 
     if (profileError) {
+      // Likely academic_id uniqueness.
+      // Postgres unique violation code is 23505.
+      // @ts-ignore - Postgrest error has code at runtime.
+      if ((profileError as any)?.code === "23505") {
+        return jsonResponse({ error: profileError.message }, { status: 409 });
+      }
       return jsonResponse({ error: profileError.message }, { status: 400 });
     }
 
-    return jsonResponse({ user_id: userId, email });
+    return jsonResponse({ user_id: userId, email, academic_id: academicId });
   } catch (e) {
     return jsonResponse(
       { error: e instanceof Error ? e.message : "Unknown error" },

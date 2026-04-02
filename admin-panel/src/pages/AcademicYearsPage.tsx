@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -80,6 +81,19 @@ export function AcademicYearsPage() {
     void load();
   }, [load]);
 
+  function statusLabel(status: string | null | undefined): string {
+    switch ((status ?? "").toLowerCase()) {
+      case "active":
+        return t("academicYearStatusActive");
+      case "ended":
+        return t("academicYearStatusEnded");
+      case "archived":
+        return t("academicYearStatusArchived");
+      default:
+        return status ?? "—";
+    }
+  }
+
   async function createYear(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -113,7 +127,7 @@ export function AcademicYearsPage() {
 
   async function endActiveYear() {
     if (!activeYear) return;
-    if (!window.confirm(`End active academic year "${activeYear.name ?? "Unnamed"}"?`)) {
+    if (!window.confirm(t("academicYearConfirmEndActive", { name: activeYear.name ?? activeYear.id }))) {
       return;
     }
     setError(null);
@@ -136,7 +150,7 @@ export function AcademicYearsPage() {
 
   async function archiveYear(yearId: string) {
     const targetYear = years.find((year) => year.id === yearId);
-    if (!window.confirm(`Archive academic year "${targetYear?.name ?? yearId}"?`)) {
+    if (!window.confirm(t("academicYearConfirmArchive", { name: targetYear?.name ?? yearId }))) {
       return;
     }
     setError(null);
@@ -153,7 +167,7 @@ export function AcademicYearsPage() {
 
       await load();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to archive academic year.");
+      setError(err instanceof Error ? err.message : t("academicYearArchiveFailed"));
     } finally {
       setArchivingId(null);
     }
@@ -225,30 +239,30 @@ export function AcademicYearsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Academic Year</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("academicYearTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage the active academic year. Access is enforced by Supabase RLS.
+          {t("academicYearSubtitle")}
         </p>
       </div>
 
       {error ? (
-        <ErrorBanner title="Request failed" message={error} />
+        <ErrorBanner title={t("commonRequestFailed")} message={error} />
       ) : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Current status</CardTitle>
+          <CardTitle>{t("academicYearCurrentStatus")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           <div className="text-sm">
-            <span className="text-muted-foreground">Active year: </span>
+            <span className="text-muted-foreground">{t("academicYearActiveYearLabel")} </span>
             <span className="font-medium">
-              {activeYear?.name ?? "None"}
+              {activeYear?.name ?? t("commonNone")}
             </span>
           </div>
           <div className="grid gap-2 sm:max-w-lg md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="semester1EndDate">Semester 1 end date</Label>
+              <Label htmlFor="semester1EndDate">{t("academicYearSemester1EndDate")}</Label>
               <Input
                 id="semester1EndDate"
                 type="date"
@@ -261,12 +275,12 @@ export function AcademicYearsPage() {
                 disabled={!activeYear || !semester1EndDateDraft || isEndingSemester1}
                 onClick={() => void endFirstSemester()}
               >
-                {isEndingSemester1 ? "Ending semester 1…" : "End semester 1"}
+                {isEndingSemester1 ? t("academicYearEndingSemester1") : t("academicYearEndSemester1")}
               </Button>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="semester2StartDate">Semester 2 start date</Label>
+              <Label htmlFor="semester2StartDate">{t("academicYearSemester2StartDate")}</Label>
               <Input
                 id="semester2StartDate"
                 type="date"
@@ -279,15 +293,15 @@ export function AcademicYearsPage() {
                 disabled={!activeYear || !semester2StartDateDraft || isStartingSemester2}
                 onClick={() => void startSecondSemester()}
               >
-                {isStartingSemester2 ? "Starting semester 2…" : "Start semester 2"}
+                {isStartingSemester2 ? t("academicYearStartingSemester2") : t("academicYearStartSemester2")}
               </Button>
             </div>
           </div>
           <div className="text-xs text-muted-foreground">
-            Semester transition is administrative only. No pass/fail is required to move from semester 1 to semester 2.
+            {t("academicYearTransitionNote")}
           </div>
           <div className="grid gap-2 sm:max-w-sm">
-            <Label htmlFor="currentPeriod">Current period</Label>
+            <Label htmlFor="currentPeriod">{t("academicYearCurrentPeriod")}</Label>
             <select
               id="currentPeriod"
               className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -295,12 +309,12 @@ export function AcademicYearsPage() {
               onChange={(e) => setSelectedPeriod(e.target.value as "semester1" | "semester2" | "break")}
               disabled={!activeYear || isUpdatingPeriod}
             >
-              <option value="semester1">Semester 1</option>
-              <option value="semester2">Semester 2</option>
-              <option value="break">Break</option>
+              <option value="semester1">{t("academicYearPeriodSemester1")}</option>
+              <option value="semester2">{t("academicYearPeriodSemester2")}</option>
+              <option value="break">{t("academicYearPeriodBreak")}</option>
             </select>
             <div className="text-xs text-muted-foreground">
-              Semester change is administrative only and does not block students by average.
+              {t("academicYearPeriodNote")}
             </div>
             <div>
               <Button
@@ -308,7 +322,7 @@ export function AcademicYearsPage() {
                 disabled={!activeYear || isUpdatingPeriod}
                 onClick={() => void updateActivePeriod()}
               >
-                {isUpdatingPeriod ? "Updating period…" : "Update period"}
+                {isUpdatingPeriod ? t("academicYearUpdatingPeriod") : t("academicYearUpdatePeriod")}
               </Button>
             </div>
           </div>
@@ -318,7 +332,7 @@ export function AcademicYearsPage() {
               disabled={!activeYear || isEnding}
               onClick={() => void endActiveYear()}
             >
-              {isEnding ? "Ending…" : "End active academic year"}
+              {isEnding ? t("academicYearEndingActiveYear") : t("academicYearEndActiveYear")}
             </Button>
           </div>
         </CardContent>
@@ -326,22 +340,22 @@ export function AcademicYearsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Start new academic year</CardTitle>
+          <CardTitle>{t("academicYearStartNew")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-[1fr_auto]" onSubmit={createYear}>
             <div className="grid gap-2">
-              <Label htmlFor="yearName">Year name</Label>
+              <Label htmlFor="yearName">{t("academicYearYearName")}</Label>
               <Input
                 id="yearName"
-                placeholder="e.g., 2026-2027"
+                placeholder={t("academicYearYearNamePlaceholder")}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 required
               />
               <div className="grid gap-2 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="startDate">Start date</Label>
+                  <Label htmlFor="startDate">{t("academicYearStartDate")}</Label>
                   <Input
                     id="startDate"
                     type="date"
@@ -351,7 +365,7 @@ export function AcademicYearsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="endDate">End date</Label>
+                  <Label htmlFor="endDate">{t("academicYearEndDate")}</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -362,12 +376,12 @@ export function AcademicYearsPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">
-                Calls the DB RPC <span className="font-mono">start_new_academic_year</span>.
+                {t("academicYearRpcNotePrefix")} <span className="font-mono">start_new_academic_year</span>.
               </div>
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={isCreating}>
-                {isCreating ? "Creating…" : "Create"}
+                {isCreating ? t("commonCreating") : t("commonCreate")}
               </Button>
             </div>
           </form>
@@ -376,20 +390,20 @@ export function AcademicYearsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>All academic years</CardTitle>
+          <CardTitle>{t("academicYearAllYears")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Semester 1 end</TableHead>
-                  <TableHead>Semester 2 start</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{t("academicYearTableName")}</TableHead>
+                  <TableHead>{t("academicYearTableStatus")}</TableHead>
+                  <TableHead>{t("academicYearTableSem1End")}</TableHead>
+                  <TableHead>{t("academicYearTableSem2Start")}</TableHead>
+                  <TableHead>{t("academicYearTableCreated")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -399,7 +413,7 @@ export function AcademicYearsPage() {
                     <TableCell className="font-medium">
                       {y.name ?? y.id}
                     </TableCell>
-                    <TableCell>{y.status ?? "—"}</TableCell>
+                    <TableCell>{statusLabel(y.status)}</TableCell>
                     <TableCell className="text-muted-foreground">{y.semester1_end_date ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{y.semester2_start_date ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">
@@ -412,7 +426,7 @@ export function AcademicYearsPage() {
                         disabled={y.status !== "ended" || archivingId === y.id}
                         onClick={() => void archiveYear(y.id)}
                       >
-                        {archivingId === y.id ? "Archiving…" : "Archive"}
+                        {archivingId === y.id ? t("commonArchiving") : t("commonArchive")}
                       </Button>
                     </TableCell>
                   </TableRow>

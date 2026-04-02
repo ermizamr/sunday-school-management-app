@@ -1,9 +1,16 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_providers.dart';
+import '../../../core/config/supabase_config.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../core/refresh/app_refresh_scope.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
@@ -26,6 +33,7 @@ class ServantShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
@@ -37,26 +45,26 @@ class ServantShell extends StatelessWidget {
         unselectedItemColor: const Color(0xFF64748B), // slate-500
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
+            icon: const Icon(Icons.home_rounded),
+            label: l10n.navHome,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_rounded),
-            label: 'Attendance',
+            icon: const Icon(Icons.calendar_month_rounded),
+            label: l10n.navAttendance,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_stories_rounded),
-            label: 'Grades',
+            icon: const Icon(Icons.auto_stories_rounded),
+            label: l10n.navGrades,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.forum_rounded),
-            label: 'Communication',
+            icon: const Icon(Icons.forum_rounded),
+            label: l10n.navCommunication,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline_rounded),
+            label: l10n.navProfile,
           ),
         ],
       ),
@@ -88,6 +96,8 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context);
+
     setState(() {
       _submitting = true;
       _error = null;
@@ -108,7 +118,7 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Login failed. Please try again.';
+        _error = l10n.authLoginFailedGeneric;
       });
     } finally {
       if (mounted) {
@@ -122,6 +132,7 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -149,9 +160,9 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                         alignment: Alignment.centerLeft,
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text(
-                        'Back to home',
-                        style: TextStyle(fontSize: 13),
+                      label: Text(
+                        l10n.commonBackToHome,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -191,18 +202,18 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              const Text(
-                                'Servant Login',
-                                style: TextStyle(
+                              Text(
+                                l10n.authServantLoginTitle,
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                'Enter your credentials to continue',
-                                style: TextStyle(
+                              Text(
+                                l10n.authLoginSubtitle,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
                                 ),
@@ -217,9 +228,9 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Text(
-                                  'Email',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authEmailLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -228,19 +239,19 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                 _IconTextField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  hintText: 'Enter your email',
+                                  hintText: l10n.authEmailHint,
                                   icon: Icons.person_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter your email';
+                                      return l10n.authEmailRequiredError;
                                     }
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'Password',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authPasswordLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -249,14 +260,14 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                 _IconTextField(
                                   controller: _passwordController,
                                   obscureText: true,
-                                  hintText: 'Enter your password',
+                                  hintText: l10n.authPasswordHint,
                                   icon: Icons.lock_rounded,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your password';
+                                      return l10n.authPasswordRequiredError;
                                     }
                                     if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
+                                      return l10n.authPasswordMinLengthError(6);
                                     }
                                     return null;
                                   },
@@ -301,7 +312,7 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                                           MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Text('Login'),
+                                        Text(l10n.authLoginButton),
                                         if (!_submitting) ...[
                                           const SizedBox(width: 8),
                                           const Icon(
@@ -327,9 +338,9 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFFF59E0B),
                               ),
-                              child: const Text(
-                                'Forgot your password?',
-                                style: TextStyle(fontSize: 13),
+                              child: Text(
+                                l10n.authForgotPassword,
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ),
@@ -338,12 +349,12 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    const Align(
+                    Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'Demo mode: use any valid email & password\nwhile backend is being wired fully.',
+                        l10n.authDemoMode,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF94A3B8),
                         ),
@@ -409,8 +420,561 @@ class _IconTextField extends StatelessWidget {
 class ServantDashboardScreen extends StatelessWidget {
   const ServantDashboardScreen({super.key});
 
+  // Minimal stand-in for FunctionResponse so we can call the Edge Function
+  // with explicit headers and isolate JWT issues.
+  Future<({int status, dynamic data})> _invokeAdminCreateUserViaHttp({
+    required SupabaseClient client,
+    required Map<String, dynamic> body,
+  }) async {
+    final session = client.auth.currentSession;
+    final accessToken = session?.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const _AuthRequiredException();
+    }
+
+    final uri = Uri.parse(
+      '${SupabaseConfig.url}/functions/v1/admin-create-user',
+    );
+
+    final res = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'apikey': SupabaseConfig.anonKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    dynamic data;
+    try {
+      data = res.body.isEmpty ? null : jsonDecode(res.body);
+    } catch (_) {
+      data = {'raw': res.body};
+    }
+
+    return (status: res.statusCode, data: data);
+  }
+
+  String _accessTokenDebugSummary(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return 'jwtParts=${parts.length}';
+
+      Map<String, dynamic> decodeJsonPart(String part) {
+        final bytes = base64Url.decode(base64Url.normalize(part));
+        final obj = jsonDecode(utf8.decode(bytes));
+        if (obj is Map) return Map<String, dynamic>.from(obj);
+        return const <String, dynamic>{};
+      }
+
+      final header = decodeJsonPart(parts[0]);
+      final payload = decodeJsonPart(parts[1]);
+
+      final alg = header['alg'];
+      final aud = payload['aud'];
+      final iss = payload['iss'];
+      final sub = payload['sub'];
+      final role = payload['role'];
+      final iat = payload['iat'];
+
+      String? issHost;
+      if (iss is String) {
+        try {
+          issHost = Uri.parse(iss).host;
+        } catch (_) {
+          issHost = iss;
+        }
+      }
+
+      String? expIso;
+      final exp = payload['exp'];
+      if (exp is int) {
+        expIso = DateTime.fromMillisecondsSinceEpoch(
+          exp * 1000,
+          isUtc: true,
+        ).toIso8601String();
+      }
+
+      int? ttlSec;
+      if (exp is int && iat is int) {
+        ttlSec = exp - iat;
+      }
+
+      return 'alg=$alg aud=$aud issHost=$issHost iat=$iat exp=$expIso ttlSec=$ttlSec sub=$sub role=$role';
+    } catch (e) {
+      return 'jwtSummaryError=${e.runtimeType}';
+    }
+  }
+
+  String _generateAcademicId(Random random) {
+    final fourDigits = random.nextInt(9000) + 1000;
+    final ethYear = EthiopianCalendar.fromGregorianDateTime(
+      DateTime.now(),
+    ).year;
+    final yy = (ethYear % 100).toString().padLeft(2, '0');
+    return '${fourDigits.toString().padLeft(4, '0')}/$yy';
+  }
+
+  bool _looksLikeAcademicIdConflict(Object error) {
+    final msg = error.toString().toLowerCase();
+    return msg.contains('academic') &&
+            (msg.contains('exists') || msg.contains('duplicate')) ||
+        msg.contains('duplicate key') ||
+        msg.contains('already registered') ||
+        msg.contains('already exists');
+  }
+
+  bool _looksLikeInvalidJwt(Object error) {
+    final msg = error.toString().toLowerCase();
+    return msg.contains('invalid jwt') ||
+        (msg.contains('jwt') && msg.contains('invalid'));
+  }
+
+  void _scheduleAuthResetAndRedirectToServantLogin(BuildContext rootContext) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final client = SupabaseClientManager.instance.client;
+      try {
+        await client.auth.signOut();
+      } catch (_) {}
+
+      if (!rootContext.mounted) return;
+      final l10n = AppLocalizations.of(rootContext);
+      ScaffoldMessenger.of(
+        rootContext,
+      ).showSnackBar(SnackBar(content: Text(l10n.authLoginFailedGeneric)));
+      GoRouter.of(rootContext).go('/servant/login');
+    });
+  }
+
+  Future<void> _ensureSignedInAndFreshToken(SupabaseClient client) async {
+    // If the user is signed out, Supabase will call functions using the anon key
+    // which then fails server-side with "invalid JWT".
+    if (client.auth.currentSession == null || client.auth.currentUser == null) {
+      throw const _AuthRequiredException();
+    }
+
+    bool isTokenExpired(String token) {
+      try {
+        final parts = token.split('.');
+        if (parts.length != 3) return true;
+        final bytes = base64Url.decode(base64Url.normalize(parts[1]));
+        final obj = jsonDecode(utf8.decode(bytes));
+        if (obj is! Map) return true;
+        final exp = obj['exp'];
+        if (exp is! int) return true;
+        final expTime = DateTime.fromMillisecondsSinceEpoch(
+          exp * 1000,
+          isUtc: true,
+        );
+        // Small grace window to avoid edge-of-expiry flakiness.
+        return expTime.isBefore(
+          DateTime.now().toUtc().add(const Duration(seconds: 15)),
+        );
+      } catch (_) {
+        return true;
+      }
+    }
+
+    try {
+      final before = client.auth.currentSession;
+      final beforeToken = before?.accessToken;
+      final beforeExp = beforeToken == null
+          ? null
+          : _accessTokenDebugSummary(beforeToken);
+
+      final res = await client.auth.refreshSession();
+
+      final after = res.session ?? client.auth.currentSession;
+      final afterToken = after?.accessToken;
+      final afterExp = afterToken == null
+          ? null
+          : _accessTokenDebugSummary(afterToken);
+
+      if (afterToken == null || afterToken.isEmpty) {
+        throw const _AuthRequiredException();
+      }
+
+      // If the refresh didn't rotate an already-expired token, treat auth as broken.
+      if (isTokenExpired(afterToken)) {
+        // Helpful diagnostic without leaking tokens.
+        print(
+          'RegisterStudent: token still expired after refresh (before=$beforeExp, after=$afterExp)',
+        );
+        throw const _AuthRequiredException();
+      }
+
+      // If token looks unchanged and was expired, force relogin.
+      if (beforeToken != null &&
+          beforeToken == afterToken &&
+          isTokenExpired(beforeToken)) {
+        print('RegisterStudent: refreshSession did not rotate expired token');
+        throw const _AuthRequiredException();
+      }
+    } catch (e) {
+      if (_looksLikeInvalidJwt(e)) throw const _AuthRequiredException();
+      // Best-effort; still allow call if session exists.
+    }
+
+    if (client.auth.currentSession == null || client.auth.currentUser == null) {
+      throw const _AuthRequiredException();
+    }
+  }
+
+  Future<Map<String, dynamic>> _registerStudentWithRetry({
+    required String name,
+    required String gradeId,
+  }) async {
+    final client = SupabaseClientManager.instance.client;
+    await _ensureSignedInAndFreshToken(client);
+
+    final random = Random.secure();
+    Object? lastError;
+
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final academicId = _generateAcademicId(random);
+      try {
+        var authRetried = false;
+        late ({int status, dynamic data}) response;
+        while (true) {
+          await _ensureSignedInAndFreshToken(client);
+
+          final session = client.auth.currentSession;
+          final accessToken = session?.accessToken;
+          if (accessToken == null || accessToken.isEmpty) {
+            throw const _AuthRequiredException();
+          }
+
+          // Use print (not debugPrint) so it always shows up in flutter run.
+          print(
+            'RegisterStudent: invoking admin-create-user '
+            '(tokenLen=${accessToken.length}, expiresAt=${session?.expiresAt}, uid=${client.auth.currentUser?.id}, ${_accessTokenDebugSummary(accessToken)})',
+          );
+
+          try {
+            response = await _invokeAdminCreateUserViaHttp(
+              client: client,
+              body: {
+                'name': name,
+                'grade_id': gradeId,
+                'academic_id': academicId,
+                'role': 'student',
+                'password': academicId,
+              },
+            );
+          } catch (e) {
+            print(
+              'RegisterStudent: admin-create-user HTTP invoke error '
+              '(type=${e.runtimeType}, msg=$e)',
+            );
+            rethrow;
+          }
+
+          if (response.status == 401) {
+            print(
+              'RegisterStudent: admin-create-user HTTP 401 '
+              '(body=${response.data})',
+            );
+            try {
+              final userRes = await client.auth.getUser();
+              print(
+                'RegisterStudent: auth.getUser() after 401 '
+                '(ok=${userRes.user != null}, userId=${userRes.user?.id})',
+              );
+            } catch (e) {
+              print(
+                'RegisterStudent: auth.getUser() after 401 threw '
+                '(type=${e.runtimeType}, msg=$e)',
+              );
+            }
+            if (authRetried) {
+              throw const _AuthRequiredException();
+            }
+            authRetried = true;
+            await _ensureSignedInAndFreshToken(client);
+            continue;
+          }
+
+          break;
+        }
+
+        if (response.status != 200) {
+          final data = response.data;
+          print(
+            'RegisterStudent: admin-create-user HTTP non-200 '
+            '(status=${response.status}, body=$data)',
+          );
+          throw Exception(
+            data is Map && data['error'] != null
+                ? data['error'].toString()
+                : 'Request failed (${response.status})',
+          );
+        }
+
+        final data = response.data;
+        if (data is Map) {
+          final m = Map<String, dynamic>.from(data);
+          m['academic_id'] ??= academicId;
+          return m;
+        }
+        throw Exception('Unexpected response from server');
+      } catch (e) {
+        lastError = e;
+        if (!_looksLikeAcademicIdConflict(e)) rethrow;
+      }
+    }
+
+    throw Exception(lastError?.toString() ?? 'Failed to register student');
+  }
+
+  Future<void> _showRegisterStudentDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final client = SupabaseClientManager.instance.client;
+
+    // If not signed in, redirect to servant login early.
+    if (client.auth.currentSession == null || client.auth.currentUser == null) {
+      if (context.mounted) {
+        _scheduleAuthResetAndRedirectToServantLogin(context);
+      }
+      return;
+    }
+
+    // Ensure we have a valid access token before any DB reads.
+    // Otherwise Supabase may query using an expired/anon context, and RLS blocks
+    // grade reads which makes registration look "broken".
+    try {
+      await _ensureSignedInAndFreshToken(client);
+    } catch (_) {
+      if (context.mounted) {
+        _scheduleAuthResetAndRedirectToServantLogin(context);
+      }
+      return;
+    }
+
+    List<_RegisterStudentGrade> grades = const [];
+    String? gradesLoadError;
+    try {
+      dynamic rows;
+      try {
+        // Prefer sort_order if it exists.
+        rows = await client
+            .from('grades')
+            .select('id, name, code')
+            .order('sort_order')
+            .order('name');
+      } catch (e) {
+        // Fallback when sort_order doesn't exist (or isn't selectable by RLS).
+        debugPrint('RegisterStudent: grades query w/ sort_order failed: $e');
+        rows = await client
+            .from('grades')
+            .select('id, name, code')
+            .order('name');
+      }
+
+      final parsed = <_RegisterStudentGrade>[];
+      for (final row in rows as List) {
+        final m = row as Map;
+        final id = (m['id'] ?? '').toString().trim();
+        final displayName = (m['name'] ?? m['code'] ?? m['id'] ?? '')
+            .toString()
+            .trim();
+        if (id.isNotEmpty && displayName.isNotEmpty) {
+          parsed.add(_RegisterStudentGrade(id: id, name: displayName));
+        }
+      }
+      grades = parsed;
+    } catch (e) {
+      debugPrint('RegisterStudent: grades load failed: $e');
+      grades = const [];
+      gradesLoadError = e.toString();
+    }
+
+    if (!context.mounted) return;
+
+    final nameController = TextEditingController();
+    _RegisterStudentGrade? selectedGrade = grades.isNotEmpty
+        ? grades.first
+        : null;
+    bool submitting = false;
+    String? error;
+
+    Future<void> submit(
+      BuildContext dialogContext,
+      StateSetter setState,
+    ) async {
+      final name = nameController.text.trim();
+      if (name.isEmpty) {
+        if (!dialogContext.mounted) return;
+        setState(() {
+          error = l10n.servantRegisterStudentNameRequired;
+        });
+        return;
+      }
+      final grade = selectedGrade;
+      if (grade == null) {
+        if (!dialogContext.mounted) return;
+        setState(() {
+          error = l10n.servantRegisterStudentGradeRequired;
+        });
+        return;
+      }
+
+      if (!dialogContext.mounted) return;
+      setState(() {
+        submitting = true;
+        error = null;
+      });
+
+      try {
+        final result = await _registerStudentWithRetry(
+          name: name,
+          gradeId: grade.id,
+        );
+        if (!dialogContext.mounted) return;
+
+        final academicId = (result['academic_id'] ?? '').toString();
+        Navigator.of(dialogContext).pop();
+
+        if (!context.mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.servantRegisterStudentSuccessTitle),
+            content: Text(
+              l10n.servantRegisterStudentSuccessMessage(academicId),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.commonOk),
+              ),
+            ],
+          ),
+        );
+      } catch (e) {
+        if (e is _AuthRequiredException) {
+          if (dialogContext.mounted) {
+            Navigator.of(dialogContext).pop();
+          }
+          if (!context.mounted) return;
+          _scheduleAuthResetAndRedirectToServantLogin(context);
+          return;
+        }
+
+        if (!dialogContext.mounted) return;
+        setState(() {
+          submitting = false;
+          error = e.toString();
+        });
+      }
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(l10n.servantRegisterStudentTitle),
+              content: SizedBox(
+                width: 420,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: InputDecoration(
+                            labelText: l10n.servantRegisterStudentFullNameLabel,
+                            hintText: l10n.servantRegisterStudentFullNameHint,
+                          ),
+                          enabled: !submitting,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<_RegisterStudentGrade>(
+                          initialValue: selectedGrade,
+                          items: [
+                            for (final g in grades)
+                              DropdownMenuItem(value: g, child: Text(g.name)),
+                          ],
+                          onChanged: (submitting || grades.isEmpty)
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    selectedGrade = value;
+                                  });
+                                },
+                          decoration: InputDecoration(
+                            labelText: l10n.servantRegisterStudentGradeLabel,
+                          ),
+                        ),
+                        if (grades.isEmpty) ...[
+                          const SizedBox(height: 8),
+                          const Text(
+                            'ክፍሎች አልተገኙም።',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          if (gradesLoadError != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              gradesLoadError,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ],
+                        if (error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            error!,
+                            maxLines: 6,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: Text(l10n.commonCancel),
+                ),
+                FilledButton(
+                  onPressed: submitting
+                      ? null
+                      : () => submit(context, setState),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.servantRegisterStudentSubmit),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Static demo data approximating the React mock data
     const classSize = 24;
     const avgAttendance = 85;
@@ -442,20 +1006,20 @@ class ServantDashboardScreen extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'Servant Dashboard',
-                    style: TextStyle(
+                    l10n.servantDashboardTitle,
+                    style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       letterSpacing: 0.2,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
-                    'Class Management',
-                    style: TextStyle(
+                    l10n.servantDashboardSubtitle,
+                    style: const TextStyle(
                       fontSize: 15,
                       color: Color(0xFFFDE68A), // amber-200
                       fontWeight: FontWeight.w500,
@@ -508,19 +1072,19 @@ class ServantDashboardScreen extends StatelessWidget {
                               const SizedBox(width: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
+                                children: [
                                   Text(
-                                    'Total Students',
-                                    style: TextStyle(
+                                    l10n.servantTotalStudents,
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       color: Color(0xFF64748B),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  SizedBox(height: 2),
+                                  const SizedBox(height: 2),
                                   Text(
                                     '$classSize',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 26,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF0F172A),
@@ -540,13 +1104,13 @@ class ServantDashboardScreen extends StatelessWidget {
                                     color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
-                                  child: const Column(
+                                  child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Avg Attendance',
-                                        style: TextStyle(
+                                        l10n.servantDashboardAvgAttendanceLabel,
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: Color(0xFF6B7280),
                                           fontWeight: FontWeight.w500,
@@ -555,7 +1119,7 @@ class ServantDashboardScreen extends StatelessWidget {
                                       SizedBox(height: 4),
                                       Text(
                                         '$avgAttendance%',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF0F172A),
@@ -577,9 +1141,9 @@ class ServantDashboardScreen extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Pending Items',
-                                        style: TextStyle(
+                                      Text(
+                                        l10n.servantDashboardPendingItemsLabel,
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: Color(0xFF6B7280),
                                           fontWeight: FontWeight.w500,
@@ -607,9 +1171,9 @@ class ServantDashboardScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Quick actions
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
+                    Text(
+                      l10n.servantDashboardQuickActionsTitle,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
@@ -624,8 +1188,8 @@ class ServantDashboardScreen extends StatelessWidget {
                           foreground: Colors.white,
                           iconBackground: Colors.white24,
                           icon: Icons.fact_check_rounded,
-                          title: 'Mark Attendance',
-                          subtitle: 'Record today\'s attendance',
+                          title: l10n.servantDashboardMarkAttendanceTitle,
+                          subtitle: l10n.servantDashboardMarkAttendanceSubtitle,
                           onTap: () =>
                               GoRouter.of(context).go('/servant/attendance'),
                         ),
@@ -635,11 +1199,23 @@ class ServantDashboardScreen extends StatelessWidget {
                           foreground: const Color(0xFF0F172A),
                           iconBackground: const Color(0xFFFEF3C7),
                           icon: Icons.menu_book_rounded,
-                          title: 'Add Grades',
-                          subtitle: 'Enter or update student grades',
+                          title: l10n.servantDashboardAddGradesTitle,
+                          subtitle: l10n.servantDashboardAddGradesSubtitle,
                           borderColor: const Color(0xFFE2E8F0),
                           onTap: () =>
                               GoRouter.of(context).go('/servant/grades'),
+                        ),
+                        const SizedBox(height: 10),
+                        _ServantQuickActionButton(
+                          background: Colors.white,
+                          foreground: const Color(0xFF0F172A),
+                          iconBackground: const Color(0xFFE0F2FE),
+                          icon: Icons.person_add_alt_1_rounded,
+                          title: l10n.servantRegisterStudentQuickActionTitle,
+                          subtitle:
+                              l10n.servantRegisterStudentQuickActionSubtitle,
+                          borderColor: const Color(0xFFE2E8F0),
+                          onTap: () => _showRegisterStudentDialog(context),
                         ),
                         const SizedBox(height: 10),
                         _ServantQuickActionButton(
@@ -647,8 +1223,8 @@ class ServantDashboardScreen extends StatelessWidget {
                           foreground: Colors.white,
                           iconBackground: Colors.white24,
                           icon: Icons.insights_rounded,
-                          title: 'Grade Analytics',
-                          subtitle: 'Performance insights & trends',
+                          title: l10n.servantAnalyticsTitle,
+                          subtitle: l10n.servantDashboardGradeAnalyticsSubtitle,
                           gradient: const LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
@@ -678,11 +1254,11 @@ class ServantDashboardScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(18, 14, 18, 10),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
                             child: Text(
-                              'Today\'s Schedule',
-                              style: TextStyle(
+                              l10n.servantDashboardTodayScheduleTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF0F172A),
@@ -693,15 +1269,15 @@ class ServantDashboardScreen extends StatelessWidget {
                           _ScheduleRow(
                             iconBg: const Color(0xFFE0F2FE),
                             iconColor: const Color(0xFF0284C7),
-                            title: 'Sunday School Class',
-                            time: '9:00 AM - 10:30 AM',
+                            title: l10n.servantDashboardSundaySchoolClassTitle,
+                            time: l10n.servantDashboardSundaySchoolClassTime,
                           ),
                           const Divider(height: 1, color: Color(0xFFE2E8F0)),
                           _ScheduleRow(
                             iconBg: const Color(0xFFFEF3C7),
                             iconColor: const Color(0xFFD97706),
-                            title: 'Bible Study Review',
-                            time: '10:30 AM - 11:00 AM',
+                            title: l10n.servantDashboardBibleStudyReviewTitle,
+                            time: l10n.servantDashboardBibleStudyReviewTime,
                           ),
                         ],
                       ),
@@ -734,8 +1310,10 @@ class ServantDashboardScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'You have $pendingQuestions question${pendingQuestions == 1 ? '' : 's'} '
-                                    'and $pendingComplaints complaint${pendingComplaints == 1 ? '' : 's'} pending',
+                                    l10n.servantDashboardPendingMessage(
+                                      pendingQuestions,
+                                      pendingComplaints,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Color(0xFF92400E),
@@ -755,9 +1333,9 @@ class ServantDashboardScreen extends StatelessWidget {
                                   horizontal: 10,
                                 ),
                               ),
-                              child: const Text(
-                                'View',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.servantDashboardViewButton,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -775,6 +1353,19 @@ class ServantDashboardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RegisterStudentGrade {
+  const _RegisterStudentGrade({required this.id, required this.name});
+  final String id;
+  final String name;
+
+  @override
+  String toString() => name;
+}
+
+class _AuthRequiredException implements Exception {
+  const _AuthRequiredException();
 }
 
 class _ServantQuickActionButton extends StatelessWidget {
@@ -1015,8 +1606,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         _loadingSubjects = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _subjectsError = 'Failed to load subjects';
+        _subjectsError = l10n.servantGradesLoadSubjectsFailed;
         _loadingSubjects = false;
       });
     }
@@ -1100,8 +1693,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         _loadingStudents = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _studentsError = 'Failed to load students';
+        _studentsError = l10n.servantGradesLoadStudentsFailed;
         _loadingStudents = false;
       });
     }
@@ -1183,7 +1778,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       for (final row in assessmentsRows) {
         final id = row['id'] as String?;
         final subjectId = row['subject_id'] as String?;
-        final gradeType = (row['grade_type'] as String?) ?? 'Assessment';
+        final gradeType =
+            (row['grade_type'] as String?) ??
+            AppLocalizations.of(context).servantGradesDefaultAssessmentType;
         final maxScoreNum = row['max_score'] as num?;
         final weightNum = row['weight'] as num?;
         final dateStr = row['assessment_date'] as String?;
@@ -1214,8 +1811,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         _loadingGradeEntries = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _gradeEntriesError = 'Failed to load grade entries';
+        _gradeEntriesError = l10n.servantGradesLoadGradeEntriesFailed;
         _loadingGradeEntries = false;
       });
     }
@@ -1228,11 +1827,14 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLockState();
-    _loadPromotionCriteria();
-    _loadSubjects();
-    _loadStudents();
-    _loadGradeEntries();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadLockState();
+      _loadPromotionCriteria();
+      _loadSubjects();
+      _loadStudents();
+      _loadGradeEntries();
+    });
   }
 
   Future<void> _loadPromotionCriteria() async {
@@ -1280,6 +1882,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     });
 
     final supabase = SupabaseClientManager.instance.client;
+    final l10n = AppLocalizations.of(context);
 
     try {
       // Academic year (prefer active; fallback to any latest row if active not found).
@@ -1339,7 +1942,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       bool editable;
       if (!globalEnabled) {
         editable = false;
-        _lockMessage = 'Grade management is locked by admin settings.';
+        _lockMessage = l10n.servantGradesLockedByAdminSettings;
       } else if (yearMode == 'locked') {
         editable = false;
       } else if (yearMode == 'unlocked') {
@@ -1349,12 +1952,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       }
 
       if (!editable && _lockMessage == null) {
-        final yearName = _academicYearName ?? 'this academic year';
+        final yearName =
+            _academicYearName ?? l10n.servantGradesThisAcademicYear;
         if (!isYearActive) {
-          _lockMessage =
-              'Academic year $yearName has ended. Grade management is locked.';
+          _lockMessage = l10n.servantGradesAcademicYearEndedLocked(yearName);
         } else {
-          _lockMessage = 'Grade management is locked.';
+          _lockMessage = l10n.servantGradesLocked;
         }
       }
 
@@ -1467,19 +2070,21 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   Future<void> _confirmDeleteEntry(_ServantGradeEntry entry) async {
     if (_isLocked) return;
 
+    final l10n = AppLocalizations.of(context);
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete Assessment?'),
+          title: Text(l10n.servantGradesDeleteAssessmentTitle),
           content: Text(
-            'Delete “${entry.gradeType}”? This cannot be undone.',
+            l10n.servantGradesDeleteAssessmentBody(entry.gradeType),
             style: const TextStyle(fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -1487,7 +2092,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -1502,7 +2107,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete assessment.')),
+        SnackBar(content: Text(l10n.servantGradesDeleteAssessmentFailed)),
       );
     }
   }
@@ -1603,6 +2208,8 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   Future<void> _saveAssessment({required bool editing}) async {
     if (_isLocked) return;
 
+    final l10n = AppLocalizations.of(context);
+
     final name = _assessmentNameController.text.trim();
     final maxScore = int.tryParse(_maxScoreController.text.trim());
     final weightText = _weightController.text.trim();
@@ -1611,13 +2218,13 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
     if (name.isEmpty || maxScore == null || maxScore <= 0 || date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields.')),
+        SnackBar(content: Text(l10n.servantGradesFillRequiredFieldsError)),
       );
       return;
     }
     if (weight != null && (weight < 0 || weight > 100)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Weight must be between 0 and 100.')),
+        SnackBar(content: Text(l10n.servantGradesWeightRangeError)),
       );
       return;
     }
@@ -1634,7 +2241,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Invalid score for ${student.name}. Must be 0-$maxScore.',
+              l10n.servantGradesInvalidScore(student.name, maxScore),
             ),
           ),
         );
@@ -1747,23 +2354,28 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(editing ? 'Assessment updated.' : 'Assessment added.'),
+          content: Text(
+            editing
+                ? l10n.servantGradesAssessmentUpdated
+                : l10n.servantGradesAssessmentAdded,
+          ),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save assessment.')),
+        SnackBar(content: Text(l10n.servantGradesSaveAssessmentFailed)),
       );
     }
   }
 
   Future<void> _saveSubject() async {
     if (_isLocked) return;
+    final l10n = AppLocalizations.of(context);
     final name = _subjectNameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Subject name is required.')),
+        SnackBar(content: Text(l10n.servantGradesSubjectNameRequired)),
       );
       return;
     }
@@ -1796,12 +2408,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Subject added.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.servantGradesSubjectAdded)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to add subject.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.servantGradesSubjectAddFailed)),
+      );
     }
   }
 
@@ -1859,6 +2471,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final List<_ServantGradeEntry> entries = _selectedSubject != null
         ? _entriesForSelectedSubject()
         : <_ServantGradeEntry>[];
@@ -1878,7 +2491,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 ),
               )
             : _subjects.isEmpty
-            ? const Center(child: Text('No subjects found.'))
+            ? Center(child: Text(l10n.commonNoSubjectsForGrade))
             : NestedScrollView(
                 headerSliverBuilder: (context, _) {
                   return [
@@ -1891,9 +2504,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                       automaticallyImplyLeading: false,
                       toolbarHeight: 64,
                       titleSpacing: 24,
-                      title: const Text(
-                        'Manage Grades',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.servantGradesManageTitle,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1E293B),
@@ -1959,7 +2572,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                                   ],
                                   _SubjectChip(
                                     selected: false,
-                                    label: 'New Subject',
+                                    label: l10n.servantGradesNewSubjectChip,
                                     tone: _ChipTone.amber,
                                     icon: Icons.add_rounded,
                                     onTap: _goToAddSubject,
@@ -2010,6 +2623,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required List<_ServantGradeEntry> entries,
     required int totalWeight,
   }) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('servant-grades-list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2029,7 +2643,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
               ),
             ),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Add New Assessment'),
+            label: Text(l10n.servantGradesAddNewAssessment),
           ),
         ),
 
@@ -2055,7 +2669,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                     ),
                     icon: const Icon(Icons.trending_up_rounded),
                     label: Text(
-                      _showWeightedGrades ? 'Hide Grades' : 'All Grades',
+                      _showWeightedGrades
+                          ? l10n.servantGradesHideGrades
+                          : l10n.servantGradesAllGrades,
                     ),
                   ),
                 ),
@@ -2074,7 +2690,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.error_outline_rounded),
-                    label: const Text('Missing'),
+                    label: Text(l10n.servantGradesMissing),
                   ),
                 ),
               ),
@@ -2097,6 +2713,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildWeightSummary(int totalWeight) {
+    final l10n = AppLocalizations.of(context);
     final Color bg;
     final Color border;
     final Color fg;
@@ -2110,12 +2727,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       bg = const Color(0xFFFEE2E2); // red-100
       border = const Color(0xFFFECACA); // red-200
       fg = const Color(0xFFDC2626); // red-600
-      helper = 'Total weight exceeds 100%';
+      helper = l10n.servantGradesTotalWeightExceeds;
     } else {
       bg = const Color(0xFFFEF3C7); // amber-100
       border = const Color(0xFFFDE68A); // amber-200
       fg = const Color(0xFFB45309); // amber-700
-      helper = '${100 - totalWeight}% remaining to reach 100%';
+      helper = l10n.servantGradesRemainingToReach100(100 - totalWeight);
     }
 
     return Container(
@@ -2135,9 +2752,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 children: [
                   Icon(Icons.percent_rounded, color: fg, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Total Weight:',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF334155)),
+                  Text(
+                    l10n.servantGradesTotalWeightLabel,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF334155),
+                    ),
                   ),
                 ],
               ),
@@ -2153,7 +2773,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
           ),
           if (helper.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('⚠️ $helper', style: TextStyle(fontSize: 12, color: fg)),
+            Text(
+              l10n.commonWarningMessage(helper),
+              style: TextStyle(fontSize: 12, color: fg),
+            ),
           ],
         ],
       ),
@@ -2164,6 +2787,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required List<_ServantGradeEntry> entries,
     required int totalWeight,
   }) {
+    final l10n = AppLocalizations.of(context);
     final subjectName = _selectedSubject?.name ?? '';
 
     final validScores = _selectedSubject == null
@@ -2223,7 +2847,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Student Weighted Grades - $subjectName',
+                        l10n.servantGradesWeightedTitle(subjectName),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -2235,7 +2859,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Based on ${entries.length} assessment${entries.length == 1 ? '' : 's'} with $totalWeight% total weight',
+                  l10n.servantGradesWeightedBasedOn(
+                    entries.length,
+                    totalWeight,
+                  ),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF475569),
@@ -2245,7 +2872,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 TextField(
                   onChanged: (v) => setState(() => _weightedSearch = v),
                   decoration: _inputDecoration(
-                    hint: 'Search by student name...',
+                    hint: l10n.servantGradesWeightedSearchByStudentNameHint,
                     icon: Icons.search_rounded,
                   ),
                 ),
@@ -2272,13 +2899,13 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                           vertical: 12,
                         ),
                         color: const Color(0xFFF8FAFC),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Expanded(
                               flex: 3,
                               child: Text(
-                                'Student Name',
-                                style: TextStyle(
+                                l10n.servantGradesWeightedStudentNameHeader,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF334155),
                                 ),
@@ -2289,8 +2916,8 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                               child: Align(
                                 alignment: Alignment.centerRight,
                                 child: Text(
-                                  'Weighted Score',
-                                  style: TextStyle(
+                                  l10n.servantGradesWeightedScoreHeader,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF334155),
                                   ),
@@ -2302,8 +2929,8 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                               child: Padding(
                                 padding: EdgeInsets.only(left: 14),
                                 child: Text(
-                                  'Grade',
-                                  style: TextStyle(
+                                  l10n.servantGradesWeightedGradeHeader,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF334155),
                                   ),
@@ -2331,22 +2958,22 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
               children: [
                 Expanded(
                   child: _stat(
-                    label: 'Class Average',
-                    value: classAvg == null ? 'N/A' : '$classAvg%',
+                    label: l10n.servantGradesWeightedClassAverageLabel,
+                    value: classAvg == null ? l10n.commonNa : '$classAvg%',
                     valueColor: const Color(0xFF0F172A),
                   ),
                 ),
                 Expanded(
                   child: _stat(
-                    label: 'Highest',
-                    value: highest == null ? 'N/A' : '$highest%',
+                    label: l10n.servantGradesWeightedHighestLabel,
+                    value: highest == null ? l10n.commonNa : '$highest%',
                     valueColor: const Color(0xFF16A34A),
                   ),
                 ),
                 Expanded(
                   child: _stat(
-                    label: 'Lowest',
-                    value: lowest == null ? 'N/A' : '$lowest%',
+                    label: l10n.servantGradesWeightedLowestLabel,
+                    value: lowest == null ? l10n.commonNa : '$lowest%',
                     valueColor: const Color(0xFFDC2626),
                   ),
                 ),
@@ -2386,6 +3013,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required _ServantGradesStudent student,
     required List<_ServantGradeEntry> entries,
   }) {
+    final l10n = AppLocalizations.of(context);
     final avg = _selectedSubject == null
         ? null
         : _calculateSubjectAverage(student.id, _selectedSubject!.id);
@@ -2414,9 +3042,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 ),
                 if (avg == null && missing.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  const Text(
-                    'Missing:',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  Text(
+                    l10n.servantGradesMissingLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   for (final m in missing)
@@ -2465,9 +3096,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          'Incomplete',
-                          style: TextStyle(
+                        Text(
+                          l10n.servantGradesIncomplete,
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFFB45309),
@@ -2475,7 +3106,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${missing.length} missing',
+                          l10n.servantGradesMissingCount(missing.length),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFFDC2626),
@@ -2498,10 +3129,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             child: Padding(
               padding: const EdgeInsets.only(left: 14),
               child: avg == null
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'N/A',
-                        style: TextStyle(
+                        l10n.commonNa,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF64748B),
                         ),
@@ -2532,6 +3163,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildEntryCard(_ServantGradeEntry entry) {
+    final l10n = AppLocalizations.of(context);
     final avg = _classAverageForEntry(entry);
     final dateLabel = EthiopianDateFormatter.formatDateTime(entry.date);
     final isOpen = _viewingScoresEntryId == entry.id;
@@ -2618,7 +3250,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Max: ${entry.maxScore} points',
+                                  l10n.servantGradesMaxPoints(entry.maxScore),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -2636,7 +3268,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                     onPressed: _isLocked ? null : () => _goToEdit(entry),
                     icon: const Icon(Icons.edit_outlined),
                     color: const Color(0xFF0EA5E9),
-                    tooltip: 'Edit grades',
+                    tooltip: l10n.servantGradesEditGradesTooltip,
                   ),
                   IconButton(
                     onPressed: _isLocked
@@ -2644,7 +3276,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         : () => _confirmDeleteEntry(entry),
                     icon: const Icon(Icons.delete_outline_rounded),
                     color: const Color(0xFFEF4444),
-                    tooltip: 'Delete assessment',
+                    tooltip: l10n.servantGradesDeleteAssessmentTooltip,
                   ),
                 ],
               ),
@@ -2652,9 +3284,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Text(
-                    'Class average',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  Text(
+                    l10n.servantGradesClassAverageLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                   const Spacer(),
                   Text(
@@ -2700,7 +3335,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                   color: const Color(0xFF0EA5E9),
                 ),
                 label: Text(
-                  isOpen ? 'Hide Student Scores' : 'View Student Scores',
+                  isOpen
+                      ? l10n.servantGradesHideStudentScores
+                      : l10n.servantGradesViewStudentScores,
                   style: const TextStyle(color: Color(0xFF0EA5E9)),
                 ),
               ),
@@ -2711,7 +3348,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                     _entryScoreSearch[entry.id] = v;
                   }),
                   decoration: _inputDecoration(
-                    hint: 'Search students...',
+                    hint: l10n.servantGradesSearchStudentsHint,
                     icon: Icons.search_rounded,
                   ),
                 ),
@@ -2735,6 +3372,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     required double? score,
     required int maxScore,
   }) {
+    final l10n = AppLocalizations.of(context);
     final missing = score == null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2758,9 +3396,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
               ),
             ),
             if (missing)
-              const Text(
-                'Missing',
-                style: TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
+              Text(
+                l10n.servantGradesMissing,
+                style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
               )
             else
               Text(
@@ -2774,6 +3412,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -2787,12 +3426,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'No assessments yet',
-            style: TextStyle(
+            l10n.servantGradesNoAssessmentsYetTitle,
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
@@ -2800,8 +3439,8 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
           ),
           SizedBox(height: 6),
           Text(
-            'Add an assessment to start tracking student scores for this subject.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            l10n.servantGradesNoAssessmentsYetBody,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
         ],
       ),
@@ -2809,7 +3448,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildAssessmentForm({required bool editing}) {
-    final title = editing ? 'Edit Assessment' : 'Add Assessment';
+    final l10n = AppLocalizations.of(context);
+    final title = editing
+        ? l10n.servantGradesEditAssessmentTitle
+        : l10n.servantGradesAddAssessmentTitle;
     final entry = editing ? _selectedEntry : null;
     final classAvg = entry == null ? null : _classAverageForEntry(entry);
 
@@ -2837,7 +3479,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             IconButton(
               onPressed: _goToList,
               icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back',
+              tooltip: l10n.commonBack,
             ),
             const SizedBox(width: 6),
             Text(
@@ -2851,7 +3493,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             const Spacer(),
             if (editing && classAvg != null)
               _pill(
-                text: 'Class Avg: $classAvg%',
+                text: l10n.servantGradesClassAvgLabel(classAvg),
                 bg: const Color(0xFFE0F2FE),
                 fg: const Color(0xFF0369A1),
                 icon: Icons.trending_up_rounded,
@@ -2879,7 +3521,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 controller: _assessmentNameController,
                 enabled: !_isLocked,
                 decoration: _inputDecoration(
-                  hint: 'Assessment name (e.g., Quiz 1)',
+                  hint: l10n.servantGradesAssessmentNameHint,
                   icon: Icons.description_outlined,
                 ),
               ),
@@ -2892,7 +3534,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                       enabled: !_isLocked,
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration(
-                        hint: 'Max score',
+                        hint: l10n.servantGradesMaxScoreHint,
                         icon: Icons.numbers_rounded,
                       ),
                     ),
@@ -2904,7 +3546,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                       enabled: !_isLocked,
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration(
-                        hint: 'Weight % (optional)',
+                        hint: l10n.servantGradesWeightPercentOptionalHint,
                         icon: Icons.percent_rounded,
                       ),
                     ),
@@ -2920,7 +3562,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                     enabled: !_isLocked,
                     decoration: _inputDecoration(
                       hint: _assessmentDate == null
-                          ? 'Date'
+                          ? l10n.commonDate
                           : EthiopianDateFormatter.formatDateTime(
                               _assessmentDate!,
                             ),
@@ -2930,9 +3572,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Student Scores (Optional)',
-                style: TextStyle(
+              Text(
+                l10n.servantGradesStudentScoresOptional,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -2948,7 +3590,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                   });
                 },
                 decoration: _inputDecoration(
-                  hint: 'Search students...',
+                  hint: l10n.servantGradesSearchStudentsHint,
                   icon: Icons.search_rounded,
                 ),
               ),
@@ -2957,7 +3599,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 Row(
                   children: [
                     Text(
-                      'Page ${currentPage + 1} / $totalPages',
+                      l10n.servantGradesPageLabel(currentPage + 1, totalPages),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),
@@ -2970,7 +3612,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                               () => _studentScoresPage = currentPage - 1,
                             )
                           : null,
-                      child: const Text('Prev'),
+                      child: Text(l10n.commonPrev),
                     ),
                     TextButton(
                       onPressed: !_isLocked && currentPage < totalPages - 1
@@ -2978,7 +3620,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                               () => _studentScoresPage = currentPage + 1,
                             )
                           : null,
-                      child: const Text('Next'),
+                      child: Text(l10n.commonNext),
                     ),
                   ],
                 ),
@@ -3015,7 +3657,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                             controller: _studentScoreControllers[s.id],
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.end,
-                            decoration: _inputDecoration(hint: 'Score'),
+                            decoration: _inputDecoration(
+                              hint: l10n.servantGradesScoreHint,
+                            ),
                           ),
                         ),
                       ],
@@ -3035,7 +3679,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         side: const BorderSide(color: Color(0xFFCBD5E1)),
                         foregroundColor: const Color(0xFF334155),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -3052,7 +3696,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         ),
                       ),
                       icon: const Icon(Icons.save_rounded),
-                      label: const Text('Save'),
+                      label: Text(l10n.commonSave),
                     ),
                   ),
                 ],
@@ -3065,6 +3709,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildAddSubjectForm() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('servant-grades-add-subject'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3074,12 +3719,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             IconButton(
               onPressed: _goToList,
               icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back',
+              tooltip: l10n.commonBack,
             ),
             const SizedBox(width: 6),
-            const Text(
-              'Add Subject',
-              style: TextStyle(
+            Text(
+              l10n.servantGradesAddSubjectTitle,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF0F172A),
@@ -3108,7 +3753,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 enabled: !_isLocked,
                 controller: _subjectNameController,
                 decoration: _inputDecoration(
-                  hint: 'Subject name (e.g., Theology)',
+                  hint: l10n.servantGradesSubjectNameHint,
                   icon: Icons.book_outlined,
                 ),
               ),
@@ -3125,7 +3770,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         side: const BorderSide(color: Color(0xFFCBD5E1)),
                         foregroundColor: const Color(0xFF334155),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -3140,7 +3785,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         ),
                       ),
                       icon: const Icon(Icons.save_rounded),
-                      label: const Text('Save'),
+                      label: Text(l10n.commonSave),
                     ),
                   ),
                 ],
@@ -3153,6 +3798,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildMissingView({required List<_ServantGradeEntry> entries}) {
+    final l10n = AppLocalizations.of(context);
     final studentsWithMissing =
         <_ServantGradesStudent, List<_ServantGradeEntry>>{};
     for (final student in _students) {
@@ -3173,11 +3819,13 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             IconButton(
               onPressed: _goToList,
               icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back',
+              tooltip: l10n.commonBack,
             ),
             const SizedBox(width: 6),
             Text(
-              'Missing Assessments - ${_selectedSubject?.name ?? ''}',
+              l10n.servantGradesMissingAssessmentsTitle(
+                _selectedSubject?.name ?? '',
+              ),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -3195,7 +3843,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
             border: Border.all(color: const Color(0xFFFECACA)),
           ),
           child: Text(
-            '${studentsWithMissing.length} student${studentsWithMissing.length == 1 ? '' : 's'} with incomplete assessments',
+            l10n.servantGradesStudentsWithIncompleteAssessments(
+              studentsWithMissing.length,
+            ),
             style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D)),
           ),
         ),
@@ -3214,9 +3864,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                 ),
               ],
             ),
-            child: const Text(
-              'No missing assessments found.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            child: Text(
+              l10n.servantGradesNoMissingAssessmentsFound,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
             ),
           )
         else
@@ -3433,22 +4083,22 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   final List<_ServantAnnouncement> _announcements = [
     const _ServantAnnouncement(
       id: 'a1',
-      title: 'Exam Schedule Update',
+      title: 'የፈተና መርሃ ግብር ማሻሻያ',
       message:
-          'Mid-term exams will start next Sunday at 9:00 AM. Please arrive 15 minutes early and bring your materials.',
+          'የመካከለኛ ፈተናዎች ቀጣይ እሁድ 9:00 ጠዋት ይጀምራሉ። እባክዎ 15 ደቂቃ ቀድመው ይመጡ እና እቃዎትን ይዘው ይምጡ።',
       category: 'schedule',
-      createdBy: 'Program Coordinator',
+      createdBy: 'የፕሮግራም አስተባባሪ',
       createdDate: '2026-03-02',
       priority: 'high',
       targetAudience: 'students',
     ),
     const _ServantAnnouncement(
       id: 'a2',
-      title: 'Bible Memory Challenge',
+      title: 'የመጽሐፍ ቅዱስ ትዝታ ፈተና',
       message:
-          'This month we are focusing on Psalm 23. Try to memorize the whole chapter by the end of the month!',
+          'በዚህ ወር በመዝሙር 23 ላይ እንተካለን። እስከ ወሩ መጨረሻ ድረስ ሙሉውን ምዕራፍ ለማስታወስ ይሞክሩ!',
       category: 'event',
-      createdBy: 'Class Servant',
+      createdBy: 'የክፍል አገልጋይ',
       createdDate: '2026-03-01',
       priority: 'medium',
       targetAudience: 'students',
@@ -3462,8 +4112,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       studentId: '1',
       studentName: 'Sarah Johnson',
       subjectId: '101',
-      subjectName: 'Bible Study',
-      question: 'Can you explain the meaning of the parable of the sower?',
+      subjectName: 'የመጽሐፍ ቅዱስ ትምህርት',
+      question: 'የዘራዩ ምሳሌ ትርጉሙ ምን እንደሆነ ልታብራሩልኝ ትችላላችሁ?',
       date: '2026-02-25',
       answered: false,
     ),
@@ -3472,14 +4122,14 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       studentId: '2',
       studentName: 'Michael Chen',
       subjectId: '102',
-      subjectName: 'Theology',
+      subjectName: 'ሥነ መለኮት',
       question:
-          'What is the difference between justification and sanctification?',
+          'በመጽደቅ (Justification) እና በቅድስና መቀደስ (Sanctification) መካከል ልዩነቱ ምንድን ነው?',
       date: '2026-02-22',
       answered: true,
       answer:
-          'Justification is being declared righteous before God through faith in Christ. Sanctification is the ongoing process of being made holy in daily life.',
-      answeredBy: 'Servant Mary',
+          'መጽደቅ ማለት በክርስቶስ እምነት በእግዚአብሔር ፊት ጻድቅ መባል ነው። መቀደስ ደግሞ በየቀኑ ሕይወት ቅዱስ መሆን የሚቀጥል ሂደት ነው።',
+      answeredBy: 'አገልጋይ ማርያም',
       answeredDate: '2026-02-23',
     ),
     const _ServantQuestion(
@@ -3487,9 +4137,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       studentId: '3',
       studentName: 'Daniel Okoro',
       subjectId: '101',
-      subjectName: 'Bible Study',
-      question:
-          'How should we apply James 1:22 in our daily routines as students?',
+      subjectName: 'የመጽሐፍ ቅዱስ ትምህርት',
+      question: 'ያዕቆብ 1፥22 እንዴት በየቀኑ ሕይወታችን እንደ ተማሪ ልናተግብር ይገባል?',
       date: '2026-02-26',
       answered: false,
     ),
@@ -3505,7 +4154,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       id: 'c1',
       studentId: '4',
       studentName: 'Ava Martinez',
-      complaint: 'The classroom is often too noisy during lessons.',
+      complaint: 'በትምህርት ጊዜ ክፍሉ ብዙ ጊዜ ጮክ ይላል።',
       category: 'facility',
       date: '2026-02-20',
       status: 'pending',
@@ -3514,26 +4163,25 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       id: 'c2',
       studentId: '5',
       studentName: 'Samuel Lee',
-      complaint: 'Sometimes the lesson starts late and we miss content.',
+      complaint: 'አንዳንድ ጊዜ ትምህርቱ ዘግይቶ ይጀምራል እና ይዘት እንጠፋ ይሆናል።',
       category: 'administration',
       date: '2026-02-18',
       status: 'in-review',
-      response:
-          'Thanks for reporting. We are adjusting the schedule and reminders.',
-      respondedBy: 'Servant John',
+      response: 'ስለ ሪፖርት እናመሰግናለን። መርሃ ግብሩን እና ማስታወሻዎችን እየስተካከልን ነው።',
+      respondedBy: 'አገልጋይ ዮሐንስ',
       respondedDate: '2026-02-19',
     ),
     const _ServantComplaint(
       id: 'c3',
       studentId: '6',
       studentName: 'Grace Nwosu',
-      complaint: 'I need clarification on grading fairness across groups.',
+      complaint: 'በቡድኖች መካከል የውጤት ፍትሃዊነት ላይ ማብራሪያ እፈልጋለሁ።',
       category: 'teaching',
       date: '2026-02-16',
       status: 'resolved',
       response:
-          'We reviewed the grading rubric and aligned it across groups. Thanks for raising this.',
-      respondedBy: 'Servant Mary',
+          'የውጤት መመዘኛውን ተመልከተን በቡድኖች መካከል አንድ እንዲሆን አድርገነዋል። ስለ መነሳትዎ እናመሰግናለን።',
+      respondedBy: 'አገልጋይ ማርያም',
       respondedDate: '2026-02-17',
     ),
   ];
@@ -3564,9 +4212,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   final List<_ServantFeedbackForm> _feedbackForms = [
     _ServantFeedbackForm(
       id: 'f1',
-      title: 'Teacher Evaluation - February',
-      description:
-          'Help us improve teaching by sharing your thoughts about lessons and engagement.',
+      title: 'የመምህር ግምገማ - ፌብሩወሪ',
+      description: 'ስለ ትምህርቶች እና ተሳትፎ ሀሳብዎን በመካፈል መምህራንን እንዲሻሻሉ ያግዙን።',
       type: 'teacher_evaluation',
       createdBy: 'Admin',
       createdDate: '2026-02-10',
@@ -3577,30 +4224,29 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       questions: [
         _ServantFeedbackQuestion(
           id: 'q1',
-          question: 'How clear were the explanations during lessons?',
+          question: 'በትምህርት ጊዜ ማብራሪያዎቹ ምን ያህል ግልጽ ነበሩ?',
           type: 'rating',
           required: true,
         ),
         _ServantFeedbackQuestion(
           id: 'q2',
-          question: 'What should we improve in teaching style?',
+          question: 'በመምህራን የመማር ዘዴ ምን እንዲሻሻል ትመክራላችሁ?',
           type: 'text',
           required: false,
         ),
         _ServantFeedbackQuestion(
           id: 'q3',
-          question: 'Overall engagement level?',
+          question: 'አጠቃላይ የተሳትፎ ደረጃ?',
           type: 'multiple_choice',
           required: true,
-          options: ['Excellent', 'Good', 'Average', 'Needs improvement'],
+          options: ['በጣም ጥሩ', 'ጥሩ', 'መካከለኛ', 'ማሻሻል ያስፈልጋል'],
         ),
       ],
     ),
     _ServantFeedbackForm(
       id: 'f2',
-      title: 'Facility Feedback - March',
-      description:
-          'Tell us how we can improve the classroom environment and facilities.',
+      title: 'የክፍል አካባቢ ግብረመልስ - ማርች',
+      description: 'የክፍሉን አካባቢ እና መሳሪያዎች እንዴት ማሻሻል እንደምንችል ይንገሩን።',
       type: 'general',
       createdBy: 'Admin',
       createdDate: '2026-03-01',
@@ -3611,20 +4257,20 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       questions: [
         _ServantFeedbackQuestion(
           id: 'q1',
-          question: 'Rate the classroom comfort (lighting, seating, noise).',
+          question: 'የክፍሉን ምቾት (ብርሃን፣ መቀመጫ፣ ድምጽ) ይገምግሙ።',
           type: 'rating',
           required: true,
         ),
         _ServantFeedbackQuestion(
           id: 'q2',
-          question: 'What facility issue should we fix first?',
+          question: 'መጀመሪያ የትኛውን ችግኝ እንስተካክል?',
           type: 'multiple_choice',
           required: true,
-          options: ['Seating', 'Air flow', 'Projector', 'Sound system'],
+          options: ['መቀመጫ', 'የአየር እንቅስቃሴ', 'ፕሮጀክተር', 'የድምጽ ስርዓት'],
         ),
         _ServantFeedbackQuestion(
           id: 'q3',
-          question: 'Any additional comments?',
+          question: 'ተጨማሪ አስተያየት ካለ?',
           type: 'text',
           required: false,
         ),
@@ -3641,8 +4287,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       submittedDate: '2026-02-20',
       answers: {
         'q1': 5,
-        'q2': 'Very clear overall. More examples would help.',
-        'q3': 'Excellent',
+        'q2': 'በአጠቃላይ በጣም ግልጽ ነበር። ተጨማሪ ምሳሌዎች ቢኖሩ ይሻላል።',
+        'q3': 'በጣም ጥሩ',
       },
     ),
     _ServantFeedbackResponse(
@@ -4398,10 +5044,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     try {
       await client.functions.invoke(
         'push-notify',
-        body: {
-          'event': 'feedback_form_created',
-          'formId': formId,
-        },
+        body: {'event': 'feedback_form_created', 'formId': formId},
       );
     } catch (_) {}
 
@@ -4450,6 +5093,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     required String message,
     required String confirmLabel,
   }) async {
+    final l10n = AppLocalizations.of(context);
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -4459,7 +5103,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -4504,18 +5148,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Communication',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context).navCommunication,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Announcements, questions, complaints, and feedback.',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context).servantCommSubtitle,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF64748B),
                         ),
@@ -4526,7 +5170,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         child: Row(
                           children: [
                             _ServantCommTabButton(
-                              label: 'Announcements',
+                              label: AppLocalizations.of(
+                                context,
+                              ).commAnnouncements,
                               icon: Icons.campaign_rounded,
                               selected:
                                   _activeTab == _ServantCommTab.announcements,
@@ -4541,7 +5187,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               },
                             ),
                             _ServantCommTabButton(
-                              label: 'Questions',
+                              label: AppLocalizations.of(context).commQuestions,
                               icon: Icons.question_answer_rounded,
                               selected: _activeTab == _ServantCommTab.questions,
                               badgeCount: _pendingQuestionsCount,
@@ -4557,7 +5203,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               },
                             ),
                             _ServantCommTabButton(
-                              label: 'Complaints',
+                              label: AppLocalizations.of(
+                                context,
+                              ).commComplaints,
                               icon: Icons.report_problem_rounded,
                               selected:
                                   _activeTab == _ServantCommTab.complaints,
@@ -4574,7 +5222,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               },
                             ),
                             _ServantCommTabButton(
-                              label: 'Feedback',
+                              label: AppLocalizations.of(context).commFeedback,
                               icon: Icons.fact_check_rounded,
                               selected: _activeTab == _ServantCommTab.feedback,
                               onTap: () {
@@ -4684,6 +5332,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildAnnouncements() {
+    final l10n = AppLocalizations.of(context);
     const maxTitleChars = 100;
     const maxMessageChars = 500;
 
@@ -4706,16 +5355,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     String categoryLabel(String category) {
       switch (category) {
         case 'urgent':
-          return 'Urgent';
+          return l10n.commAnnouncementCategoryUrgent;
         case 'grades':
-          return 'Grades';
+          return l10n.commAnnouncementCategoryGrades;
         case 'schedule':
-          return 'Schedule';
+          return l10n.commAnnouncementCategorySchedule;
         case 'event':
-          return 'Event';
+          return l10n.commAnnouncementCategoryEvent;
         case 'general':
         default:
-          return 'General';
+          return l10n.commAnnouncementCategoryGeneral;
       }
     }
 
@@ -4760,7 +5409,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       final message = _announcementMessageController.text.trim();
       if (title.isEmpty || message.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a title and message.')),
+          SnackBar(
+            content: Text(l10n.servantAnnouncementsEnterTitleAndMessageError),
+          ),
         );
         return;
       }
@@ -4788,7 +5439,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 title: title,
                 message: message,
                 category: _announcementCategory,
-                createdBy: 'You',
+                createdBy: l10n.commonYou,
                 createdDate: _todayIso(),
                 priority: _announcementPriority,
                 targetAudience: _announcementTargetAudience,
@@ -4803,8 +5454,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
       if (created == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Announcement saved locally (sync failed).'),
+          SnackBar(
+            content: Text(l10n.servantAnnouncementsSavedLocallySyncFailed),
           ),
         );
       }
@@ -4841,9 +5492,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 ),
               ),
               icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text(
-                'Create Announcement',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              label: Text(
+                l10n.servantAnnouncementsCreateTitle,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -4854,10 +5508,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Create Announcement',
-                        style: TextStyle(
+                        l10n.servantAnnouncementsCreateTitle,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF0F172A),
@@ -4875,10 +5529,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 ),
                 const SizedBox(height: 6),
                 _ServantLabeledField(
-                  label: 'Category',
+                  label: l10n.servantAnnouncementsCategoryLabel,
                   child: DropdownButtonFormField<String>(
                     initialValue: _announcementCategory,
-                    decoration: _inputDecoration('Select category'),
+                    decoration: _inputDecoration(
+                      l10n.servantAnnouncementsSelectCategoryHint,
+                    ),
                     items:
                         const [
                           'general',
@@ -4901,9 +5557,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Title',
-                  style: TextStyle(
+                Text(
+                  l10n.commTitleLabel,
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF334155),
@@ -4921,7 +5577,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         maxLength,
                       }) => null,
                   decoration: _inputDecoration(
-                    'Brief title for the announcement',
+                    l10n.servantAnnouncementsTitleHint,
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -4936,9 +5592,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Message',
-                  style: TextStyle(
+                Text(
+                  l10n.servantAnnouncementsMessageLabel,
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF334155),
@@ -4958,7 +5614,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         maxLength,
                       }) => null,
                   decoration: _inputDecoration(
-                    'Write your announcement message here...',
+                    l10n.servantAnnouncementsMessageHint,
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -4987,9 +5643,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                           ),
                         ),
                         icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text(
-                          'Post Announcement',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        label: Text(
+                          l10n.servantAnnouncementsPostButton,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -5007,9 +5663,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                      child: Text(
+                        l10n.commonCancel,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
@@ -5023,8 +5679,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           if (_announcements.isEmpty)
             _ServantEmptyState(
               icon: Icons.campaign_rounded,
-              title: 'No announcements yet',
-              subtitle: 'Create one to notify students.',
+              title: l10n.servantAnnouncementsEmptyTitle,
+              subtitle: l10n.servantAnnouncementsEmptySubtitle,
             )
           else
             Column(
@@ -5099,9 +5755,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                                   color: Color(0xFF64748B),
                                                 ),
                                               ),
-                                              const Text(
-                                                '0/0 read',
-                                                style: TextStyle(
+                                              Text(
+                                                l10n.servantAnnouncementsReadCount(
+                                                  0,
+                                                  0,
+                                                ),
+                                                style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF0284C7),
                                                   fontWeight: FontWeight.w600,
@@ -5141,16 +5800,20 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             Row(
                                               children: [
                                                 Text(
-                                                  'Target: ${a.targetAudience}',
+                                                  l10n.servantAnnouncementsTarget(
+                                                    a.targetAudience,
+                                                  ),
                                                   style: const TextStyle(
                                                     fontSize: 12,
                                                     color: Color(0xFF64748B),
                                                   ),
                                                 ),
                                                 const Spacer(),
-                                                const Text(
-                                                  '0 students have read this',
-                                                  style: TextStyle(
+                                                Text(
+                                                  l10n.servantAnnouncementsStudentsReadCount(
+                                                    0,
+                                                  ),
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                     color: Color(0xFF64748B),
                                                   ),
@@ -5171,10 +5834,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   onPressed: () async {
                                     final ok = await _confirmDelete(
                                       context: context,
-                                      title: 'Delete announcement?',
+                                      title:
+                                          l10n.servantAnnouncementsDeleteTitle,
                                       message:
-                                          'This will permanently remove this announcement.',
-                                      confirmLabel: 'Delete',
+                                          l10n.servantAnnouncementsDeleteBody,
+                                      confirmLabel: l10n.commonDelete,
                                     );
                                     if (!ok) return;
 
@@ -5188,9 +5852,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Could not delete from server.',
+                                            l10n.servantAnnouncementsDeleteFailed,
                                           ),
                                         ),
                                       );
@@ -5228,6 +5892,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildQuestions() {
+    final l10n = AppLocalizations.of(context);
     final subjects = <String>{..._questions.map((q) => q.subjectName)}.toList()
       ..sort();
 
@@ -5283,9 +5948,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Questions',
-                style: TextStyle(
+              Text(
+                l10n.commQuestions,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -5296,14 +5961,14 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  statusChip(label: 'All', value: 'all'),
-                  statusChip(label: 'Pending', value: 'pending'),
-                  statusChip(label: 'Answered', value: 'answered'),
+                  statusChip(label: l10n.commonAll, value: 'all'),
+                  statusChip(label: l10n.commPending, value: 'pending'),
+                  statusChip(label: l10n.commAnswered, value: 'answered'),
                 ],
               ),
               const SizedBox(height: 12),
               _ServantLabeledField(
-                label: 'Subject',
+                label: l10n.commSubjectLabel,
                 child: _ServantDropdown(
                   value: _questionSubjectFilter,
                   items: ['all', ...subjects],
@@ -5323,8 +5988,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         if (list.isEmpty)
           _ServantEmptyState(
             icon: Icons.question_answer_rounded,
-            title: 'No questions',
-            subtitle: 'Try changing the filters.',
+            title: l10n.commNoQuestionsYet,
+            subtitle: l10n.commonTryChangingFilters,
           )
         else
           Column(
@@ -5333,12 +5998,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               final isPending = !q.answered;
               final statusPill = q.answered
                   ? _tinyPill(
-                      label: 'Answered',
+                      label: l10n.commAnswered,
                       bg: const Color(0xFFD1FAE5),
                       fg: const Color(0xFF047857),
                     )
                   : _tinyPill(
-                      label: 'Pending',
+                      label: l10n.commPending,
                       bg: const Color(0xFFFEF3C7),
                       fg: const Color(0xFF92400E),
                     );
@@ -5420,9 +6085,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Your Response:',
-                                          style: TextStyle(
+                                        Text(
+                                          l10n.commResponseLabel,
+                                          style: const TextStyle(
                                             fontSize: 11,
                                             color: Color(0xFF047857),
                                             fontWeight: FontWeight.w700,
@@ -5463,9 +6128,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Respond',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.servantCommRespond,
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -5480,7 +6145,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   minLines: 3,
                                   maxLines: 6,
                                   decoration: _inputDecoration(
-                                    'Type your response...',
+                                    l10n.servantCommTypeResponseHint,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -5496,9 +6161,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Please enter a response.',
+                                                  l10n.servantCommEnterResponseError,
                                                 ),
                                               ),
                                             );
@@ -5535,9 +6200,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Response saved locally (sync failed).',
+                                                  l10n.servantCommSavedLocallySyncFailed,
                                                 ),
                                               ),
                                             );
@@ -5561,9 +6226,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           Icons.send_rounded,
                                           size: 16,
                                         ),
-                                        label: const Text(
-                                          'Send Response',
-                                          style: TextStyle(
+                                        label: Text(
+                                          l10n.servantCommSendResponse,
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
                                           ),
@@ -5594,9 +6259,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Cancel',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.commonCancel,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                         ),
@@ -5623,10 +6288,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             onPressed: () async {
                               final ok = await _confirmDelete(
                                 context: context,
-                                title: 'Delete question?',
-                                message:
-                                    'This will permanently remove this question.',
-                                confirmLabel: 'Delete',
+                                title: l10n.servantCommDeleteQuestionTitle,
+                                message: l10n.servantCommDeleteQuestionBody,
+                                confirmLabel: l10n.commonDelete,
                               );
                               if (!ok) return;
 
@@ -5637,9 +6301,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
                               if (!deleted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'You may not have permission to delete questions.',
+                                      l10n.servantCommDeleteQuestionPermissionDenied,
                                     ),
                                   ),
                                 );
@@ -5672,6 +6336,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildComplaints() {
+    final l10n = AppLocalizations.of(context);
     Widget statusChip({required String label, required String value}) {
       final selected = _complaintStatusFilter == value;
       return Material(
@@ -5722,9 +6387,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Complaints',
-                style: TextStyle(
+              Text(
+                l10n.commComplaints,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -5735,19 +6400,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    statusChip(label: 'All', value: 'all'),
+                    statusChip(label: l10n.commonAll, value: 'all'),
                     const SizedBox(width: 8),
-                    statusChip(label: 'Pending', value: 'pending'),
+                    statusChip(label: l10n.commPending, value: 'pending'),
                     const SizedBox(width: 8),
-                    statusChip(label: 'In Review', value: 'in-review'),
+                    statusChip(label: l10n.commInReview, value: 'in-review'),
                     const SizedBox(width: 8),
-                    statusChip(label: 'Resolved', value: 'resolved'),
+                    statusChip(label: l10n.commResolved, value: 'resolved'),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
               _ServantLabeledField(
-                label: 'Category',
+                label: l10n.commCategoryLabel,
                 child: _ServantDropdown(
                   value: _complaintCategoryFilter,
                   items: const [
@@ -5773,8 +6438,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         if (list.isEmpty)
           _ServantEmptyState(
             icon: Icons.report_problem_rounded,
-            title: 'No complaints',
-            subtitle: 'Try changing the filters.',
+            title: l10n.servantCommNoComplaints,
+            subtitle: l10n.commonTryChangingFilters,
           )
         else
           Column(
@@ -5785,8 +6450,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   _complaintNextStatus[c.id] ??
                   (c.status == 'pending' ? 'in-review' : c.status);
 
-              final statusPill = _statusBadge(c.status);
-              final categoryPill = _categoryBadge(c.category);
+              final statusPill = _statusBadge(c.status, l10n);
+              final categoryPill = _categoryBadge(c.category, l10n);
               final dateLabel = EthiopianDateFormatter.formatFlexible(c.date);
               final highlight = c.status != 'resolved';
 
@@ -5863,9 +6528,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Response:',
-                                          style: TextStyle(
+                                        Text(
+                                          l10n.commResponseLabel,
+                                          style: const TextStyle(
                                             fontSize: 11,
                                             color: Color(0xFF047857),
                                             fontWeight: FontWeight.w700,
@@ -5912,9 +6577,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Respond',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.servantCommRespond,
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -5925,7 +6590,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               if (isExpanded && canRespond) ...[
                                 const SizedBox(height: 12),
                                 _ServantLabeledField(
-                                  label: 'Status',
+                                  label: l10n.commonStatus,
                                   child: _ServantDropdown(
                                     value: nextStatus,
                                     items: const [
@@ -5947,7 +6612,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   minLines: 3,
                                   maxLines: 6,
                                   decoration: _inputDecoration(
-                                    'Type your response...',
+                                    l10n.servantCommTypeResponseHint,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -5963,9 +6628,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Please enter a response.',
+                                                  l10n.servantCommEnterResponseError,
                                                 ),
                                               ),
                                             );
@@ -6008,9 +6673,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Update saved locally (sync failed).',
+                                                  l10n.servantCommSavedLocallySyncFailed,
                                                 ),
                                               ),
                                             );
@@ -6034,9 +6699,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           Icons.send_rounded,
                                           size: 16,
                                         ),
-                                        label: const Text(
-                                          'Update',
-                                          style: TextStyle(
+                                        label: Text(
+                                          l10n.commonUpdate,
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
                                           ),
@@ -6067,9 +6732,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Cancel',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.commonCancel,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                         ),
@@ -6096,10 +6761,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             onPressed: () async {
                               final ok = await _confirmDelete(
                                 context: context,
-                                title: 'Delete complaint?',
-                                message:
-                                    'This will permanently remove this complaint.',
-                                confirmLabel: 'Delete',
+                                title: l10n.servantCommDeleteComplaintTitle,
+                                message: l10n.servantCommDeleteComplaintBody,
+                                confirmLabel: l10n.commonDelete,
                               );
                               if (!ok) return;
 
@@ -6110,9 +6774,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
                               if (!deleted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Could not delete from server.',
+                                      l10n.servantCommDeleteFromServerFailed,
                                     ),
                                   ),
                                 );
@@ -6203,18 +6867,34 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       ..add(TextEditingController());
   }
 
-  static String _feedbackTypeLabel(String type) {
+  static String _feedbackTypeLabel(AppLocalizations l10n, String type) {
     switch (type) {
       case 'teacher_evaluation':
-        return 'Teacher Evaluation';
+        return l10n.servantFeedbackTypeTeacherEvaluation;
       case 'course_evaluation':
-        return 'Course Evaluation';
+        return l10n.servantFeedbackTypeCourseEvaluation;
       case 'semester_evaluation':
-        return 'Semester Evaluation';
+        return l10n.servantFeedbackTypeSemesterEvaluation;
       case 'general':
-        return 'General';
+        return l10n.servantFeedbackTypeGeneral;
       default:
         return type.replaceAll('_', ' ');
+    }
+  }
+
+  static String _feedbackQuestionTypeLabel(
+    AppLocalizations l10n,
+    String questionType,
+  ) {
+    switch (questionType) {
+      case 'rating':
+        return l10n.servantFeedbackQuestionTypeRating;
+      case 'text':
+        return l10n.servantFeedbackQuestionTypeText;
+      case 'multiple_choice':
+        return l10n.servantFeedbackQuestionTypeMultipleChoice;
+      default:
+        return questionType.replaceAll('_', ' ');
     }
   }
 
@@ -6226,6 +6906,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Future<void> _pickFeedbackType() async {
+    final l10n = AppLocalizations.of(context);
     final types = const [
       'teacher_evaluation',
       'course_evaluation',
@@ -6254,9 +6935,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   horizontal: 18,
                   vertical: 14,
                 ),
-                child: const Text(
-                  'Select type',
-                  style: TextStyle(
+                child: Text(
+                  l10n.servantFeedbackSelectTypeTitle,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF334155),
@@ -6266,7 +6947,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               ...types.map((t) {
                 return ListTile(
                   title: Text(
-                    _feedbackTypeLabel(t),
+                    _feedbackTypeLabel(l10n, t),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -6315,6 +6996,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildFeedbackTab() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -6336,22 +7018,22 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             elevation: 2,
           ),
           icon: const Icon(Icons.add_rounded, size: 20),
-          label: const Text(
-            'Create Feedback Form',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          label: Text(
+            l10n.servantFeedbackCreateFormButton,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         const SizedBox(height: 14),
         if (_feedbackForms.isEmpty)
-          const _ServantEmptyState(
+          _ServantEmptyState(
             icon: Icons.fact_check_rounded,
-            title: 'No feedback forms yet',
-            subtitle: 'Create a form to collect student feedback',
+            title: l10n.servantFeedbackEmptyTitle,
+            subtitle: l10n.servantFeedbackEmptySubtitle,
           )
         else ...[
-          const Text(
-            'Active Forms',
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          Text(
+            l10n.servantFeedbackActiveFormsLabel,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
           Column(
@@ -6361,12 +7043,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
               final statusPill = expired
                   ? _tinyPill(
-                      label: 'Expired',
+                      label: l10n.servantFeedbackStatusExpired,
                       bg: const Color(0xFFFEE2E2),
                       fg: const Color(0xFFB91C1C),
                     )
                   : _tinyPill(
-                      label: 'Active',
+                      label: l10n.servantFeedbackStatusActive,
                       bg: const Color(0xFFD1FAE5),
                       fg: const Color(0xFF047857),
                     );
@@ -6390,7 +7072,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             Row(
                               children: [
                                 Text(
-                                  '${form.questions.length} questions',
+                                  l10n.servantFeedbackQuestionsCount(
+                                    form.questions.length,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -6401,10 +7085,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   onPressed: () async {
                                     final ok = await _confirmDelete(
                                       context: context,
-                                      title: 'Delete Feedback Form?',
-                                      message:
-                                          'This will permanently delete the form and all ${rate.submitted} student responses. This action cannot be undone.',
-                                      confirmLabel: 'Delete',
+                                      title:
+                                          l10n.servantFeedbackDeleteFormTitle,
+                                      message: l10n
+                                          .servantFeedbackDeleteFormBody(
+                                            rate.submitted,
+                                          ),
+                                      confirmLabel: l10n.commonDelete,
                                     );
                                     if (!ok) return;
                                     setState(() {
@@ -6421,7 +7108,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                     size: 18,
                                     color: Color(0xFFEF4444),
                                   ),
-                                  tooltip: 'Delete form',
+                                  tooltip: l10n.commonDelete,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
                                     minWidth: 40,
@@ -6455,7 +7142,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Due: ${EthiopianDateFormatter.formatFlexible(form.endDate)}',
+                                l10n.servantFeedbackDueLabel(
+                                  EthiopianDateFormatter.formatFlexible(
+                                    form.endDate,
+                                  ),
+                                ),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: expired
@@ -6465,7 +7156,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               ),
                             ),
                             Text(
-                              '${rate.submitted}/${rate.total} responses',
+                              l10n.servantFeedbackResponsesCount(
+                                rate.submitted,
+                                rate.total,
+                              ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF0284C7),
@@ -6495,9 +7189,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             Icons.remove_red_eye_rounded,
                             size: 18,
                           ),
-                          label: const Text(
-                            'View Analytics',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                          label: Text(
+                            l10n.servantFeedbackViewAnalyticsButton,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -6518,6 +7212,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildCreateFeedbackForm() {
+    final l10n = AppLocalizations.of(context);
     InputDecoration feedbackInputDecoration(String hint) {
       return InputDecoration(
         hintText: hint,
@@ -6600,9 +7295,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Create Feedback Form',
-            style: TextStyle(
+          Text(
+            l10n.servantFeedbackCreateFormTitle,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
               color: Color(0xFF0F172A),
@@ -6610,7 +7305,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
           const SizedBox(height: 14),
           _ServantLabeledField(
-            label: 'Title',
+            label: l10n.servantFeedbackTitleLabel,
             child: ValueListenableBuilder<TextEditingValue>(
               valueListenable: _feedbackTitleController,
               builder: (context, value, _) {
@@ -6621,7 +7316,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       controller: _feedbackTitleController,
                       maxLength: 100,
                       decoration: feedbackInputDecoration(
-                        'e.g., Mid-Semester Teacher Evaluation',
+                        l10n.servantFeedbackTitleHint,
                       ).copyWith(counterText: ''),
                     ),
                     Text(
@@ -6639,7 +7334,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
           const SizedBox(height: 12),
           _ServantLabeledField(
-            label: 'Description',
+            label: l10n.servantFeedbackDescriptionLabel,
             child: ValueListenableBuilder<TextEditingValue>(
               valueListenable: _feedbackDescriptionController,
               builder: (context, value, _) {
@@ -6652,7 +7347,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       minLines: 3,
                       maxLines: 6,
                       decoration: feedbackInputDecoration(
-                        'Brief description of the feedback form',
+                        l10n.servantFeedbackDescriptionHint,
                       ).copyWith(counterText: ''),
                     ),
                     Text(
@@ -6670,7 +7365,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
           const SizedBox(height: 12),
           _ServantLabeledField(
-            label: 'Type',
+            label: l10n.servantFeedbackTypeLabel,
             child: InkWell(
               onTap: _pickFeedbackType,
               borderRadius: BorderRadius.circular(12),
@@ -6689,8 +7384,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     Expanded(
                       child: Text(
                         _feedbackType.isEmpty
-                            ? 'Select type'
-                            : _feedbackTypeLabel(_feedbackType),
+                            ? l10n.servantFeedbackSelectTypeTitle
+                            : _feedbackTypeLabel(l10n, _feedbackType),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -6714,7 +7409,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             children: [
               Expanded(
                 child: datePill(
-                  label: 'Start:',
+                  label: l10n.servantFeedbackStartDateLabel,
                   value: EthiopianDateFormatter.formatFlexible(
                     _feedbackStartDate,
                   ),
@@ -6724,7 +7419,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               const SizedBox(width: 12),
               Expanded(
                 child: datePill(
-                  label: 'End:',
+                  label: l10n.servantFeedbackEndDateLabel,
                   value: EthiopianDateFormatter.formatFlexible(
                     _feedbackEndDate,
                   ),
@@ -6748,9 +7443,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Questions',
-                            style: TextStyle(
+                          Text(
+                            l10n.servantFeedbackQuestionsSectionTitle,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF0F172A),
@@ -6758,7 +7453,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_draftFeedbackQuestions.length} ${_draftFeedbackQuestions.length == 1 ? 'question' : 'questions'} added',
+                            l10n.servantFeedbackQuestionsAddedCount(
+                              _draftFeedbackQuestions.length,
+                            ),
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF94A3B8),
@@ -6783,9 +7480,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         ),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text(
-                        'Add Question',
-                        style: TextStyle(fontSize: 12),
+                      label: Text(
+                        l10n.servantFeedbackAddQuestionButton,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ),
                   ],
@@ -6817,18 +7514,24 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       runSpacing: 8,
                                       children: [
                                         _tinyPill(
-                                          label: 'Q${index + 1}',
+                                          label: l10n.commonQuestionShort(
+                                            index + 1,
+                                          ),
                                           bg: const Color(0xFFFEF3C7),
                                           fg: const Color(0xFF92400E),
                                         ),
                                         _tinyPill(
-                                          label: q.type.replaceAll('_', ' '),
+                                          label: _feedbackQuestionTypeLabel(
+                                            l10n,
+                                            q.type,
+                                          ),
                                           bg: const Color(0xFFE2E8F0),
                                           fg: const Color(0xFF475569),
                                         ),
                                         if (q.required)
                                           _tinyPill(
-                                            label: 'Required',
+                                            label: l10n
+                                                .servantFeedbackRequiredLabel,
                                             bg: const Color(0xFFFEE2E2),
                                             fg: const Color(0xFFB91C1C),
                                           ),
@@ -6901,10 +7604,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       children: [
                         Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'New Question',
-                                style: TextStyle(
+                                l10n.servantFeedbackNewQuestionTitle,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0C4A6E),
@@ -6936,7 +7639,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         ),
                         const SizedBox(height: 10),
                         _ServantLabeledField(
-                          label: 'Question Text',
+                          label: l10n.servantFeedbackQuestionTextLabel,
                           child: ValueListenableBuilder<TextEditingValue>(
                             valueListenable: _draftQuestionTextController,
                             builder: (context, value, _) {
@@ -6949,7 +7652,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                     minLines: 2,
                                     maxLines: 4,
                                     decoration: _inputDecoration(
-                                      'Enter your question...',
+                                      l10n.servantFeedbackQuestionTextHint,
                                     ).copyWith(counterText: ''),
                                   ),
                                   Text(
@@ -6970,7 +7673,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                           children: [
                             Expanded(
                               child: _ServantLabeledField(
-                                label: 'Question Type',
+                                label: l10n.servantFeedbackQuestionTypeLabel,
                                 child: _ServantDropdown(
                                   value: _draftQuestionType,
                                   items: const [
@@ -6978,6 +7681,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                     'text',
                                     'multiple_choice',
                                   ],
+                                  labelBuilder: (v) =>
+                                      _feedbackQuestionTypeLabel(l10n, v),
                                   onChanged: (v) {
                                     if (v == null) return;
                                     setState(() {
@@ -6999,10 +7704,20 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _ServantLabeledField(
-                                label: 'Required?',
+                                label:
+                                    l10n.servantFeedbackRequiredQuestionLabel,
                                 child: _ServantDropdown(
                                   value: _draftQuestionRequired ? 'yes' : 'no',
                                   items: const ['yes', 'no'],
+                                  labelBuilder: (v) {
+                                    if (v == 'yes') {
+                                      return l10n.servantFeedbackYes;
+                                    }
+                                    if (v == 'no') {
+                                      return l10n.servantFeedbackNo;
+                                    }
+                                    return v;
+                                  },
                                   onChanged: (v) {
                                     if (v == null) return;
                                     setState(() {
@@ -7016,9 +7731,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         ),
                         if (_draftQuestionType == 'multiple_choice') ...[
                           const SizedBox(height: 12),
-                          const Text(
-                            'Options',
-                            style: TextStyle(
+                          Text(
+                            l10n.servantFeedbackOptionsLabel,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF334155),
@@ -7040,7 +7755,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                           child: TextField(
                                             controller: controller,
                                             decoration: _inputDecoration(
-                                              'Option ${index + 1}',
+                                              l10n.servantFeedbackOptionHint(
+                                                index + 1,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -7080,9 +7797,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                               padding: EdgeInsets.zero,
                             ),
                             icon: const Icon(Icons.add_rounded, size: 16),
-                            label: const Text(
-                              'Add Option',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              l10n.servantFeedbackAddOptionButton,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                         ],
@@ -7107,9 +7824,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   if (_draftQuestionType == 'multiple_choice' &&
                                       options.length < 2) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Multiple choice questions need at least 2 options.',
+                                          l10n.servantFeedbackMultipleChoiceNeedsTwoOptions,
                                         ),
                                       ),
                                     );
@@ -7150,9 +7867,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Add Question',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                child: Text(
+                                  l10n.servantFeedbackAddQuestionButton,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -7182,9 +7901,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                              child: Text(
+                                AppLocalizations.of(context).commonCancel,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -7202,27 +7923,32 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () async {
+                    final l10n = AppLocalizations.of(context);
                     final title = _feedbackTitleController.text.trim();
                     final desc = _feedbackDescriptionController.text.trim();
                     if (title.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a title.')),
+                        SnackBar(
+                          content: Text(l10n.servantFeedbackEnterTitleError),
+                        ),
                       );
                       return;
                     }
                     if (desc.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a description.'),
+                        SnackBar(
+                          content: Text(
+                            l10n.servantFeedbackEnterDescriptionError,
+                          ),
                         ),
                       );
                       return;
                     }
                     if (_draftFeedbackQuestions.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Please add at least one question to the feedback form.',
+                            l10n.servantFeedbackAddAtLeastOneQuestionError,
                           ),
                         ),
                       );
@@ -7233,25 +7959,25 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     final end = DateTime.tryParse(_feedbackEndDate);
                     if (start == null || end == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Please enter valid start and end dates (YYYY-MM-DD).',
-                          ),
+                        SnackBar(
+                          content: Text(l10n.servantFeedbackValidDatesError),
                         ),
                       );
                       return;
                     }
                     if (!end.isAfter(start)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('End date must be after start date.'),
+                        SnackBar(
+                          content: Text(l10n.servantFeedbackEndAfterStartError),
                         ),
                       );
                       return;
                     }
                     if (_feedbackType.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please select a type.')),
+                        SnackBar(
+                          content: Text(l10n.servantFeedbackSelectTypeError),
+                        ),
                       );
                       return;
                     }
@@ -7322,9 +8048,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'Create Form',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  child: Text(
+                    l10n.servantFeedbackCreateFormSubmitButton,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -7346,9 +8072,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                child: Text(
+                  l10n.commonCancel,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -7359,12 +8085,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   Widget _buildFeedbackAnalytics(String formId) {
+    final l10n = AppLocalizations.of(context);
     final formIndex = _feedbackForms.indexWhere((f) => f.id == formId);
     if (formIndex == -1) {
-      return const _ServantEmptyState(
+      return _ServantEmptyState(
         icon: Icons.error_outline_rounded,
-        title: 'Form not found',
-        subtitle: 'Please go back and try again.',
+        title: l10n.servantFeedbackFormNotFoundTitle,
+        subtitle: l10n.servantFeedbackFormNotFoundSubtitle,
       );
     }
 
@@ -7380,10 +8107,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Feedback Analytics',
-                style: TextStyle(
+                l10n.servantFeedbackAnalyticsTitle,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF0F172A),
@@ -7406,7 +8133,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 ),
               ),
               icon: const Icon(Icons.close_rounded, size: 16),
-              label: const Text('Back', style: TextStyle(fontSize: 12)),
+              label: Text(
+                l10n.commonBack,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -7443,7 +8173,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     ),
                   ),
                   _tinyPill(
-                    label: _isExpired(form.endDate) ? 'Expired' : 'Active',
+                    label: _isExpired(form.endDate)
+                        ? l10n.servantFeedbackStatusExpired
+                        : l10n.servantFeedbackStatusActive,
                     bg: _isExpired(form.endDate)
                         ? const Color(0xFFFEE2E2)
                         : const Color(0xFFD1FAE5),
@@ -7455,7 +8187,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               ),
               const SizedBox(height: 10),
               Text(
-                '${form.questions.length} questions • Due: ${EthiopianDateFormatter.formatFlexible(form.endDate)}',
+                l10n.servantFeedbackQuestionsAndDueLine(
+                  form.questions.length,
+                  EthiopianDateFormatter.formatFlexible(form.endDate),
+                ),
                 style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
             ],
@@ -7474,9 +8209,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     size: 20,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Submission Statistics',
-                    style: TextStyle(
+                  Text(
+                    l10n.servantFeedbackSubmissionStatisticsTitle,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0F172A),
@@ -7491,21 +8226,21 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     child: _AnalyticsStat(
                       value: '${rate.submitted}',
                       valueColor: const Color(0xFF16A34A),
-                      label: 'Submitted',
+                      label: l10n.servantFeedbackSubmittedLabel,
                     ),
                   ),
                   Expanded(
                     child: _AnalyticsStat(
                       value: '${rate.total - rate.submitted}',
                       valueColor: const Color(0xFFD97706),
-                      label: 'Pending',
+                      label: l10n.servantFeedbackPendingLabel,
                     ),
                   ),
                   Expanded(
                     child: _AnalyticsStat(
                       value: '${rate.percentage}%',
                       valueColor: const Color(0xFF0284C7),
-                      label: 'Rate',
+                      label: l10n.servantFeedbackRateLabel,
                     ),
                   ),
                 ],
@@ -7518,11 +8253,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           _buildSectionCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 28),
-              child: const _ServantEmptyState(
+              child: _ServantEmptyState(
                 icon: Icons.fact_check_rounded,
-                title: 'No responses yet',
-                subtitle:
-                    'Analytics will appear here as students submit feedback',
+                title: l10n.servantFeedbackNoResponsesTitle,
+                subtitle: l10n.servantFeedbackNoResponsesSubtitle,
               ),
             ),
           )
@@ -7549,7 +8283,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _tinyPill(
-                            label: 'Q${index + 1}',
+                            label: l10n.commonQuestionShort(index + 1),
                             bg: const Color(0xFFE0F2FE),
                             fg: const Color(0xFF0369A1),
                           ),
@@ -7568,7 +8302,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '$responseCount response${responseCount == 1 ? '' : 's'}',
+                                  l10n.servantFeedbackResponsesCountLabel(
+                                    responseCount,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFF64748B),
@@ -7600,6 +8336,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     _ServantFeedbackQuestion question,
     List<_ServantFeedbackResponse> responses,
   ) {
+    final l10n = AppLocalizations.of(context);
     final ratings = responses
         .map((r) => r.answers[question.id])
         .whereType<num>()
@@ -7633,9 +8370,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Average Rating',
-                style: TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+              Text(
+                l10n.servantFeedbackAverageRatingLabel,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF92400E)),
               ),
               const SizedBox(height: 6),
               Row(
@@ -7667,9 +8404,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           ),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Distribution:',
-          style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+        Text(
+          l10n.servantFeedbackDistributionLabel,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 8),
         Column(
@@ -7827,6 +8564,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     _ServantFeedbackQuestion question,
     List<_ServantFeedbackResponse> responses,
   ) {
+    final l10n = AppLocalizations.of(context);
     final texts = responses
         .map((r) => r.answers[question.id])
         .whereType<String>()
@@ -7837,7 +8575,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '${texts.length} text responses received',
+          l10n.servantFeedbackTextResponsesReceived(texts.length),
           style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 10),
@@ -7928,53 +8666,53 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     );
   }
 
-  static Widget _categoryBadge(String category) {
+  static Widget _categoryBadge(String category, AppLocalizations l10n) {
     switch (category) {
       case 'urgent':
         return _tinyPill(
-          label: 'Urgent',
+          label: l10n.commAnnouncementCategoryUrgent,
           bg: const Color(0xFFFEE2E2),
           fg: const Color(0xFFB91C1C),
         );
       case 'grades':
         return _tinyPill(
-          label: 'Grades',
+          label: l10n.commAnnouncementCategoryGrades,
           bg: const Color(0xFFFEF3C7),
           fg: const Color(0xFF92400E),
         );
       case 'schedule':
         return _tinyPill(
-          label: 'Schedule',
+          label: l10n.commAnnouncementCategorySchedule,
           bg: const Color(0xFFDBEAFE),
           fg: const Color(0xFF1D4ED8),
         );
       case 'event':
         return _tinyPill(
-          label: 'Event',
+          label: l10n.commAnnouncementCategoryEvent,
           bg: const Color(0xFFD1FAE5),
           fg: const Color(0xFF047857),
         );
       case 'teaching':
         return _tinyPill(
-          label: 'Teaching',
+          label: l10n.commCategoryTeacher,
           bg: const Color(0xFFE0F2FE),
           fg: const Color(0xFF0369A1),
         );
       case 'facility':
         return _tinyPill(
-          label: 'Facility',
+          label: l10n.commCategoryFacility,
           bg: const Color(0xFFFEF3C7),
           fg: const Color(0xFF92400E),
         );
       case 'administration':
         return _tinyPill(
-          label: 'Administration',
+          label: l10n.commCategoryAdministrative,
           bg: const Color(0xFFE2E8F0),
           fg: const Color(0xFF475569),
         );
       case 'other':
         return _tinyPill(
-          label: 'Other',
+          label: l10n.commCategoryOther,
           bg: const Color(0xFFF1F5F9),
           fg: const Color(0xFF475569),
         );
@@ -7988,47 +8726,47 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   // ignore: unused_element
-  static Widget _priorityBadge(String priority) {
+  static Widget _priorityBadge(String priority, AppLocalizations l10n) {
     switch (priority) {
       case 'high':
         return _tinyPill(
-          label: 'High',
+          label: l10n.commonHigh,
           bg: const Color(0xFFFEE2E2),
           fg: const Color(0xFFB91C1C),
         );
       case 'medium':
         return _tinyPill(
-          label: 'Medium',
+          label: l10n.commonMedium,
           bg: const Color(0xFFFEF3C7),
           fg: const Color(0xFF92400E),
         );
       case 'low':
       default:
         return _tinyPill(
-          label: 'Low',
+          label: l10n.commonLow,
           bg: const Color(0xFFF1F5F9),
           fg: const Color(0xFF475569),
         );
     }
   }
 
-  static Widget _statusBadge(String status) {
+  static Widget _statusBadge(String status, AppLocalizations l10n) {
     switch (status) {
       case 'pending':
         return _tinyPill(
-          label: 'Pending',
+          label: l10n.commPending,
           bg: const Color(0xFFFEE2E2),
           fg: const Color(0xFFB91C1C),
         );
       case 'in-review':
         return _tinyPill(
-          label: 'In review',
+          label: l10n.commInReview,
           bg: const Color(0xFFFEF3C7),
           fg: const Color(0xFF92400E),
         );
       case 'resolved':
         return _tinyPill(
-          label: 'Resolved',
+          label: l10n.commResolved,
           bg: const Color(0xFFD1FAE5),
           fg: const Color(0xFF047857),
         );
@@ -8156,11 +8894,13 @@ class _ServantDropdown extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    this.labelBuilder,
   });
 
   final String value;
   final List<String> items;
   final ValueChanged<String?>? onChanged;
+  final String Function(String value)? labelBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -8180,7 +8920,10 @@ class _ServantDropdown extends StatelessWidget {
               .map(
                 (i) => DropdownMenuItem<String>(
                   value: i,
-                  child: Text(i, style: const TextStyle(fontSize: 13)),
+                  child: Text(
+                    (labelBuilder == null) ? i : labelBuilder!(i),
+                    style: const TextStyle(fontSize: 13),
+                  ),
                 ),
               )
               .toList(),
@@ -8511,7 +9254,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
     final client = SupabaseClientManager.instance.client;
     final user = client.auth.currentUser;
     if (user == null) {
-      throw StateError('Not signed in');
+      throw StateError('not_signed_in');
     }
 
     final profile = await client
@@ -8521,7 +9264,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
         .maybeSingle();
 
     if (profile == null) {
-      throw StateError('Profile not found');
+      throw StateError('profile_not_found');
     }
 
     final gradeId = (profile as Map)['grade_id']?.toString();
@@ -8567,6 +9310,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFD97706); // amber-600
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -8591,22 +9335,22 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                     bottomRight: Radius.circular(32),
                   ),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Profile',
-                      style: TextStyle(
+                      l10n.navProfile,
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: 0.2,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Account details',
-                      style: TextStyle(
+                      l10n.profileAccountDetailsSubtitle,
+                      style: const TextStyle(
                         fontSize: 15,
                         color: Color(0xFFFDE68A),
                         fontWeight: FontWeight.w500,
@@ -8628,6 +9372,16 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                     }
 
                     if (snapshot.hasError) {
+                      final error = snapshot.error;
+                      var errorText = error.toString();
+                      if (error is StateError) {
+                        final msg = error.message;
+                        if (msg == 'not_signed_in') {
+                          errorText = l10n.profileErrorNotSignedIn;
+                        } else if (msg == 'profile_not_found') {
+                          errorText = l10n.profileErrorNotFound;
+                        }
+                      }
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -8644,16 +9398,16 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Could not load profile',
-                              style: TextStyle(
+                            Text(
+                              l10n.profileLoadFailedTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              snapshot.error.toString(),
+                              errorText,
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 13,
@@ -8663,7 +9417,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                             ElevatedButton.icon(
                               onPressed: _handleRefresh,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
+                              label: Text(l10n.commonRetry),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: accent,
                                 foregroundColor: Colors.white,
@@ -8687,11 +9441,11 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
 
                     final displayName =
                         (data.name == null || data.name!.trim().isEmpty)
-                        ? 'Servant'
+                        ? l10n.roleServant
                         : data.name!.trim();
                     final gradeText =
                         (data.gradeName == null || data.gradeName!.isEmpty)
-                        ? 'Not assigned'
+                        ? l10n.profileNotAssigned
                         : (data.gradeCode == null || data.gradeCode!.isEmpty)
                         ? data.gradeName!
                         : '${data.gradeName} (${data.gradeCode})';
@@ -8765,7 +9519,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                                   Icons.badge_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Academic ID'),
+                                title: Text(l10n.profileAcademicIdLabel),
                                 subtitle: Text(data.academicId),
                               ),
                               const Divider(height: 1),
@@ -8775,7 +9529,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                                   Icons.class_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Grade'),
+                                title: Text(l10n.profileGradeLabel),
                                 subtitle: Text(gradeText),
                               ),
                               const Divider(height: 1),
@@ -8785,7 +9539,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                                   Icons.verified_user_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Account status'),
+                                title: Text(l10n.profileAccountStatusLabel),
                                 subtitle: Text(data.accountStatus),
                               ),
                               const Divider(height: 1),
@@ -8795,7 +9549,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                                   Icons.work_outline,
                                   color: accent,
                                 ),
-                                title: const Text('Role'),
+                                title: Text(l10n.profileRoleLabel),
                                 subtitle: Text(data.role),
                               ),
                             ],
@@ -8805,7 +9559,7 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                         ElevatedButton.icon(
                           onPressed: _signOut,
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Sign out'),
+                          label: Text(l10n.commonSignOut),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accent,
                             foregroundColor: Colors.white,

@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -147,14 +148,14 @@ export function AnnouncementsPage() {
       return;
     }
     if (!user) {
-      setError('You must be signed in to create announcements.');
+      setError(t("announcementsMustSignIn"));
       return;
     }
 
     const title = createTitle.trim();
     const message = createMessage.trim();
     if (!title || !message) {
-      setError("Title and message are required.");
+      setError(t("announcementsValidationTitleMessageRequired"));
       return;
     }
 
@@ -196,7 +197,7 @@ export function AnnouncementsPage() {
 
         if (pushError) {
           setNotice(
-            `Announcement created, but push notification failed: ${pushError.message}. Users will still see it when they open the app.`,
+            t("announcementsNoticePushFailed", { details: pushError.message }),
           );
         } else {
           pushData = data;
@@ -208,7 +209,7 @@ export function AnnouncementsPage() {
         const response = pushData as PushNotifyResponse;
         if (response.ok === false) {
           setNotice(
-            `Announcement created, but push notification failed: ${response.error ?? "Unknown error"}. Users will still see it when they open the app.`,
+            t("announcementsNoticePushFailed", { details: response.error ?? t("commonUnknownError") }),
           );
         }
         const sentCount =
@@ -218,11 +219,16 @@ export function AnnouncementsPage() {
               ? response.success
               : null;
         if (sentCount === 0) {
-          const reason = typeof response.reason === "string" ? response.reason : "unknown";
+          const reason = typeof response.reason === "string" ? response.reason : t("commonUnknown");
           const firstError = Array.isArray(response.errors) ? response.errors[0] : null;
           const firstErrorText = firstError ? JSON.stringify(firstError) : null;
           setNotice(
-            `Announcement created, but no push was sent (reason: ${reason}, recipients: ${response.recipients ?? "?"}, tokens: ${response.tokens ?? "?"}${firstErrorText ? `, firstError: ${firstErrorText}` : ""}). Users will still see it when they open the app.`,
+            t("announcementsNoticeNoPushSent", {
+              reason,
+              recipients: String(response.recipients ?? "?"),
+              tokens: String(response.tokens ?? "?"),
+              firstError: firstErrorText ? `, firstError: ${firstErrorText}` : "",
+            }),
           );
         }
       }
@@ -243,7 +249,7 @@ export function AnnouncementsPage() {
 
   async function deleteAnnouncement(id: string) {
     const announcement = announcements.find((item) => item.id === id);
-    if (!window.confirm(`Delete announcement "${announcement?.title ?? id}"?`)) {
+    if (!window.confirm(t("announcementsConfirmDelete", { title: announcement?.title ?? id }))) {
       return;
     }
 
@@ -269,35 +275,35 @@ export function AnnouncementsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Announcements</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("announcementsTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Create global or grade-scoped announcements.
+          {t("announcementsSubtitle")}
         </p>
       </div>
 
-      {error ? <ErrorBanner title="Request failed" message={error} /> : null}
+      {error ? <ErrorBanner title={t("commonRequestFailed")} message={error} /> : null}
       {notice ? (
         <div
           className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
           role="status"
         >
-          <div className="font-semibold text-foreground">Notice</div>
+          <div className="font-semibold text-foreground">{t("announcementsNoticeTitle")}</div>
           <div className="text-muted-foreground">{notice}</div>
         </div>
       ) : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Create announcement</CardTitle>
+          <CardTitle>{t("announcementsCreateTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">{t("announcementsTitleLabel")}</Label>
             <Input id="title" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="grade">Grade (optional)</Label>
+            <Label htmlFor="grade">{t("announcementsGradeOptionalLabel")}</Label>
             <select
               id="grade"
               className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -305,7 +311,7 @@ export function AnnouncementsPage() {
               onChange={(e) => setCreateGradeId(e.target.value ? e.target.value : null)}
               disabled={isLoading}
             >
-              <option value="">Global (all grades)</option>
+              <option value="">{t("announcementsGlobalAllGrades")}</option>
               {grades.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name ?? g.code ?? g.id}
@@ -315,22 +321,22 @@ export function AnnouncementsPage() {
           </div>
 
           <div className="grid gap-2 md:col-span-2">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">{t("announcementsMessageLabel")}</Label>
             <Input id="message" value={createMessage} onChange={(e) => setCreateMessage(e.target.value)} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category">{t("announcementsCategoryLabel")}</Label>
             <Input id="category" value={createCategory} onChange={(e) => setCreateCategory(e.target.value)} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="priority">Priority</Label>
+            <Label htmlFor="priority">{t("announcementsPriorityLabel")}</Label>
             <Input id="priority" value={createPriority} onChange={(e) => setCreatePriority(e.target.value)} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="expires">Expires on (optional)</Label>
+            <Label htmlFor="expires">{t("announcementsExpiresOptionalLabel")}</Label>
             <Input
               id="expires"
               placeholder="YYYY-MM-DD"
@@ -340,7 +346,7 @@ export function AnnouncementsPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="academic-year">Academic year</Label>
+            <Label htmlFor="academic-year">{t("announcementsAcademicYearLabel")}</Label>
             <select
               id="academic-year"
               className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -351,7 +357,7 @@ export function AnnouncementsPage() {
               <option value="">—</option>
               {years.map((y) => (
                 <option key={y.id} value={y.id}>
-                  {y.name ?? y.id}{y.status === "active" ? " (active)" : ""}
+                  {y.name ?? y.id}{y.status === "active" ? t("announcementsActiveSuffix") : ""}
                 </option>
               ))}
             </select>
@@ -360,11 +366,11 @@ export function AnnouncementsPage() {
           <div className="md:col-span-2 flex items-center justify-between gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={createActive} onChange={(e) => setCreateActive(e.target.checked)} />
-              Active
+              {t("announcementsActiveLabel")}
             </label>
 
             <Button disabled={isLoading || isCreating} onClick={() => void createAnnouncement()}>
-              {isCreating ? "Creating…" : "Create"}
+              {isCreating ? t("commonCreating") : t("commonCreate")}
             </Button>
           </div>
         </CardContent>
@@ -372,20 +378,20 @@ export function AnnouncementsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>All announcements</CardTitle>
+          <CardTitle>{t("announcementsAllTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{t("announcementsTableTitle")}</TableHead>
+                  <TableHead>{t("announcementsTableGrade")}</TableHead>
+                  <TableHead>{t("announcementsTablePriority")}</TableHead>
+                  <TableHead>{t("announcementsTableActive")}</TableHead>
+                  <TableHead>{t("announcementsTableCreated")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -399,13 +405,13 @@ export function AnnouncementsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {a.grade_id ? gradeNameById.get(a.grade_id) ?? a.grade_id : "Global"}
+                      {a.grade_id ? gradeNameById.get(a.grade_id) ?? a.grade_id : t("announcementsGlobalLabel")}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {a.priority ?? "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {a.active ? "Yes" : "No"}
+                      {a.active ? t("commonYes") : t("commonNo")}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {a.created_at ? new Date(a.created_at).toLocaleString() : "—"}
@@ -417,7 +423,7 @@ export function AnnouncementsPage() {
                         disabled={deletingId === a.id}
                         onClick={() => void deleteAnnouncement(a.id)}
                       >
-                        {deletingId === a.id ? "Deleting…" : "Delete"}
+                        {deletingId === a.id ? t("commonDeleting") : t("commonDelete")}
                       </Button>
                     </TableCell>
                   </TableRow>

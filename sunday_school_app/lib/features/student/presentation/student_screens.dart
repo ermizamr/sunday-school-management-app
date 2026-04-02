@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,6 +25,8 @@ class StudentShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const accent = Color(0xFF0284C7); // sky-600
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
@@ -34,26 +38,26 @@ class StudentShell extends StatelessWidget {
         unselectedItemColor: const Color(0xFF64748B), // slate-500
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
+            icon: const Icon(Icons.home_rounded),
+            label: l10n.navHome,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_rounded),
-            label: 'Attendance',
+            icon: const Icon(Icons.calendar_month_rounded),
+            label: l10n.navAttendance,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_stories_rounded),
-            label: 'Grades',
+            icon: const Icon(Icons.auto_stories_rounded),
+            label: l10n.navGrades,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.forum_rounded),
-            label: 'Communication',
+            icon: const Icon(Icons.forum_rounded),
+            label: l10n.navCommunication,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline_rounded),
+            label: l10n.navProfile,
           ),
         ],
       ),
@@ -85,6 +89,8 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context);
+
     setState(() {
       _submitting = true;
       _error = null;
@@ -105,7 +111,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'መግባት አልተሳካም። እባክዎን በድጋሚ ይሞክሩ።';
+        _error = l10n.authLoginFailedGeneric;
       });
     } finally {
       if (mounted) {
@@ -119,6 +125,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -150,9 +157,9 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                         alignment: Alignment.centerLeft,
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text(
-                        'ወደ መነሻ ገጽ',
-                        style: TextStyle(fontSize: 13),
+                      label: Text(
+                        l10n.commonBackToHome,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -194,18 +201,18 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              const Text(
-                                'የተማሪ መግቢያ',
-                                style: TextStyle(
+                              Text(
+                                l10n.authStudentLoginTitle,
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                'የእርስዎን መለያዎች ያስገቡ ለመቀየር',
-                                style: TextStyle(
+                              Text(
+                                l10n.authLoginSubtitle,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
                                 ),
@@ -221,9 +228,9 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Text(
-                                  'Email',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authEmailLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -232,19 +239,19 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  hintText: 'መታወቂያ ቁጥርዎን ያስገቡ',
+                                  hintText: l10n.authEmailHint,
                                   icon: Icons.person_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'እባክዎን መታወቂያ ቁጥርዎን ያስገቡ';
+                                      return l10n.authEmailRequiredError;
                                     }
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'Password',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authPasswordLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -253,14 +260,14 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _passwordController,
                                   obscureText: true,
-                                  hintText: 'የይለፍ ቃልዎን ያስገቡ',
+                                  hintText: l10n.authPasswordHint,
                                   icon: Icons.lock_rounded,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'እባክዎን የይለፍ ቃልዎን ያስገቡ';
+                                      return l10n.authPasswordRequiredError;
                                     }
                                     if (value.length < 6) {
-                                      return 'የይለፍ ቃልዎ ቢያንስ 6 ፊደሎች መሆን ይኖርበታል';
+                                      return l10n.authPasswordMinLengthError(6);
                                     }
                                     return null;
                                   },
@@ -305,7 +312,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                           MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Text('Login'),
+                                        Text(l10n.authLoginButton),
                                         if (!_submitting) ...[
                                           const SizedBox(width: 8),
                                           const Icon(
@@ -331,9 +338,9 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFF0EA5E9),
                               ),
-                              child: const Text(
-                                'የይለፍ ቃል ረሳችሁን? / Forgot password?',
-                                style: TextStyle(fontSize: 13),
+                              child: Text(
+                                l10n.authForgotPassword,
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ),
@@ -342,12 +349,12 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    const Align(
+                    Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'Demo mode: use any valid email & password\nwhile backend is being wired fully.',
+                        l10n.authDemoMode,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF94A3B8),
                         ),
@@ -420,9 +427,12 @@ class StudentDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final user = Supabase.instance.client.auth.currentUser;
     final displayName =
-        (user?.userMetadata?['name'] as String?) ?? user?.email ?? 'Student';
+        (user?.userMetadata?['name'] as String?) ??
+        user?.email ??
+        l10n.roleStudent;
 
     const attendancePercent = 85;
     const academicAvg = 86;
@@ -452,9 +462,9 @@ class StudentDashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'እንኳን በደህና መጡ!',
-                      style: TextStyle(
+                    Text(
+                      l10n.dashboardWelcome,
+                      style: const TextStyle(
                         fontSize: 22,
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -487,7 +497,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconColor: const Color(0xFF0284C7),
                               icon: Icons.calendar_month_rounded,
                               value: '$attendancePercent%',
-                              label: 'የመገኘት መቆጣጠሪያ',
+                              label: l10n.dashboardAttendanceStat,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -497,7 +507,7 @@ class StudentDashboardScreen extends StatelessWidget {
                               iconColor: const Color(0xFFD97706),
                               icon: Icons.emoji_events_rounded,
                               value: '$academicAvg%',
-                              label: 'አማካኝ ውጤት',
+                              label: l10n.dashboardAverageScoreStat,
                             ),
                           ),
                         ],
@@ -538,10 +548,10 @@ class StudentDashboardScreen extends StatelessWidget {
                                     color: Color(0xFF475569),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Expanded(
+                                  Expanded(
                                     child: Text(
-                                      'ግንኙነት',
-                                      style: TextStyle(
+                                      l10n.dashboardCommunicationTitle,
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                         color: Color(0xFF0F172A),
                                       ),
@@ -560,7 +570,9 @@ class StudentDashboardScreen extends StatelessWidget {
                                         ),
                                       ),
                                       child: Text(
-                                        '$pendingTotal pending',
+                                        l10n.dashboardPendingCount(
+                                          pendingTotal,
+                                        ),
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: Colors.white,
@@ -575,12 +587,12 @@ class StudentDashboardScreen extends StatelessWidget {
                               child: Column(
                                 children: [
                                   _KeyValueRow(
-                                    label: 'Pending Questions',
+                                    label: l10n.dashboardPendingQuestions,
                                     value: '$pendingQuestions',
                                   ),
                                   const SizedBox(height: 10),
                                   _KeyValueRow(
-                                    label: 'Open Complaints',
+                                    label: l10n.dashboardOpenComplaints,
                                     value: '$openComplaints',
                                   ),
                                 ],
@@ -605,7 +617,7 @@ class StudentDashboardScreen extends StatelessWidget {
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFF0EA5E9),
                                   ),
-                                  child: const Text('Go to Communication'),
+                                  child: Text(l10n.dashboardGoToCommunication),
                                 ),
                               ),
                             ),
@@ -631,9 +643,9 @@ class StudentDashboardScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Quick Actions',
-                              style: TextStyle(
+                            Text(
+                              l10n.dashboardQuickActions,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF0F172A),
                               ),
@@ -644,7 +656,7 @@ class StudentDashboardScreen extends StatelessWidget {
                                 Expanded(
                                   child: _QuickActionTile(
                                     icon: Icons.trending_up_rounded,
-                                    label: 'View Grades',
+                                    label: l10n.dashboardViewGrades,
                                     onTap: () => context.go('/student/grades'),
                                   ),
                                 ),
@@ -652,7 +664,7 @@ class StudentDashboardScreen extends StatelessWidget {
                                 Expanded(
                                   child: _QuickActionTile(
                                     icon: Icons.calendar_month_rounded,
-                                    label: 'Attendance',
+                                    label: l10n.navAttendance,
                                     onTap: () =>
                                         context.go('/student/attendance'),
                                   ),
@@ -885,35 +897,38 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   String _formatDate(DateTime date) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekdays = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
     final wd = weekdays[(date.weekday - 1).clamp(0, 6)];
     return '$wd, ${EthiopianDateFormatter.formatDateTime(date)}';
   }
 
-  ({String text, Color color, IconData icon}) _performance(int percentage) {
+  ({String text, Color color, IconData icon}) _performance(
+    AppLocalizations l10n,
+    int percentage,
+  ) {
     if (percentage >= 95) {
       return (
-        text: 'Excellent attendance!',
+        text: l10n.attendancePerformanceExcellent,
         color: const Color(0xFF16A34A),
         icon: Icons.trending_up_rounded,
       );
     }
     if (percentage >= 85) {
       return (
-        text: 'Great attendance!',
+        text: l10n.attendancePerformanceGreat,
         color: const Color(0xFF16A34A),
         icon: Icons.trending_up_rounded,
       );
     }
     if (percentage >= 75) {
       return (
-        text: 'Good attendance',
+        text: l10n.attendancePerformanceGood,
         color: const Color(0xFFD97706),
         icon: Icons.info_outline_rounded,
       );
     }
     return (
-      text: 'Attendance needs improvement',
+      text: l10n.attendancePerformanceNeedsImprovement,
       color: const Color(0xFFDC2626),
       icon: Icons.info_outline_rounded,
     );
@@ -921,6 +936,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loadingAttendance) {
       return const Scaffold(
         body: SafeArea(child: Center(child: CircularProgressIndicator())),
@@ -929,7 +945,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
     if (_attendanceError != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Attendance')),
+        appBar: AppBar(title: Text(l10n.navAttendance)),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -943,7 +959,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadAttendanceFromBackend,
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
             ),
@@ -953,9 +969,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     }
 
     if (_attendanceSubjects.isEmpty) {
-      return const Scaffold(
+      return Scaffold(
         body: SafeArea(
-          child: Center(child: Text('No subjects found for your grade.')),
+          child: Center(child: Text(l10n.commonNoSubjectsForGrade)),
         ),
       );
     }
@@ -970,7 +986,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     );
     final subjectPercentage = _subjectPercentage(selectedSubjectId);
     final stats = _statusStats(selectedSubjectId);
-    final performance = _performance(subjectPercentage);
+    final performance = _performance(l10n, subjectPercentage);
 
     final subjectRecords =
         _attendanceRecords
@@ -1034,21 +1050,24 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                   colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Attendance',
-                    style: TextStyle(
+                    l10n.navAttendance,
+                    style: const TextStyle(
                       fontSize: 22,
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Track your class participation',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFBAE6FD)),
+                    l10n.attendanceTrackSubtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFBAE6FD),
+                    ),
                   ),
                 ],
               ),
@@ -1078,10 +1097,10 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                         children: [
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Overall Attendance',
-                                  style: TextStyle(
+                                  l10n.attendanceOverallTitle,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF64748B),
                                   ),
@@ -1107,11 +1126,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.only(bottom: 4),
                                 child: Text(
-                                  'across all subjects',
-                                  style: TextStyle(
+                                  l10n.attendanceAcrossAllSubjects,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF94A3B8),
                                   ),
@@ -1175,7 +1194,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '$p% attendance',
+                                    l10n.attendancePercentLabel(p),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: selected
@@ -1266,7 +1285,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                   icon: Icons.check_circle_rounded,
                                   iconColor: const Color(0xFF16A34A),
                                   value: '${stats.present}',
-                                  label: 'Present',
+                                  label: l10n.attendancePresent,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -1276,7 +1295,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                   icon: Icons.schedule_rounded,
                                   iconColor: const Color(0xFFD97706),
                                   value: '${stats.late}',
-                                  label: 'Late',
+                                  label: l10n.attendanceLate,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -1286,7 +1305,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                   icon: Icons.cancel_rounded,
                                   iconColor: const Color(0xFFDC2626),
                                   value: '${stats.absent}',
-                                  label: 'Absent',
+                                  label: l10n.attendanceAbsent,
                                 ),
                               ),
                             ],
@@ -1322,9 +1341,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Attendance History',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.attendanceHistoryTitle,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: Color(0xFF0F172A),
@@ -1332,7 +1351,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${stats.total} sessions recorded',
+                                  l10n.attendanceSessionsRecorded(stats.total),
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFF64748B),
@@ -1352,9 +1371,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                                     color: Colors.grey.shade300,
                                   ),
                                   const SizedBox(height: 12),
-                                  const Text(
-                                    'No attendance records yet',
-                                    style: TextStyle(color: Color(0xFF64748B)),
+                                  Text(
+                                    l10n.attendanceNoRecordsYet,
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1364,10 +1385,13 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                               children: subjectRecords.map((r) {
                                 final s = statusStyle(r.status);
                                 final statusText = switch (r.status) {
-                                  _AttendanceStatus.present => 'present',
-                                  _AttendanceStatus.late => 'late',
-                                  _AttendanceStatus.absent => 'absent',
-                                  _AttendanceStatus.permission => 'permission',
+                                  _AttendanceStatus.present =>
+                                    l10n.attendancePresent,
+                                  _AttendanceStatus.late => l10n.attendanceLate,
+                                  _AttendanceStatus.absent =>
+                                    l10n.attendanceAbsent,
+                                  _AttendanceStatus.permission =>
+                                    l10n.attendancePermission,
                                 };
                                 return Container(
                                   decoration: const BoxDecoration(
@@ -1469,31 +1493,31 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: const Color(0xFFFDE68A)),
                         ),
-                        child: const Row(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.info_outline_rounded,
                               color: Color(0xFFD97706),
                               size: 20,
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Improve Your Attendance',
-                                    style: TextStyle(
+                                    l10n.attendanceImproveTitle,
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: Color(0xFF92400E),
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Regular attendance is important for your learning and promotion. Try to attend all classes and arrive on time.',
-                                    style: TextStyle(
+                                    l10n.attendanceImproveBody,
+                                    style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFF92400E),
                                     ),
@@ -1955,22 +1979,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return (total / count).round();
   }
 
-  String _formatMonthDay(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}';
+  String _formatMonthDay(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context);
+    return DateFormat.MMMd(l10n.localeName).format(date);
   }
 
   void _toggleSubject(String subjectId) {
@@ -1988,6 +1999,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 
   Widget _buildFinalResults(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final avgGrade = _calculateOverallAverage(_currentStudent.id);
 
     Color promotionGradientStart;
@@ -2001,25 +2013,22 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         promotionGradientStart = const Color(0xFF22C55E); // green-500
         promotionGradientEnd = const Color(0xFF16A34A); // green-600
         promotionIcon = Icons.check_circle_rounded;
-        promotionTitle = 'Promoted';
-        promotionMessage =
-            'Congratulations! You have been promoted to the next grade.';
+        promotionTitle = l10n.studentFinalResultsPromotionPromotedTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionPromotedMessage;
         break;
       case _PromotionStatus.atRisk:
         promotionGradientStart = const Color(0xFFF59E0B); // amber-500
         promotionGradientEnd = const Color(0xFFEA580C); // amber-600
         promotionIcon = Icons.warning_rounded;
-        promotionTitle = 'At Risk';
-        promotionMessage =
-            'You are at risk of not being promoted. Please consult with your teacher.';
+        promotionTitle = l10n.studentFinalResultsPromotionAtRiskTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionAtRiskMessage;
         break;
       case _PromotionStatus.notEligible:
         promotionGradientStart = const Color(0xFFEF4444); // red-500
         promotionGradientEnd = const Color(0xFFDC2626); // red-600
         promotionIcon = Icons.warning_rounded;
-        promotionTitle = 'Not Promoted';
-        promotionMessage =
-            'You have not met the promotion requirements. Please consult with your teacher.';
+        promotionTitle = l10n.studentFinalResultsPromotionNotPromotedTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionNotPromotedMessage;
         break;
     }
 
@@ -2049,8 +2058,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Final Results',
+                  Text(
+                    l10n.studentFinalResultsTitle,
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
@@ -2059,7 +2068,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Academic Year ${_academicYear.name}',
+                    l10n.studentGradesAcademicYearLabel(_academicYear.name),
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF64748B),
@@ -2115,8 +2124,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Final Grade',
+                                    Text(
+                                      l10n.studentFinalResultsFinalGradeLabel,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Color(0xFFFDE68A),
@@ -2138,7 +2147,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Academic Year ${_academicYear.name}',
+                            l10n.studentGradesAcademicYearLabel(
+                              _academicYear.name,
+                            ),
                             style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFFFEF3C7), // amber-100
@@ -2191,8 +2202,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Promotion Status',
+                                    Text(
+                                      l10n.studentFinalResultsPromotionStatusLabel,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Color(0xEFFFFFFF),
@@ -2249,9 +2260,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 bottom: BorderSide(color: Color(0xFFF1F5F9)),
                               ),
                             ),
-                            child: const Text(
-                              'Final Subject Grades',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.studentFinalResultsFinalSubjectGradesTitle,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF0F172A),
@@ -2353,9 +2364,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 color: Color(0xFF0284C7), // sky-600
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Final Summary',
-                                style: TextStyle(
+                              Text(
+                                l10n.studentFinalResultsFinalSummaryTitle,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
@@ -2365,16 +2376,19 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 14),
                           _SummaryRow(
-                            label: 'Highest Grade',
+                            label: l10n.studentGradesHighestGradeLabel,
                             value: '$highest%',
                           ),
                           const SizedBox(height: 8),
-                          _SummaryRow(label: 'Lowest Grade', value: '$lowest%'),
+                          _SummaryRow(
+                            label: l10n.studentGradesLowestGradeLabel,
+                            value: '$lowest%',
+                          ),
                           const SizedBox(height: 12),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           const SizedBox(height: 12),
                           _SummaryRow(
-                            label: 'Overall Average',
+                            label: l10n.studentGradesOverallAverageLabel,
                             value: '$avgGrade%',
                           ),
                         ],
@@ -2389,7 +2403,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                       ),
                       padding: const EdgeInsets.all(14),
                       child: Text(
-                        'The academic year has ended. These are your final grades for ${_academicYear.name}. Enjoy your break and we look forward to seeing you in the next academic year!',
+                        l10n.studentFinalResultsAcademicYearEndedMessage(
+                          _academicYear.name,
+                        ),
                         style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF0C4A6E), // sky-900
@@ -2407,6 +2423,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 
   Widget _buildActiveYear(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final avgGrade = _calculateOverallAverage(_currentStudent.id);
 
     final highest = _subjects
@@ -2428,11 +2445,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               width: double.infinity,
-              child: const Align(
+              child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Grades',
-                  style: TextStyle(
+                  l10n.navGrades,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
@@ -2487,8 +2504,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Overall Average',
+                                    Text(
+                                      l10n.studentGradesOverallAverageLabel,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Color(0xFFFDE68A),
@@ -2509,9 +2526,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Keep up the excellent work!',
-                            style: TextStyle(
+                          Text(
+                            l10n.studentGradesKeepUpExcellentWork,
+                            style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFFFEF3C7), // amber-100
                             ),
@@ -2628,7 +2645,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                       Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text(
-                                          '${entries.length} ${entries.length == 1 ? 'assessment' : 'assessments'}',
+                                          l10n.studentGradesAssessmentsCount(
+                                            entries.length,
+                                          ),
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Color(
@@ -2663,9 +2682,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.stretch,
                                           children: [
-                                            const Text(
-                                              'Assessment Breakdown',
-                                              style: TextStyle(
+                                            Text(
+                                              l10n.studentGradesAssessmentBreakdownTitle,
+                                              style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w500,
                                                 color: Color(
@@ -2694,7 +2713,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                   ),
                                                 ),
                                                 child: Text(
-                                                  '⚠️ You are missing $missingCount assessment(s) in this subject. Your grade is calculated based only on completed assessments.',
+                                                  l10n.studentGradesMissingAssessmentsWarning(
+                                                    missingCount,
+                                                  ),
                                                   style: const TextStyle(
                                                     fontSize: 12,
                                                     color: Color(
@@ -2804,6 +2825,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                           ),
                                                           Text(
                                                             _formatMonthDay(
+                                                              context,
                                                               entry.date,
                                                             ),
                                                             style:
@@ -2825,7 +2847,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                         Text(
                                                           hasScore
                                                               ? '$percentage%'
-                                                              : 'Pending',
+                                                              : l10n.commonPending,
                                                           style: TextStyle(
                                                             fontSize: 14,
                                                             fontWeight:
@@ -2844,7 +2866,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                         ),
                                                         Text(
                                                           hasScore
-                                                              ? '$score/${entry.maxScore} pts'
+                                                              ? l10n.studentGradesPointsLabel(
+                                                                  score,
+                                                                  entry
+                                                                      .maxScore,
+                                                                )
                                                               : '—',
                                                           style:
                                                               const TextStyle(
@@ -2899,17 +2925,17 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.trending_up_rounded,
                                 size: 20,
                                 color: Color(0xFF0284C7),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Performance Summary',
-                                style: TextStyle(
+                                l10n.studentGradesPerformanceSummaryTitle,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
@@ -2919,16 +2945,19 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 14),
                           _SummaryRow(
-                            label: 'Highest Grade',
+                            label: l10n.studentGradesHighestGradeLabel,
                             value: '$highest%',
                           ),
                           const SizedBox(height: 8),
-                          _SummaryRow(label: 'Lowest Grade', value: '$lowest%'),
+                          _SummaryRow(
+                            label: l10n.studentGradesLowestGradeLabel,
+                            value: '$lowest%',
+                          ),
                           const SizedBox(height: 12),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),
                           const SizedBox(height: 12),
                           _SummaryRow(
-                            label: 'Total Subjects',
+                            label: l10n.studentGradesTotalSubjectsLabel,
                             value: '${_subjects.length}',
                           ),
                         ],
@@ -3097,6 +3126,7 @@ class _StudentCommunicationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final unreadAnnouncements = 2;
     final pendingFeedbackForms = 1;
 
@@ -3120,9 +3150,9 @@ class _StudentCommunicationScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Communication',
-                    style: TextStyle(
+                  Text(
+                    l10n.navCommunication,
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0F172A),
@@ -3134,7 +3164,7 @@ class _StudentCommunicationScreenState
                     child: Row(
                       children: [
                         _CommTabButton(
-                          label: 'Announcements',
+                          label: l10n.commAnnouncements,
                           icon: Icons.campaign_rounded,
                           selected: _activeTab == _CommTab.announcements,
                           badgeCount: unreadAnnouncements,
@@ -3147,7 +3177,7 @@ class _StudentCommunicationScreenState
                           },
                         ),
                         _CommTabButton(
-                          label: 'Questions',
+                          label: l10n.commQuestions,
                           icon: Icons.question_answer_rounded,
                           selected: _activeTab == _CommTab.questions,
                           onTap: () {
@@ -3159,7 +3189,7 @@ class _StudentCommunicationScreenState
                           },
                         ),
                         _CommTabButton(
-                          label: 'Complaints',
+                          label: l10n.commComplaints,
                           icon: Icons.report_problem_rounded,
                           selected: _activeTab == _CommTab.complaints,
                           onTap: () {
@@ -3171,7 +3201,7 @@ class _StudentCommunicationScreenState
                           },
                         ),
                         _CommTabButton(
-                          label: 'Feedback',
+                          label: l10n.commFeedback,
                           icon: Icons.fact_check_rounded,
                           selected: _activeTab == _CommTab.feedback,
                           badgeCount: pendingFeedbackForms,
@@ -3389,7 +3419,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
           id: map['id'] as String,
           title: (map['title'] as String?) ?? '',
           message: (map['message'] as String?) ?? '',
-          createdBy: createdById == userId ? 'You' : 'Servant',
+          createdBy: createdById == userId ? 'you' : 'servant',
           createdDate: createdAt.isNotEmpty
               ? _dateOnly(createdAt)
               : _todayIso(),
@@ -3408,8 +3438,9 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = 'Failed to load announcements.';
+        _error = l10n.commAnnouncementsLoadFailed;
         _items.clear();
         _expandedId = null;
         _isLoading = false;
@@ -3419,6 +3450,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.only(top: 24),
@@ -3447,14 +3479,14 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
           const SizedBox(height: 40),
           Icon(Icons.campaign_rounded, size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 8),
-          const Text(
-            'No announcements',
-            style: TextStyle(color: Color(0xFF64748B)),
+          Text(
+            l10n.commNoAnnouncements,
+            style: const TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Check back later for updates',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          Text(
+            l10n.commAnnouncementsEmptySubtitle,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
         ],
       );
@@ -3464,6 +3496,14 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
       children: _items.map((item) {
         final expanded = _expandedId == item.id;
         final unread = item.unread;
+
+        final categoryLabel = switch (item.category) {
+          'urgent' => l10n.commAnnouncementCategoryUrgent,
+          'grades' => l10n.commAnnouncementCategoryGrades,
+          'schedule' => l10n.commAnnouncementCategorySchedule,
+          'event' => l10n.commAnnouncementCategoryEvent,
+          _ => l10n.commAnnouncementCategoryGeneral,
+        };
 
         Color badgeBg;
         Color badgeText;
@@ -3575,7 +3615,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                                     ),
                                   ),
                                   child: Text(
-                                    item.category,
+                                    categoryLabel,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: badgeText,
@@ -3632,7 +3672,11 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Posted by ${item.createdBy}',
+                              l10n.commPostedBy(
+                                item.createdBy == 'you'
+                                    ? l10n.commonYou
+                                    : l10n.roleServant,
+                              ),
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF94A3B8),
@@ -3668,23 +3712,22 @@ class _QuestionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final questions = const [
+    final l10n = AppLocalizations.of(context);
+    final questions = [
       _Question(
-        subject: 'Bible Studies',
-        question: 'Will next week’s quiz include last month’s memory verses?',
-        status: 'Pending',
+        subject: 'bible_studies',
+        question: 'የሚቀጥለው ሳምንት ፈተና ያለፈው ወር የማስታወሻ ጥቅሶችን ይያዛል?',
+        status: 'pending',
         answered: false,
-        date: 'Feb 27',
+        date: '2025-02-27',
       ),
       _Question(
-        subject: 'Christian History',
-        question:
-            'Can you share additional resources about early church fathers?',
-        status: 'Answered',
+        subject: 'christian_history',
+        question: 'ስለ ቀደምት የቤተክርስቲያን አባቶች ተጨማሪ ምንጮችን ማጋራት ትችላላችሁ?',
+        status: 'answered',
         answered: true,
-        answer:
-            'Yes, we will share a reading list and a short video next class.',
-        date: 'Feb 20',
+        answer: 'አዎ፣ በሚቀጥለው ክፍል የንባብ ዝርዝር እና አጭር ቪዲዮ እንጋራለን።',
+        date: '2025-02-20',
       ),
     ];
 
@@ -3706,23 +3749,26 @@ class _QuestionsList extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.add_rounded, size: 20),
-            label: const Text('Ask a Question', style: TextStyle(fontSize: 14)),
+            label: Text(
+              l10n.commAskQuestion,
+              style: const TextStyle(fontSize: 14),
+            ),
           ),
         ),
         const SizedBox(height: 16),
         if (pending.isNotEmpty) ...[
-          const Text(
-            'Pending',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          Text(
+            l10n.commPending,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 8),
           ...pending.map((q) => _QuestionCard(question: q)),
           const SizedBox(height: 16),
         ],
         if (answered.isNotEmpty) ...[
-          const Text(
-            'Answered',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          Text(
+            l10n.commAnswered,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 8),
           ...answered.map((q) => _QuestionCard(question: q)),
@@ -3735,10 +3781,10 @@ class _QuestionsList extends StatelessWidget {
             size: 48,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'No questions yet',
+          Text(
+            l10n.commNoQuestionsYet,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B)),
+            style: const TextStyle(color: Color(0xFF64748B)),
           ),
         ],
       ],
@@ -3753,6 +3799,13 @@ class _QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final subjectLabel = switch (question.subject) {
+      'bible_studies' => l10n.commSubjectBibleStudies,
+      'christian_history' => l10n.commSubjectChristianHistory,
+      'general' => l10n.commSubjectGeneral,
+      _ => l10n.commSubjectGeneral,
+    };
     final statusColor = question.answered
         ? const Color(0xFF16A34A)
         : const Color(0xFFFBBF24); // green / amber
@@ -3787,7 +3840,7 @@ class _QuestionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  question.subject,
+                  subjectLabel,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF0369A1),
@@ -3801,7 +3854,7 @@ class _QuestionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  question.status,
+                  question.answered ? l10n.commAnswered : l10n.commPending,
                   style: TextStyle(fontSize: 11, color: statusColor),
                 ),
               ),
@@ -3823,9 +3876,12 @@ class _QuestionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Response:',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF0369A1)),
+                  Text(
+                    l10n.commResponseLabel,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF0369A1),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -3867,6 +3923,7 @@ class _QuestionFormState extends State<_QuestionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
@@ -3888,32 +3945,38 @@ class _QuestionFormState extends State<_QuestionForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Ask a Question',
-                  style: TextStyle(
+                Text(
+                  l10n.commAskQuestion,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Subject',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commSubjectLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: _subject.isEmpty ? null : _subject,
-                  items: const [
+                  items: [
                     DropdownMenuItem(
-                      value: 'Bible Studies',
-                      child: Text('Bible Studies'),
+                      value: 'bible_studies',
+                      child: Text(l10n.commSubjectBibleStudies),
                     ),
                     DropdownMenuItem(
-                      value: 'Christian History',
-                      child: Text('Christian History'),
+                      value: 'christian_history',
+                      child: Text(l10n.commSubjectChristianHistory),
                     ),
-                    DropdownMenuItem(value: 'General', child: Text('General')),
+                    DropdownMenuItem(
+                      value: 'general',
+                      child: Text(l10n.commSubjectGeneral),
+                    ),
                   ],
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
@@ -3921,22 +3984,25 @@ class _QuestionFormState extends State<_QuestionForm> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select a subject';
+                      return l10n.commSelectSubjectError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Your Question',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commYourQuestionLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLines: 4,
                   maxLength: 500,
                   decoration: _textareaDecoration.copyWith(
-                    hintText: 'Type your question here...',
+                    hintText: l10n.commQuestionHint,
                     counterText: '${_question.length}/500',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -3948,7 +4014,7 @@ class _QuestionFormState extends State<_QuestionForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your question';
+                      return l10n.commEnterQuestionError;
                     }
                     return null;
                   },
@@ -3984,7 +4050,7 @@ class _QuestionFormState extends State<_QuestionForm> {
                           ),
                         ),
                         icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text('Send'),
+                        label: Text(l10n.commonSend),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -3999,7 +4065,7 @@ class _QuestionFormState extends State<_QuestionForm> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ],
                 ),
@@ -4018,18 +4084,18 @@ class _QuestionFormState extends State<_QuestionForm> {
                   color: const Color(0xFF22C55E),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_rounded,
                       color: Colors.white,
                       size: 18,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'Question submitted!',
-                      style: TextStyle(fontSize: 12, color: Colors.white),
+                      l10n.commQuestionSubmitted,
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
                 ),
@@ -4048,12 +4114,13 @@ class _ComplaintsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final complaints = const [
+    final l10n = AppLocalizations.of(context);
+    final complaints = [
       _Complaint(
         category: 'teacher',
         status: 'pending',
-        text: 'The classroom is often too noisy during activities.',
-        date: 'Feb 25',
+        text: 'በእንቅስቃሴዎች ጊዜ ክፍሉ ብዙ ጫጫታ ይሆናል።',
+        date: '2025-02-25',
       ),
     ];
 
@@ -4072,9 +4139,9 @@ class _ComplaintsList extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.add_rounded, size: 20),
-            label: const Text(
-              'Submit Complaint',
-              style: TextStyle(fontSize: 14),
+            label: Text(
+              l10n.commSubmitComplaint,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ),
@@ -4087,10 +4154,10 @@ class _ComplaintsList extends StatelessWidget {
             size: 48,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'No complaints submitted',
+          Text(
+            l10n.commNoComplaintsSubmitted,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B)),
+            style: const TextStyle(color: Color(0xFF64748B)),
           ),
         ] else
           ...complaints.map((c) => _ComplaintCard(complaint: c)),
@@ -4106,6 +4173,7 @@ class _ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Color statusColor;
     Color statusBg;
     switch (complaint.status) {
@@ -4121,6 +4189,21 @@ class _ComplaintCard extends StatelessWidget {
         statusBg = const Color(0xFFDBEAFE);
         statusColor = const Color(0xFF1D4ED8);
     }
+
+    final categoryLabel = switch (complaint.category) {
+      'teacher' => l10n.commCategoryTeacher,
+      'facility' => l10n.commCategoryFacility,
+      'course' => l10n.commCategoryCourse,
+      'administrative' => l10n.commCategoryAdministrative,
+      'other' => l10n.commCategoryOther,
+      _ => complaint.category,
+    };
+
+    final statusLabel = switch (complaint.status) {
+      'pending' => l10n.commPending,
+      'resolved' => l10n.commResolved,
+      _ => complaint.status,
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -4149,7 +4232,7 @@ class _ComplaintCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  complaint.category,
+                  categoryLabel,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF475569),
@@ -4163,7 +4246,7 @@ class _ComplaintCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  complaint.status,
+                  statusLabel,
                   style: TextStyle(fontSize: 11, color: statusColor),
                 ),
               ),
@@ -4204,6 +4287,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
@@ -4225,34 +4309,46 @@ class _ComplaintFormState extends State<_ComplaintForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Submit Complaint',
-                  style: TextStyle(
+                Text(
+                  l10n.commSubmitComplaint,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Category',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commCategoryLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: _category.isEmpty ? null : _category,
-                  items: const [
-                    DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'teacher',
+                      child: Text(l10n.commCategoryTeacher),
+                    ),
                     DropdownMenuItem(
                       value: 'facility',
-                      child: Text('Facility'),
+                      child: Text(l10n.commCategoryFacility),
                     ),
-                    DropdownMenuItem(value: 'course', child: Text('Course')),
+                    DropdownMenuItem(
+                      value: 'course',
+                      child: Text(l10n.commCategoryCourse),
+                    ),
                     DropdownMenuItem(
                       value: 'administrative',
-                      child: Text('Administrative'),
+                      child: Text(l10n.commCategoryAdministrative),
                     ),
-                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                    DropdownMenuItem(
+                      value: 'other',
+                      child: Text(l10n.commCategoryOther),
+                    ),
                   ],
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
@@ -4260,21 +4356,24 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select a category';
+                      return l10n.commSelectCategoryError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Title',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commTitleLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLength: 100,
                   decoration: _inputDecoration.copyWith(
-                    hintText: 'Brief title for your complaint',
+                    hintText: l10n.commComplaintTitleHint,
                     counterText: '${_title.length}/100',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -4286,22 +4385,25 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a title';
+                      return l10n.commEnterTitleError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Description',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commDescriptionLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLines: 4,
                   maxLength: 500,
                   decoration: _textareaDecoration.copyWith(
-                    hintText: 'Describe your complaint in detail...',
+                    hintText: l10n.commComplaintDescriptionHint,
                     counterText: '${_description.length}/500',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -4313,7 +4415,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a description';
+                      return l10n.commEnterDescriptionError;
                     }
                     return null;
                   },
@@ -4328,10 +4430,10 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                       },
                     ),
                     const SizedBox(width: 4),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Submit anonymously',
-                        style: TextStyle(
+                        l10n.commSubmitAnonymously,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF334155),
                         ),
@@ -4364,7 +4466,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                           ),
                         ),
                         icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text('Submit'),
+                        label: Text(l10n.commonSubmit),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -4379,7 +4481,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ],
                 ),
@@ -4398,18 +4500,18 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   color: const Color(0xFF22C55E),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_rounded,
                       color: Colors.white,
                       size: 18,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'Complaint submitted!',
-                      style: TextStyle(fontSize: 12, color: Colors.white),
+                      l10n.commComplaintSubmitted,
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
                 ),
@@ -4426,6 +4528,7 @@ class _FeedbackSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -4453,8 +4556,8 @@ class _FeedbackSection extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'No active feedback forms',
+                  Text(
+                    l10n.commNoActiveFeedbackForms,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -4464,8 +4567,8 @@ class _FeedbackSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Your servant may share feedback forms in the future. Check back later.',
+              Text(
+                l10n.commFeedbackEmptySubtitle,
                 style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
             ],
@@ -4766,6 +4869,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFF0284C7); // sky-600
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -4778,7 +4882,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
@@ -4786,21 +4890,21 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
                   ),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Profile',
-                      style: TextStyle(
+                      l10n.navProfile,
+                      style: const TextStyle(
                         fontSize: 22,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Account details',
-                      style: TextStyle(
+                      l10n.profileAccountDetailsSubtitle,
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFFBAE6FD),
                         fontWeight: FontWeight.w600,
@@ -4838,9 +4942,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Could not load profile',
-                              style: TextStyle(
+                            Text(
+                              l10n.profileLoadFailedTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -4857,7 +4961,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             ElevatedButton.icon(
                               onPressed: _handleRefresh,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
+                              label: Text(l10n.commonRetry),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: accent,
                                 foregroundColor: Colors.white,
@@ -4881,14 +4985,29 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
                     final displayName =
                         (data.name == null || data.name!.trim().isEmpty)
-                        ? 'Student'
+                        ? l10n.roleStudent
                         : data.name!.trim();
                     final gradeText =
                         (data.gradeName == null || data.gradeName!.isEmpty)
-                        ? 'Not assigned'
+                        ? l10n.profileNotAssigned
                         : (data.gradeCode == null || data.gradeCode!.isEmpty)
                         ? data.gradeName!
                         : '${data.gradeName} (${data.gradeCode})';
+
+                    final roleLabel = switch (data.role.toLowerCase()) {
+                      'student' => l10n.roleStudent,
+                      'servant' => l10n.roleServant,
+                      _ => data.role,
+                    };
+
+                    final accountStatusLabel = switch (data.accountStatus
+                        .toLowerCase()) {
+                      'active' => l10n.accountStatusActive,
+                      'inactive' => l10n.accountStatusInactive,
+                      'suspended' => l10n.accountStatusSuspended,
+                      'disabled' => l10n.accountStatusDisabled,
+                      _ => data.accountStatus,
+                    };
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4959,7 +5078,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.badge_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Academic ID'),
+                                title: Text(l10n.profileAcademicIdLabel),
                                 subtitle: Text(data.academicId),
                               ),
                               const Divider(height: 1),
@@ -4969,7 +5088,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.class_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Grade'),
+                                title: Text(l10n.profileGradeLabel),
                                 subtitle: Text(gradeText),
                               ),
                               const Divider(height: 1),
@@ -4979,8 +5098,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.verified_user_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Account status'),
-                                subtitle: Text(data.accountStatus),
+                                title: Text(l10n.profileAccountStatusLabel),
+                                subtitle: Text(accountStatusLabel),
                               ),
                               const Divider(height: 1),
                               ListTile(
@@ -4989,17 +5108,32 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.work_outline,
                                   color: accent,
                                 ),
-                                title: const Text('Role'),
-                                subtitle: Text(data.role),
+                                title: Text(l10n.profileRoleLabel),
+                                subtitle: Text(roleLabel),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push('/student/profile/change-password'),
+                          icon: const Icon(Icons.lock_reset_rounded),
+                          label: Text(l10n.profileChangePassword),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: accent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(color: accent),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         ElevatedButton.icon(
                           onPressed: _signOut,
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Sign out'),
+                          label: Text(l10n.commonSignOut),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accent,
                             foregroundColor: Colors.white,
@@ -5016,6 +5150,243 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class StudentChangePasswordScreen extends StatefulWidget {
+  const StudentChangePasswordScreen({super.key});
+
+  @override
+  State<StudentChangePasswordScreen> createState() =>
+      _StudentChangePasswordScreenState();
+}
+
+class _StudentChangePasswordScreenState
+    extends State<StudentChangePasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final l10n = AppLocalizations.of(context);
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      if (client.auth.currentUser == null) {
+        setState(() {
+          _error = l10n.profileErrorNotSignedIn;
+        });
+        return;
+      }
+
+      await client.auth.updateUser(
+        UserAttributes(password: _newPasswordController.text),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authPasswordUpdateSuccess)));
+      context.pop();
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.authPasswordUpdateFailedGeneric;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 12, 24, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.profileChangePassword,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.profileChangePasswordSubtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFBAE6FD),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0F000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.authNewPasswordLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _IconTextField(
+                        controller: _newPasswordController,
+                        obscureText: true,
+                        hintText: l10n.authNewPasswordHint,
+                        icon: Icons.lock_rounded,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.authPasswordRequiredError;
+                          }
+                          if (value.length < 6) {
+                            return l10n.authPasswordMinLengthError(6);
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.authConfirmPasswordLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _IconTextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        hintText: l10n.authConfirmPasswordHint,
+                        icon: Icons.lock_outline_rounded,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.authConfirmPasswordRequiredError;
+                          }
+                          if (value != _newPasswordController.text) {
+                            return l10n.authPasswordMismatchError;
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Color(0xFFDC2626),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: _submitting ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF0EA5E9),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: _submitting
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                          label: Text(l10n.commonUpdate),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

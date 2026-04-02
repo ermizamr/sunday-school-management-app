@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import 'servant_analytics_calculations.dart';
 import 'servant_analytics_repository.dart';
@@ -45,6 +46,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return FutureBuilder<ServantAnalyticsSnapshot>(
       future: _future,
@@ -58,9 +60,9 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
         if (snapshot.hasError) {
           final message = snapshot.error is ServantAnalyticsException
               ? (snapshot.error as ServantAnalyticsException).message
-              : 'Failed to load analytics.';
+              : l10n.servantAnalyticsLoadFailed;
           return Scaffold(
-            appBar: AppBar(title: const Text('Grade Analytics')),
+            appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -80,7 +82,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                               .loadActiveYearForCurrentServantGrade();
                         });
                       },
-                      child: const Text('Retry'),
+                      child: Text(l10n.commonRetry),
                     ),
                   ],
                 ),
@@ -142,8 +144,8 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Grade Analytics',
+                                        Text(
+                                          l10n.servantAnalyticsTitle,
                                           style: TextStyle(
                                             fontSize: 22,
                                             fontWeight: FontWeight.w700,
@@ -152,7 +154,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Performance Insights & Trends',
+                                          l10n.servantAnalyticsSubtitle,
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.white.withOpacity(
@@ -221,6 +223,7 @@ class _OverviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final atRiskPercent = data.totalStudents <= 0
         ? 0
         : ((data.atRiskStudents.length / data.totalStudents) * 100).round();
@@ -239,34 +242,38 @@ class _OverviewView extends StatelessWidget {
             MetricCard(
               icon: Icons.my_location_rounded,
               iconColor: Colors.lightBlue.shade600,
-              label: 'Class Average',
+              label: l10n.servantAnalyticsMetricClassAverage,
               value: '${data.classAverage}%',
-              subLabel:
-                  '${data.studentsWithGrades}/${data.totalStudents} students',
+              subLabel: l10n.servantAnalyticsStudentsWithGradesLabel(
+                data.studentsWithGrades,
+                data.totalStudents,
+              ),
               valueColor: const Color(0xFF0F172A),
             ),
             MetricCard(
               icon: Icons.warning_amber_rounded,
               iconColor: Colors.amber.shade700,
-              label: 'At-Risk',
+              label: l10n.servantAnalyticsMetricAtRisk,
               value: '${data.atRiskStudents.length}',
-              subLabel: '$atRiskPercent% of class',
+              subLabel: l10n.servantAnalyticsAtRiskPercentOfClass(
+                atRiskPercent,
+              ),
               valueColor: Colors.amber.shade700,
             ),
             MetricCard(
               icon: Icons.emoji_events_rounded,
               iconColor: Colors.green.shade700,
-              label: 'Top Performers',
+              label: l10n.servantAnalyticsMetricTopPerformers,
               value: '${data.topPerformers.length}',
-              subLabel: 'Students ≥ 90%',
+              subLabel: l10n.servantAnalyticsTopPerformersThreshold,
               valueColor: Colors.green.shade700,
             ),
             MetricCard(
               icon: Icons.menu_book_rounded,
               iconColor: Colors.red.shade600,
-              label: 'Missing Work',
+              label: l10n.servantAnalyticsMetricMissingWork,
               value: '${data.studentsWithMissing.length}',
-              subLabel: 'Students incomplete',
+              subLabel: l10n.servantAnalyticsMissingWorkSubtitle,
               valueColor: Colors.red.shade600,
             ),
           ],
@@ -276,13 +283,13 @@ class _OverviewView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.bar_chart_rounded, color: Color(0xFF334155)),
-                  SizedBox(width: 8),
+                  const Icon(Icons.bar_chart_rounded, color: Color(0xFF334155)),
+                  const SizedBox(width: 8),
                   Text(
-                    'Grade Distribution',
-                    style: TextStyle(
+                    l10n.servantAnalyticsGradeDistributionTitle,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0F172A),
@@ -303,9 +310,9 @@ class _OverviewView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Subject Performance',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsSubjectPerformanceTitle,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -361,9 +368,9 @@ class _OverviewView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Performance by Assessment Type',
-                  style: TextStyle(
+                Text(
+                  l10n.servantAnalyticsPerformanceByAssessmentTypeTitle,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
@@ -422,14 +429,15 @@ class _InsightsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final items = <Widget>[];
 
     if (data.classAverage >= 80) {
       items.add(
-        const _InsightLine(
+        _InsightLine(
           leading: '✓',
           leadingColor: Colors.green,
-          text: 'Class is performing well with an average of 80%+',
+          text: l10n.servantAnalyticsInsightClassPerformingWell,
         ),
       );
     }
@@ -439,8 +447,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '⚠',
           leadingColor: Colors.amber.shade800,
-          text:
-              '${data.atRiskStudents.length} student${data.atRiskStudents.length > 1 ? 's' : ''} need additional support (below 70%)',
+          text: l10n.servantAnalyticsInsightAtRiskStudents(
+            data.atRiskStudents.length,
+          ),
         ),
       );
     }
@@ -450,8 +459,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '!',
           leadingColor: Colors.red.shade700,
-          text:
-              '${data.studentsWithMissing.length} student${data.studentsWithMissing.length > 1 ? 's have' : ' has'} incomplete assessments',
+          text: l10n.servantAnalyticsInsightIncompleteAssessments(
+            data.studentsWithMissing.length,
+          ),
         ),
       );
     }
@@ -461,8 +471,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '⭐',
           leadingColor: Colors.green.shade700,
-          text:
-              '${data.topPerformers.length} student${data.topPerformers.length > 1 ? 's are' : ' is'} excelling (top ${data.topPerformers.length})',
+          text: l10n.servantAnalyticsInsightTopPerformers(
+            data.topPerformers.length,
+          ),
         ),
       );
     }
@@ -470,9 +481,9 @@ class _InsightsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Key Insights',
-          style: TextStyle(
+        Text(
+          l10n.servantAnalyticsKeyInsightsTitle,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
@@ -480,9 +491,9 @@ class _InsightsList extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (items.isEmpty)
-          const Text(
-            'No insights yet.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF334155)),
+          Text(
+            l10n.servantAnalyticsNoInsightsYet,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
           )
         else
           ...items.expand((w) sync* {
@@ -543,13 +554,14 @@ class _SubjectsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (selectedSubjectId == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Select a Subject',
-            style: TextStyle(
+          Text(
+            l10n.servantAnalyticsSelectSubjectTitle,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
@@ -599,17 +611,17 @@ class _SubjectsView extends StatelessWidget {
                       Row(
                         children: [
                           _MiniStat(
-                            label: 'Highest',
+                            label: l10n.servantAnalyticsHighestLabel,
                             value: '${s.highest}%',
                             valueColor: Colors.green.shade700,
                           ),
                           _MiniStat(
-                            label: 'Lowest',
+                            label: l10n.servantAnalyticsLowestLabel,
                             value: '${s.lowest}%',
                             valueColor: Colors.red.shade700,
                           ),
                           _MiniStat(
-                            label: 'Incomplete',
+                            label: l10n.servantAnalyticsIncompleteLabel,
                             value: '${s.incomplete}',
                             valueColor: Colors.amber.shade700,
                           ),
@@ -642,7 +654,7 @@ class _SubjectsView extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Back to Subjects',
+                l10n.servantAnalyticsBackToSubjects,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -666,9 +678,9 @@ class _SubjectsView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Grade Distribution',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsGradeDistributionTitle,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF334155),
@@ -687,9 +699,9 @@ class _SubjectsView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Assessment Breakdown',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsAssessmentBreakdownTitle,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
@@ -756,7 +768,10 @@ class _SubjectsView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${a.completed}/${a.total} completed',
+                                  l10n.servantAnalyticsCompletedOutOf(
+                                    a.completed,
+                                    a.total,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -835,12 +850,13 @@ class _StudentsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _StudentListCard(
-          title: 'Top Performers',
-          subtitle: 'Students with highest averages',
+          title: l10n.servantAnalyticsMetricTopPerformers,
+          subtitle: l10n.servantAnalyticsTopPerformersSubtitle,
           icon: Icons.emoji_events_rounded,
           iconColor: Colors.green.shade700,
           headerGradient: LinearGradient(
@@ -865,8 +881,8 @@ class _StudentsView extends StatelessWidget {
         const SizedBox(height: 16),
         if (data.atRiskStudents.isNotEmpty)
           _StudentListCard(
-            title: 'Students Needing Support',
-            subtitle: 'Below 70% average - requires attention',
+            title: l10n.servantAnalyticsStudentsNeedingSupportTitle,
+            subtitle: l10n.servantAnalyticsStudentsNeedingSupportSubtitle,
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.amber.shade800,
             headerGradient: LinearGradient(
@@ -884,15 +900,15 @@ class _StudentsView extends StatelessWidget {
                   gradeName: s.gradeName,
                   value: '${s.average}%',
                   valueColor: Colors.amber.shade800,
-                  subValue: 'Needs help',
+                  subValue: l10n.servantAnalyticsNeedsHelp,
                 ),
             ],
           ),
         if (data.atRiskStudents.isNotEmpty) const SizedBox(height: 16),
         if (data.studentsWithMissing.isNotEmpty)
           _StudentListCard(
-            title: 'Incomplete Assessments',
-            subtitle: 'Students with missing work',
+            title: l10n.servantAnalyticsIncompleteAssessmentsTitle,
+            subtitle: l10n.servantAnalyticsIncompleteAssessmentsSubtitle,
             icon: Icons.menu_book_rounded,
             iconColor: Colors.red.shade700,
             headerGradient: LinearGradient(
@@ -910,7 +926,9 @@ class _StudentsView extends StatelessWidget {
                   gradeName: s.gradeName,
                   value: '${s.missingSubjectCount}',
                   valueColor: Colors.red.shade700,
-                  subValue: 'subject${s.missingSubjectCount == 1 ? '' : 's'}',
+                  subValue: l10n.servantAnalyticsSubjectsLabel(
+                    s.missingSubjectCount,
+                  ),
                 ),
             ],
             footer: data.studentsWithMissing.length > 10
@@ -921,7 +939,9 @@ class _StudentsView extends StatelessWidget {
                     ),
                     decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
                     child: Text(
-                      'And ${data.studentsWithMissing.length - 10} more...',
+                      l10n.servantAnalyticsAndMore(
+                        data.studentsWithMissing.length - 10,
+                      ),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -959,6 +979,7 @@ class _StudentListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
@@ -1012,13 +1033,19 @@ class _StudentListCard extends StatelessWidget {
               ),
             ),
             if (rows.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'No students to display.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    l10n.servantAnalyticsNoStudentsToDisplay,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                 ),
               )

@@ -5,6 +5,7 @@ import { useAuth } from "../auth/useAuth";
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { Button } from "../components/ui/button";
+import { t } from "../i18n/t";
 
 export function RequireAuth() {
   const { session, isLoading, signOut } = useAuth();
@@ -69,7 +70,7 @@ export function RequireAuth() {
   if (isLoading) {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
       </div>
     );
   }
@@ -87,7 +88,9 @@ export function RequireAuth() {
   if (adminCheck.status === "loading" || adminCheck.status === "idle") {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <div className="text-sm text-muted-foreground">Verifying admin access…</div>
+        <div className="text-sm text-muted-foreground">
+          {t("commonVerifyingAdminAccess")}
+        </div>
       </div>
     );
   }
@@ -99,7 +102,7 @@ export function RequireAuth() {
         replace
         state={{
           from: location.pathname + location.search,
-          message: "Not an admin. Please sign in with an admin account.",
+          message: t("authNotAdminMessage"),
         }}
       />
     );
@@ -110,12 +113,12 @@ export function RequireAuth() {
       <div className="flex min-h-svh items-center justify-center px-4">
         <div className="w-full max-w-md">
           <ErrorBanner
-            title="Unable to verify admin access"
+            title={t("authUnableToVerifyAdminTitle")}
             message={adminCheck.message}
           />
           <div className="mt-3 flex justify-end">
             <Button variant="outline" onClick={() => void signOut()}>
-              Sign out
+              {t("commonSignOut")}
             </Button>
           </div>
         </div>

@@ -12,8 +12,10 @@ void main() {
   testWidgets('App renders role selection', (WidgetTester tester) async {
     await tester.pumpWidget(const SundaySchoolApp());
 
-    expect(find.text('Sunday School'), findsOneWidget);
-    expect(find.text('Student'), findsOneWidget);
-    expect(find.text('Servant'), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    expect(find.text('ሰንበት ት/ቤት'), findsOneWidget);
+    expect(find.text('ተማሪ'), findsOneWidget);
+    expect(find.text('አገልጋይ'), findsOneWidget);
   });
 }

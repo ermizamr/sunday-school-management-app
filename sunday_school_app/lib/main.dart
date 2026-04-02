@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import 'core/bootstrap/bootstrap_error_screen.dart';
 import 'core/refresh/app_refresh_controller.dart';
@@ -46,7 +48,17 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
     defaultOnRefresh: () async {
       try {
         await SupabaseClientManager.instance.client.auth.refreshSession();
-      } catch (_) {}
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        final looksLikeInvalidJwt =
+            msg.contains('invalid jwt') ||
+            (msg.contains('jwt') && msg.contains('invalid'));
+        if (looksLikeInvalidJwt) {
+          try {
+            await SupabaseClientManager.instance.client.auth.signOut();
+          } catch (_) {}
+        }
+      }
       try {
         appRouter.refresh();
       } catch (_) {}
@@ -60,17 +72,27 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
       useMaterial3: true,
     );
 
+    const locale = Locale('am');
+
     if (widget.bootstrapError != null) {
       return MaterialApp(
-        title: 'DEAS EMSS',
+        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
         theme: theme,
+        locale: locale,
+        localeResolutionCallback: (deviceLocale, supportedLocales) => locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [locale],
         home: BootstrapErrorScreen(message: widget.bootstrapError.toString()),
       );
     }
 
     return MaterialApp.router(
-      title: 'DEAS EMSS',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: theme,
+      locale: locale,
+      localeResolutionCallback: (deviceLocale, supportedLocales) => locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [locale],
       routerConfig: appRouter,
       builder: (context, child) {
         final routedChild = child ?? const SizedBox.shrink();

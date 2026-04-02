@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -95,7 +96,7 @@ export function PromotionsPage() {
       .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
       .map((item) => ({
         gradeId: typeof item.grade_id === "string" ? item.grade_id : "",
-        gradeName: typeof item.grade_name === "string" ? item.grade_name : "Unknown grade",
+        gradeName: typeof item.grade_name === "string" ? item.grade_name : t("promotionsUnknownGrade"),
         runId: typeof item.run_id === "string" ? item.run_id : "",
         totalStudents: typeof item.total_students === "number" ? item.total_students : 0,
         eligible: typeof item.eligible === "number" ? item.eligible : 0,
@@ -265,14 +266,14 @@ export function PromotionsPage() {
     setError(null);
 
     if (!selectedYearId || !selectedGradeId) {
-      setError("Choose an academic year and grade before saving criteria.");
+      setError(t("promotionsValidationChooseYearAndGrade"));
       return;
     }
 
     setCriteriaSaving(true);
     try {
       if (subjects.length === 0) {
-        setError("No subjects found for the selected grade. Add subjects before saving promotion criteria.");
+        setError(t("promotionsValidationNoSubjectsForGrade"));
         return;
       }
 
@@ -282,7 +283,7 @@ export function PromotionsPage() {
       });
 
       if (missingSubjects.length > 0) {
-        setError("Enter minimum present days for every subject before saving criteria.");
+        setError(t("promotionsValidationMissingAttendanceDays"));
         return;
       }
 
@@ -292,7 +293,7 @@ export function PromotionsPage() {
       });
 
       if (missingSubjectGrades.length > 0) {
-        setError("Enter minimum grade for every subject before saving criteria.");
+        setError(t("promotionsValidationMissingSubjectGrades"));
         return;
       }
 
@@ -311,15 +312,13 @@ export function PromotionsPage() {
         .single();
 
       if (upsertError) {
-        setError(
-          `Failed to save criteria. Details: ${upsertError.message}`,
-        );
+        setError(t("promotionsErrorSaveCriteriaDetails", { details: upsertError.message }));
         return;
       }
 
       const criteriaSetId = criteriaSet?.id;
       if (!criteriaSetId) {
-        setError("Failed to save criteria subjects because criteria set id was not returned.");
+        setError(t("promotionsErrorCriteriaSetIdMissing"));
         return;
       }
 
@@ -329,7 +328,7 @@ export function PromotionsPage() {
         .eq("criteria_set_id", criteriaSetId);
 
       if (existingRowsError) {
-        setError(`Failed to load existing subject criteria. Details: ${existingRowsError.message}`);
+        setError(t("promotionsErrorLoadExistingCriteriaDetails", { details: existingRowsError.message }));
         return;
       }
 
@@ -367,7 +366,7 @@ export function PromotionsPage() {
           .upsert(subjectRows, { onConflict: "criteria_set_id,subject_id" });
 
         if (upsertSubjectsError) {
-          setError(`Failed to save subject attendance-day rules. Details: ${upsertSubjectsError.message}`);
+          setError(t("promotionsErrorSaveSubjectRulesDetails", { details: upsertSubjectsError.message }));
           return;
         }
       }
@@ -418,7 +417,7 @@ export function PromotionsPage() {
     setResult(null);
 
     if (!selectedYearId) {
-      setError("Choose an academic year.");
+      setError(t("promotionsValidationChooseYear"));
       return;
     }
 
@@ -443,29 +442,29 @@ export function PromotionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Promotions</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("promotionsTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Run grade promotions for a given academic year based on the average of semester 1 and semester 2.
+          {t("promotionsSubtitle")}
         </p>
       </div>
 
-      {error ? <ErrorBanner title="Request failed" message={error} /> : null}
+      {error ? <ErrorBanner title={t("commonRequestFailed")} message={error} /> : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Promotion criteria</CardTitle>
+          <CardTitle>{t("promotionsCriteriaTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages. Per-subject attendance days are weighted as present=1.0 day, permission=1.0 day, late=0.5 day, absent=0 day.
+            {t("promotionsCriteriaNote")}
           </div>
 
           <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            Active academic year: <span className="font-medium text-foreground">{activeYear?.name ?? "Not set"}</span>
+            {t("promotionsActiveYearLabel")} <span className="font-medium text-foreground">{activeYear?.name ?? t("promotionsNotSet")}</span>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="criteria-grade">Grade</Label>
+            <Label htmlFor="criteria-grade">{t("promotionsGradeLabel")}</Label>
             <select
               id="criteria-grade"
               className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -483,33 +482,33 @@ export function PromotionsPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="min-overall">Minimum overall average</Label>
+            <Label htmlFor="min-overall">{t("promotionsMinOverallLabel")}</Label>
             <Input
               id="min-overall"
               inputMode="decimal"
-              placeholder="Default: 70"
+              placeholder={t("promotionsMinOverallPlaceholder")}
               value={minimumOverallAverage}
               onChange={(e) => setMinimumOverallAverage(e.target.value)}
               disabled={isLoading}
             />
             <div className="text-xs text-muted-foreground">
-              Used when measuring by overall subjects average.
+              {t("promotionsMinOverallHint")}
             </div>
           </div>
 
           <div className="md:col-span-3 grid gap-3">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Per-subject requirements</div>
-              <div className="text-xs text-muted-foreground">{subjects.length} subjects</div>
+              <div className="text-sm font-medium">{t("promotionsPerSubjectTitle")}</div>
+              <div className="text-xs text-muted-foreground">{t("promotionsSubjectsCount", { count: subjects.length })}</div>
             </div>
             {isSubjectsFallback ? (
               <div className="text-xs text-amber-700 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
-                No subjects are assigned to this grade yet. Showing all subjects so you can still configure minimum days.
+                {t("promotionsNoSubjectsAssigned")}
               </div>
             ) : null}
             {subjects.length === 0 ? (
               <div className="text-xs text-muted-foreground rounded-md border bg-muted/20 px-3 py-2">
-                No subjects found for this grade.
+                {t("promotionsNoSubjectsFound")}
               </div>
             ) : (
               <>
@@ -517,9 +516,9 @@ export function PromotionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Minimum Grade</TableHead>
-                        <TableHead>Minimum Present Days</TableHead>
+                        <TableHead>{t("promotionsTableSubject")}</TableHead>
+                        <TableHead>{t("promotionsTableMinGrade")}</TableHead>
+                        <TableHead>{t("promotionsTableMinPresentDays")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -528,7 +527,7 @@ export function PromotionsPage() {
                           <TableCell>
                             <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
                             <div className="text-xs text-muted-foreground">
-                              {subject.active === false ? "Inactive subject" : "Active subject"}
+                              {subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -573,12 +572,12 @@ export function PromotionsPage() {
                       <div className="mb-3">
                         <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
                         <div className="text-xs text-muted-foreground">
-                          {subject.active === false ? "Inactive subject" : "Active subject"}
+                          {subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}
                         </div>
                       </div>
                       <div className="grid gap-2">
                         <div className="grid gap-1">
-                          <Label className="text-xs">Minimum grade</Label>
+                          <Label className="text-xs">{t("promotionsMobileMinGrade")}</Label>
                           <Input
                             inputMode="decimal"
                             placeholder="e.g. 60"
@@ -594,7 +593,7 @@ export function PromotionsPage() {
                           />
                         </div>
                         <div className="grid gap-1">
-                          <Label className="text-xs">Minimum present days</Label>
+                          <Label className="text-xs">{t("promotionsMobileMinPresentDays")}</Label>
                           <Input
                             inputMode="decimal"
                             placeholder="e.g. 24"
@@ -623,7 +622,7 @@ export function PromotionsPage() {
               disabled={isLoading || criteriaSaving || !selectedYearId || !selectedGradeId}
               onClick={() => void saveCriteria()}
             >
-              {criteriaSaving ? "Saving…" : "Save criteria"}
+              {criteriaSaving ? t("commonSaving") : t("promotionsSaveCriteria")}
             </Button>
           </div>
         </CardContent>
@@ -631,18 +630,18 @@ export function PromotionsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Run promotion</CardTitle>
+          <CardTitle>{t("promotionsRunTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            Runs promotion for all grades in the active academic year.
+            {t("promotionsRunNote")}
           </div>
 
           <div className="grid gap-2 md:col-span-3">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{t("promotionsNotesLabel")}</Label>
             <Input
               id="notes"
-              placeholder="Optional run notes"
+              placeholder={t("promotionsNotesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -650,7 +649,7 @@ export function PromotionsPage() {
 
           <div className="md:col-span-3">
             <Button disabled={isLoading || isRunning} onClick={() => void runPromotion()}>
-              {isRunning ? "Running…" : "Run promotion"}
+              {isRunning ? t("promotionsRunning") : t("promotionsRunButton")}
             </Button>
           </div>
         </CardContent>
@@ -658,7 +657,7 @@ export function PromotionsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Result</CardTitle>
+          <CardTitle>{t("promotionsResultTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {result ? (
@@ -666,30 +665,30 @@ export function PromotionsPage() {
               <div className="rounded-lg border bg-muted/20 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-foreground">All-grades promotion completed</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Processed grades: {promotionSummary?.totalGrades ?? "—"}</div>
+                    <div className="text-sm font-semibold text-foreground">{t("promotionsCompleted")}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{t("promotionsProcessedGrades")} {promotionSummary?.totalGrades ?? "—"}</div>
                   </div>
                 </div>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   <div className="rounded-md border bg-background p-3">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Total</div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("promotionsSummaryTotal")}</div>
                     <div className="mt-1 text-lg font-semibold text-foreground">{promotionSummary?.totalStudents ?? "—"}</div>
                   </div>
                   <div className="rounded-md border bg-emerald-50 p-3">
-                    <div className="text-[11px] uppercase tracking-wide text-emerald-700">Eligible</div>
+                    <div className="text-[11px] uppercase tracking-wide text-emerald-700">{t("promotionsSummaryEligible")}</div>
                     <div className="mt-1 text-lg font-semibold text-emerald-800">{promotionSummary?.eligible ?? "—"}</div>
                   </div>
                   <div className="rounded-md border bg-amber-50 p-3">
-                    <div className="text-[11px] uppercase tracking-wide text-amber-700">At Risk</div>
+                    <div className="text-[11px] uppercase tracking-wide text-amber-700">{t("promotionsSummaryAtRisk")}</div>
                     <div className="mt-1 text-lg font-semibold text-amber-800">{promotionSummary?.atRisk ?? "—"}</div>
                   </div>
                   <div className="rounded-md border bg-rose-50 p-3">
-                    <div className="text-[11px] uppercase tracking-wide text-rose-700">Not Eligible</div>
+                    <div className="text-[11px] uppercase tracking-wide text-rose-700">{t("promotionsSummaryNotEligible")}</div>
                     <div className="mt-1 text-lg font-semibold text-rose-800">{promotionSummary?.notEligible ?? "—"}</div>
                   </div>
                   <div className="rounded-md border bg-primary/10 p-3">
-                    <div className="text-[11px] uppercase tracking-wide text-primary">Graduated</div>
+                    <div className="text-[11px] uppercase tracking-wide text-primary">{t("promotionsSummaryGraduated")}</div>
                     <div className="mt-1 text-lg font-semibold text-primary">{promotionSummary?.graduated ?? "—"}</div>
                   </div>
                 </div>
@@ -698,12 +697,12 @@ export function PromotionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Grade</TableHead>
-                        <TableHead>Students</TableHead>
-                        <TableHead>Eligible</TableHead>
-                        <TableHead>At Risk</TableHead>
-                        <TableHead>Not Eligible</TableHead>
-                        <TableHead>Graduated</TableHead>
+                        <TableHead>{t("promotionsTableGrade")}</TableHead>
+                        <TableHead>{t("promotionsTableStudents")}</TableHead>
+                        <TableHead>{t("promotionsSummaryEligible")}</TableHead>
+                        <TableHead>{t("promotionsSummaryAtRisk")}</TableHead>
+                        <TableHead>{t("promotionsSummaryNotEligible")}</TableHead>
+                        <TableHead>{t("promotionsSummaryGraduated")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -711,7 +710,7 @@ export function PromotionsPage() {
                         <TableRow key={gradeSummary.gradeId}>
                           <TableCell>
                             <div className="font-medium text-foreground">{gradeSummary.gradeName}</div>
-                            <div className="text-xs text-muted-foreground">Run: {gradeSummary.runId}</div>
+                            <div className="text-xs text-muted-foreground">{t("promotionsRunLabel")} {gradeSummary.runId}</div>
                           </TableCell>
                           <TableCell>{gradeSummary.totalStudents}</TableCell>
                           <TableCell className="text-emerald-700 font-medium">{gradeSummary.eligible}</TableCell>
@@ -727,7 +726,7 @@ export function PromotionsPage() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No result yet.
+              {t("promotionsNoResultYet")}
             </div>
           )}
         </CardContent>

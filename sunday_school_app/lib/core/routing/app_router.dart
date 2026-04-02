@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/student/presentation/student_screens.dart';
@@ -11,6 +12,29 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/',
+  redirect: (context, state) {
+    final path = state.uri.path;
+    Session? session;
+    try {
+      session = Supabase.instance.client.auth.currentSession;
+    } catch (_) {
+      // Supabase may not be initialized yet (e.g., in widget tests).
+      session = null;
+    }
+    final signedIn = session != null;
+
+    // Prevent accessing authenticated areas with anon token (causes invalid JWT).
+    if (!signedIn) {
+      if (path.startsWith('/servant/') && path != '/servant/login') {
+        return '/servant/login';
+      }
+      if (path.startsWith('/student/') && path != '/student/login') {
+        return '/student/login';
+      }
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',
@@ -70,6 +94,14 @@ final GoRouter appRouter = GoRouter(
               path: '/student/profile',
               name: 'student-profile',
               builder: (context, state) => const StudentProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: 'change-password',
+                  name: 'student-change-password',
+                  builder: (context, state) =>
+                      const StudentChangePasswordScreen(),
+                ),
+              ],
             ),
           ],
         ),

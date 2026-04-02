@@ -15,17 +15,18 @@ import {
 
 import { Button } from "../components/ui/button";
 import { useAuth } from "../auth/useAuth";
+import { t } from "../i18n/t";
 
 const navItems = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/users", label: "Students", icon: Users },
-  { to: "/admin/servants", label: "Servants", icon: UserCog },
-  { to: "/admin/grades", label: "Grades", icon: GraduationCap },
-  { to: "/admin/subjects", label: "Subjects", icon: BookOpen },
-  { to: "/admin/academic-year", label: "Academic Year", icon: CalendarDays },
-  { to: "/admin/promotions", label: "Promotions", icon: TrendingUp },
-  { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/admin/graduates", label: "Graduates", icon: UserCheck },
+  { to: "/admin/dashboard", label: t("navDashboard"), icon: LayoutDashboard },
+  { to: "/admin/users", label: t("navStudents"), icon: Users },
+  { to: "/admin/servants", label: t("navServants"), icon: UserCog },
+  { to: "/admin/grades", label: t("navGrades"), icon: GraduationCap },
+  { to: "/admin/subjects", label: t("navSubjects"), icon: BookOpen },
+  { to: "/admin/academic-year", label: t("navAcademicYear"), icon: CalendarDays },
+  { to: "/admin/promotions", label: t("navPromotions"), icon: TrendingUp },
+  { to: "/admin/announcements", label: t("navAnnouncements"), icon: Megaphone },
+  { to: "/admin/graduates", label: t("navGraduates"), icon: UserCheck },
 ] as const;
 
 export function AdminLayout() {
@@ -38,7 +39,7 @@ export function AdminLayout() {
         <div className="h-16 flex items-center px-6 border-b border-border/50">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="w-6 h-6" />
-            <span className="font-bold text-lg tracking-wide">Admin Portal</span>
+            <span className="font-bold text-lg tracking-wide">{t("commonAdminPortal")}</span>
           </div>
         </div>
 
@@ -69,7 +70,7 @@ export function AdminLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">
-                {user?.email?.split('@')[0] ?? "Admin User"}
+                {user?.email?.split('@')[0] ?? t("commonAdminUser")}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {user?.email ?? user?.id}
@@ -82,7 +83,7 @@ export function AdminLayout() {
             onClick={() => void signOut()}
           >
             <LogOut className="w-4 h-4" />
-            Sign out
+            {t("commonSignOut")}
           </Button>
         </div>
       </aside>

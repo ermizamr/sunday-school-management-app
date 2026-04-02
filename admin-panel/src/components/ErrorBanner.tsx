@@ -1,7 +1,8 @@
 import { cn } from "../components/ui/utils";
+import { t } from "../i18n/t";
 
 export function ErrorBanner({
-  title = "Error",
+  title = t("commonError"),
   message,
   className,
 }: {

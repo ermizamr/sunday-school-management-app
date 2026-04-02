@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { t } from "../i18n/t";
 
 export function SignInPage() {
   const { session } = useAuth();
@@ -53,15 +54,15 @@ export function SignInPage() {
     <div className="min-h-svh bg-background text-foreground flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Admin sign in</CardTitle>
+          <CardTitle>{t("authAdminSignInTitle")}</CardTitle>
           <CardDescription>
-            Use your Supabase Auth email and password.
+            {t("authSignInDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={onSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("authEmailLabel")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -73,7 +74,7 @@ export function SignInPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("authPasswordLabel")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -85,17 +86,17 @@ export function SignInPage() {
             </div>
 
             {preAuthMessage ? (
-              <ErrorBanner title="Access denied" message={preAuthMessage} />
+              <ErrorBanner title={t("authAccessDeniedTitle")} message={preAuthMessage} />
             ) : null}
 
-            {error ? <ErrorBanner title="Sign-in failed" message={error} /> : null}
+            {error ? <ErrorBanner title={t("authSignInFailedTitle")} message={error} /> : null}
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in…" : "Sign in"}
+              {isSubmitting ? t("authSigningIn") : t("authSignInButton")}
             </Button>
 
             <div className="text-xs text-muted-foreground">
-              Access is enforced by Supabase RLS policies.
+              {t("authRlsNote")}
             </div>
           </form>
         </CardContent>
