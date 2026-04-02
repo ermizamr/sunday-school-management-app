@@ -12,10 +12,10 @@ class AppLocalizationsAm extends AppLocalizations {
   String get appTitle => 'DEAS EMSS';
 
   @override
-  String get roleSelectionTitle => 'ሰንበት ት/ቤት';
+  String get roleSelectionTitle => 'እግዚአብሔር ምስሌነ';
 
   @override
-  String get roleSelectionSubtitle => 'ዲጂታል አስተዳደር ሥርዓት';
+  String get roleSelectionSubtitle => 'የተከታታይ ትምህርት ዲጂታል አስተዳደር ሥርዓት';
 
   @override
   String get roleStudent => 'ተማሪ';
@@ -368,13 +368,13 @@ class AppLocalizationsAm extends AppLocalizations {
   String get authLoginSubtitle => 'ለመቀጠል የመለያ መረጃዎን ያስገቡ';
 
   @override
-  String get authEmailLabel => 'የተማሪ መለያ';
+  String get authEmailLabel => 'መለያ';
 
   @override
   String get authPasswordLabel => 'የይለፍ ቃል';
 
   @override
-  String get authEmailHint => 'የተማሪ መለያዎን ያስገቡ';
+  String get authEmailHint => 'መለያዎን ያስገቡ';
 
   @override
   String get authPasswordHint => 'የይለፍ ቃልዎን ያስገቡ';
