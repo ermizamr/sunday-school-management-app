@@ -34,7 +34,7 @@ export async function requireAdmin(req: Request): Promise<GuardResult> {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const { data: profile, error: profileError } = await adminClient
     .from("profiles")
-    .select("role")
+    .select("role, account_status")
     .eq("id", data.user.id)
     .maybeSingle();
 
@@ -44,6 +44,10 @@ export async function requireAdmin(req: Request): Promise<GuardResult> {
 
   if (profile?.role !== "admin") {
     return { ok: false, status: 403, body: { error: "Forbidden" } };
+  }
+
+  if (profile?.account_status !== "active") {
+    return { ok: false, status: 403, body: { error: "Inactive account" } };
   }
 
   return { ok: true, adminClient, callerId: data.user.id };

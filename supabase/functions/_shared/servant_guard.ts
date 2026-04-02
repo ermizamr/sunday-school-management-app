@@ -6,6 +6,8 @@ type GuardResult =
     adminClient: ReturnType<typeof createClient>;
     callerId: string;
     callerRole: string;
+    callerGradeId: string | null;
+    callerAccountStatus: string;
   }
   | { ok: false; status: number; body: unknown };
 
@@ -39,7 +41,7 @@ export async function requireServantOrAdmin(req: Request): Promise<GuardResult> 
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const { data: profile, error: profileError } = await adminClient
     .from("profiles")
-    .select("role")
+    .select("role, grade_id, account_status")
     .eq("id", data.user.id)
     .maybeSingle();
 
@@ -47,11 +49,28 @@ export async function requireServantOrAdmin(req: Request): Promise<GuardResult> 
     return { ok: false, status: 500, body: { error: profileError.message } };
   }
 
-  const role = (profile?.role ?? '').toString();
+  const role = (profile?.role ?? "").toString();
+  const gradeId = (profile?.grade_id ?? null) as string | null;
+  const accountStatus = (profile?.account_status ?? "").toString();
 
   if (role !== "servant" && role !== "admin") {
     return { ok: false, status: 403, body: { error: "Forbidden" } };
   }
 
-  return { ok: true, adminClient, callerId: data.user.id, callerRole: role };
+  if (accountStatus !== "active") {
+    return { ok: false, status: 403, body: { error: "Inactive account" } };
+  }
+
+  if (role === "servant" && !gradeId) {
+    return { ok: false, status: 403, body: { error: "Servant must be assigned to a grade" } };
+  }
+
+  return {
+    ok: true,
+    adminClient,
+    callerId: data.user.id,
+    callerRole: role,
+    callerGradeId: gradeId,
+    callerAccountStatus: accountStatus,
+  };
 }

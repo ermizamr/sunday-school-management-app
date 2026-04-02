@@ -93,7 +93,7 @@ export const am = {
   usersPromptNewPassword: "{name} የሚለው አዲስ የይለፍ ቃል፦",
   usersActivate: "አንቃ",
   usersDeactivate: "አስቁም",
-  usersValidationRequired: "አካዳሚክ መለያ፣ ስም እና የይለፍ ቃል ያስፈልጋሉ።",
+  usersValidationRequired: "አካዳሚክ መለያ፣ ስም፣ የይለፍ ቃል እና ክፍል ያስፈልጋሉ።",
   usersGraduatedReadOnlyError:
     "ተመራቂ ተጠቃሚዎች በዚህ መቀያየሪያ ውስጥ ለመቀየር ተቆልፈዋል። ካስፈለገ በbackend admin tools ይቀይሩ።",
   usersConfirmToggleStatus: "እርግጠኛ ነዎት የሚፈልጉት እርምጃ ({action}) በ{name} ላይ እንዲፈጸም?",

@@ -160,7 +160,7 @@ export function UsersPage() {
     const password = createPassword.trim();
     const email = createEmail.trim();
 
-    if (!academicId || !name || !password) {
+    if (!academicId || !name || !password || !createGradeId) {
       setError(t("usersValidationRequired"));
       return;
     }

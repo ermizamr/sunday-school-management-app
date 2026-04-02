@@ -277,7 +277,7 @@ async function requireCaller(req: Request) {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const { data: profile, error: profileError } = await adminClient
     .from("profiles")
-    .select("role")
+    .select("role, account_status")
     .eq("id", userData.user.id)
     .maybeSingle();
 
@@ -286,8 +286,14 @@ async function requireCaller(req: Request) {
   }
 
   const role = (profile?.role ?? null) as UserRole | null;
+  const accountStatus = (profile?.account_status ?? null) as string | null;
+
   if (role !== "admin" && role !== "servant") {
     return { ok: false, status: 403, body: { error: "Forbidden" } } as const;
+  }
+
+  if (accountStatus !== "active") {
+    return { ok: false, status: 403, body: { error: "Inactive account" } } as const;
   }
 
   return { ok: true, adminClient, callerId: userData.user.id, callerRole: role } as const;

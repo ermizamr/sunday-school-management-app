@@ -101,13 +101,24 @@ serve(async (req: Request) => {
     const body = (await req.json()) as Partial<RegisterStudentBody>;
 
     const name = (body.name ?? "").trim();
-    const gradeId = (body.grade_id ?? "").trim();
+    const requestedGradeId = (body.grade_id ?? "").trim();
     const requestedAcademicId = (body.academic_id ?? "").trim();
+
+    const gradeId = guard.callerRole === "servant"
+      ? (guard.callerGradeId ?? "")
+      : requestedGradeId;
 
     if (!name || !gradeId) {
       return jsonResponse(
         { error: "Missing required fields: name, grade_id." },
         { status: 400 },
+      );
+    }
+
+    if (guard.callerRole === "servant" && requestedGradeId && requestedGradeId !== gradeId) {
+      return jsonResponse(
+        { error: "Forbidden: you can only register students in your grade." },
+        { status: 403 },
       );
     }
 

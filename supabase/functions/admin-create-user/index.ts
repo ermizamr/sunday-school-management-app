@@ -12,7 +12,7 @@ type CreateUserBody = {
   grade_id?: string | null;
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflightResponse();
 
   const guard = await requireServantOrAdmin(req);
@@ -51,6 +51,7 @@ serve(async (req) => {
     }
 
     const callerRole = guard.callerRole;
+    const callerGradeId = guard.callerGradeId;
 
     let role: string;
     if (callerRole === "admin") {
@@ -81,15 +82,51 @@ serve(async (req) => {
       );
     }
 
-    // Student registrations must include a grade.
-    if (role === "student") {
-      const gradeId = (body.grade_id ?? "").toString().trim();
-      if (!gradeId) {
-        return jsonResponse(
-          { error: "Missing required field: grade_id." },
-          { status: 400 },
-        );
-      }
+    // Registrations must include a valid grade.
+    const gradeId = (body.grade_id ?? "").toString().trim();
+    if (!gradeId) {
+      return jsonResponse(
+        { error: "Missing required field: grade_id." },
+        { status: 400 },
+      );
+    }
+
+    // Servants may only create students in their own grade.
+    if (callerRole === "servant" && gradeId !== callerGradeId) {
+      return jsonResponse(
+        { error: "Forbidden: you can only create students in your grade." },
+        { status: 403 },
+      );
+    }
+
+    // Validate grade exists (avoid creating orphan auth users).
+    const { data: gradeRow, error: gradeError } = await guard.adminClient
+      .from("grades")
+      .select("id")
+      .eq("id", gradeId)
+      .maybeSingle();
+
+    if (gradeError) {
+      return jsonResponse({ error: gradeError.message }, { status: 400 });
+    }
+
+    if (!gradeRow) {
+      return jsonResponse({ error: "Unknown grade_id." }, { status: 400 });
+    }
+
+    // Best-effort academic_id uniqueness check.
+    const { data: existingProfile, error: existingError } = await guard.adminClient
+      .from("profiles")
+      .select("id")
+      .eq("academic_id", academicId)
+      .maybeSingle();
+
+    if (existingError) {
+      return jsonResponse({ error: existingError.message }, { status: 400 });
+    }
+
+    if (existingProfile?.id) {
+      return jsonResponse({ error: "academic_id already exists." }, { status: 409 });
     }
 
     const email = (body.email ?? "").trim() || academicIdToEmail(academicId);
@@ -121,11 +158,18 @@ serve(async (req) => {
         name,
         role,
         academic_id: academicId,
-        grade_id: body.grade_id ?? null,
+        grade_id: gradeId,
         account_status: "active",
       });
 
     if (profileError) {
+      // Delete auth user to avoid orphaned accounts.
+      try {
+        await guard.adminClient.auth.admin.deleteUser(userId);
+      } catch (_) {
+        // Ignore cleanup failures.
+      }
+
       // Likely academic_id uniqueness.
       // Postgres unique violation code is 23505.
       // @ts-ignore - Postgrest error has code at runtime.
