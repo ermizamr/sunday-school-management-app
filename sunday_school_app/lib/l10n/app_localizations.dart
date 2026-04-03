@@ -1610,6 +1610,12 @@ abstract class AppLocalizations {
   /// **'Registering grade'**
   String get servantRegisterStudentGradeLabel;
 
+  /// No description provided for @servantRegisterStudentNoGradesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No grades found. Please contact your class admin.'**
+  String get servantRegisterStudentNoGradesMessage;
+
   /// No description provided for @servantRegisterStudentSubmit.
   ///
   /// In en, this message translates to:
@@ -1705,6 +1711,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Performance Insights & Trends'**
   String get servantAnalyticsSubtitle;
+
+  /// No description provided for @servantAnalyticsTabOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get servantAnalyticsTabOverview;
+
+  /// No description provided for @servantAnalyticsTabBySubject.
+  ///
+  /// In en, this message translates to:
+  /// **'By Subject'**
+  String get servantAnalyticsTabBySubject;
+
+  /// No description provided for @servantAnalyticsTabStudents.
+  ///
+  /// In en, this message translates to:
+  /// **'Students'**
+  String get servantAnalyticsTabStudents;
 
   /// No description provided for @servantAnalyticsMetricClassAverage.
   ///

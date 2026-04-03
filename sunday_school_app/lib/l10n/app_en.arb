@@ -435,6 +435,7 @@
   "servantRegisterStudentFullNameLabel": "Student full name",
   "servantRegisterStudentFullNameHint": "e.g., John Doe",
   "servantRegisterStudentGradeLabel": "Registering grade",
+  "servantRegisterStudentNoGradesMessage": "No grades found. Please contact your class admin.",
   "servantRegisterStudentSubmit": "Register",
   "servantRegisterStudentNameRequired": "Please enter the student's full name",
   "servantRegisterStudentGradeRequired": "Please select a grade",
@@ -468,6 +469,10 @@
   "servantAnalyticsLoadFailed": "Failed to load analytics.",
 
   "servantAnalyticsSubtitle": "Performance Insights & Trends",
+
+  "servantAnalyticsTabOverview": "Overview",
+  "servantAnalyticsTabBySubject": "By Subject",
+  "servantAnalyticsTabStudents": "Students",
 
   "servantAnalyticsMetricClassAverage": "Class Average",
   "servantAnalyticsStudentsWithGradesLabel": "{graded}/{total} students",

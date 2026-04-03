@@ -11,7 +11,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/data/auth_providers.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/supabase/supabase_client.dart';
-import '../../../core/refresh/app_refresh_scope.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
@@ -561,6 +560,14 @@ class ServantDashboardScreen extends StatefulWidget {
         (msg.contains('jwt') && msg.contains('invalid'));
   }
 
+  String _formatRegisterStudentError(Object error) {
+    final msg = error.toString().trim();
+    if (msg.toLowerCase().startsWith('exception:')) {
+      return msg.substring('exception:'.length).trim();
+    }
+    return msg;
+  }
+
   void _scheduleAuthResetAndRedirectToServantLogin(BuildContext rootContext) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final client = SupabaseClientManager.instance.client;
@@ -886,7 +893,7 @@ class ServantDashboardScreen extends StatefulWidget {
         if (!dialogContext.mounted) return;
         setState(() {
           submitting = false;
-          error = e.toString();
+          error = _formatRegisterStudentError(e);
         });
       }
     }
@@ -936,9 +943,9 @@ class ServantDashboardScreen extends StatefulWidget {
                         ),
                         if (grades.isEmpty) ...[
                           const SizedBox(height: 8),
-                          const Text(
-                            'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢',
-                            style: TextStyle(color: Colors.red),
+                          Text(
+                            l10n.servantRegisterStudentNoGradesMessage,
+                            style: const TextStyle(color: Colors.red),
                           ),
                           if (gradesLoadError != null) ...[
                             const SizedBox(height: 6),
@@ -1007,14 +1014,10 @@ class ServantDashboardScreen extends StatefulWidget {
     final pendingQuestions = stats?.pendingQuestions ?? 0;
     final pendingComplaints = stats?.pendingComplaints ?? 0;
 
-    final classSizeText = loading
-        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
-        : '$totalStudents';
-    final avgAttendanceText = loading
-        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
-        : '$avgAttendance%';
+    final classSizeText = loading ? '—' : '$totalStudents';
+    final avgAttendanceText = loading ? '—' : '$avgAttendance%';
     final pendingTotalText = loading
-        ? 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
+        ? '—'
         : '${pendingQuestions + pendingComplaints}';
 
     return Scaffold(
@@ -1068,6 +1071,7 @@ class ServantDashboardScreen extends StatefulWidget {
             // Content
             Expanded(
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1273,51 +1277,6 @@ class ServantDashboardScreen extends StatefulWidget {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Today schedule
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-                            child: Text(
-                              l10n.servantDashboardTodayScheduleTitle,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ),
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                          _ScheduleRow(
-                            iconBg: const Color(0xFFE0F2FE),
-                            iconColor: const Color(0xFF0284C7),
-                            title: l10n.servantDashboardSundaySchoolClassTitle,
-                            time: l10n.servantDashboardSundaySchoolClassTime,
-                          ),
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                          _ScheduleRow(
-                            iconBg: const Color(0xFFFEF3C7),
-                            iconColor: const Color(0xFFD97706),
-                            title: l10n.servantDashboardBibleStudyReviewTitle,
-                            time: l10n.servantDashboardBibleStudyReviewTime,
-                          ),
-                        ],
-                      ),
-                    ),
 
                     const SizedBox(height: 18),
 
@@ -1594,12 +1553,15 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return widget._buildDashboardScaffold(
-      context,
-      loading: _loading,
-      error: _error,
-      stats: _stats,
-      onRetry: _loadStatsFromBackend,
+    return AppRefreshConfigurator(
+      onRefresh: _loadStatsFromBackend,
+      child: widget._buildDashboardScaffold(
+        context,
+        loading: _loading,
+        error: _error,
+        stats: _stats,
+        onRetry: _loadStatsFromBackend,
+      ),
     );
   }
 }
@@ -1704,63 +1666,6 @@ class _ServantQuickActionButton extends StatelessWidget {
   }
 }
 
-class _ScheduleRow extends StatelessWidget {
-  const _ScheduleRow({
-    required this.iconBg,
-    required this.iconColor,
-    required this.title,
-    required this.time,
-  });
-
-  final Color iconBg;
-  final Color iconColor;
-  final String title;
-  final String time;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.calendar_today_rounded,
-              color: iconColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                time,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class ServantAttendanceScreen extends StatelessWidget {
   const ServantAttendanceScreen({super.key});
 
@@ -1812,6 +1717,14 @@ class _ServantGradeEntry {
 }
 
 class _ServantGradesScreenState extends State<ServantGradesScreen> {
+  Future<void> _handleRefresh() async {
+    await _loadLockState();
+    await _loadPromotionCriteria();
+    await _loadSubjects();
+    await _loadStudents();
+    await _loadGradeEntries();
+  }
+
   Future<void> _loadSubjects() async {
     setState(() {
       _loadingSubjects = true;
@@ -1953,6 +1866,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
   // Fetch grade entries for the servant's grade from Supabase
   Future<void> _loadGradeEntries() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loadingGradeEntries = true;
       _gradeEntriesError = null;
@@ -2029,7 +1943,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         final subjectId = row['subject_id'] as String?;
         final gradeType =
             (row['grade_type'] as String?) ??
-            AppLocalizations.of(context).servantGradesDefaultAssessmentType;
+            l10n.servantGradesDefaultAssessmentType;
         final maxScoreNum = row['max_score'] as num?;
         final weightNum = row['weight'] as num?;
         final dateStr = row['assessment_date'] as String?;
@@ -2061,7 +1975,6 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
       setState(() {
         _gradeEntriesError = l10n.servantGradesLoadGradeEntriesFailed;
         _loadingGradeEntries = false;
@@ -2732,139 +2645,168 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // slate-50
       body: SafeArea(
-        child: (_loadingSubjects || _loadingStudents || _loadingGradeEntries)
-            ? const Center(child: CircularProgressIndicator())
-            : (_subjectsError ?? _studentsError ?? _gradeEntriesError) != null
-            ? Center(
-                child: Text(
-                  (_subjectsError ?? _studentsError ?? _gradeEntriesError)!,
-                ),
-              )
-            : _subjects.isEmpty
-            ? Center(child: Text(l10n.commonNoSubjectsForGrade))
-            : NestedScrollView(
-                headerSliverBuilder: (context, _) {
-                  return [
-                    SliverAppBar(
-                      pinned: true,
-                      backgroundColor: Colors.white,
-                      surfaceTintColor: Colors.white,
-                      elevation: 0,
-                      scrolledUnderElevation: 0,
-                      automaticallyImplyLeading: false,
-                      toolbarHeight: 64,
-                      titleSpacing: 24,
-                      title: Text(
-                        l10n.servantGradesManageTitle,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                      bottom: PreferredSize(
-                        preferredSize: const Size.fromHeight(92),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (!_loadingLockState &&
-                                _isLocked &&
-                                _lockMessage != null)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  24,
-                                  0,
-                                  24,
-                                  10,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7), // amber-100
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(
-                                        0xFFFDE68A,
-                                      ), // amber-200
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _lockMessage!,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF78350F),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            SizedBox(
-                              height: 46,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                children: [
-                                  for (final s in _subjects) ...[
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      child: _SubjectChip(
-                                        selected:
-                                            _selectedSubject != null &&
-                                            s.id == _selectedSubject!.id,
-                                        label: s.name,
-                                        onTap: () => _selectSubject(s),
-                                      ),
-                                    ),
-                                  ],
-                                  _SubjectChip(
-                                    selected: false,
-                                    label: l10n.servantGradesNewSubjectChip,
-                                    tone: _ChipTone.amber,
-                                    icon: Icons.add_rounded,
-                                    onTap: _goToAddSubject,
-                                    disabled: _isLocked,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Container(
-                              height: 1,
-                              color: const Color(0xFFE2E8F0), // slate-200
-                            ),
-                          ],
-                        ),
+        child: AppRefreshConfigurator(
+          onRefresh: _handleRefresh,
+          child: (_loadingSubjects || _loadingStudents || _loadingGradeEntries)
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  children: const [
+                    SizedBox(height: 180),
+                    Center(child: CircularProgressIndicator()),
+                  ],
+                )
+              : (_subjectsError ?? _studentsError ?? _gradeEntriesError) != null
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    const SizedBox(height: 120),
+                    Center(
+                      child: Text(
+                        (_subjectsError ??
+                            _studentsError ??
+                            _gradeEntriesError)!,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ];
-                },
-                body: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: switch (_view) {
-                      _ServantGradesView.list => _buildList(
-                        entries: entries,
-                        totalWeight: totalWeight,
+                  ],
+                )
+              : _subjects.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    const SizedBox(height: 160),
+                    Center(child: Text(l10n.commonNoSubjectsForGrade)),
+                  ],
+                )
+              : NestedScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  headerSliverBuilder: (context, _) {
+                    return [
+                      SliverAppBar(
+                        pinned: true,
+                        backgroundColor: Colors.white,
+                        surfaceTintColor: Colors.white,
+                        elevation: 0,
+                        scrolledUnderElevation: 0,
+                        automaticallyImplyLeading: false,
+                        toolbarHeight: 64,
+                        titleSpacing: 24,
+                        title: Text(
+                          l10n.servantGradesManageTitle,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        bottom: PreferredSize(
+                          preferredSize: const Size.fromHeight(92),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!_loadingLockState &&
+                                  _isLocked &&
+                                  _lockMessage != null)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    0,
+                                    24,
+                                    10,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFFDE68A),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _lockMessage!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF78350F),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(
+                                height: 46,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  children: [
+                                    for (final s in _subjects) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
+                                        ),
+                                        child: _SubjectChip(
+                                          selected:
+                                              _selectedSubject != null &&
+                                              s.id == _selectedSubject!.id,
+                                          label: s.name,
+                                          onTap: () => _selectSubject(s),
+                                        ),
+                                      ),
+                                    ],
+                                    _SubjectChip(
+                                      selected: false,
+                                      label: l10n.servantGradesNewSubjectChip,
+                                      tone: _ChipTone.amber,
+                                      icon: Icons.add_rounded,
+                                      onTap: _goToAddSubject,
+                                      disabled: _isLocked,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                height: 1,
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      _ServantGradesView.add => _buildAssessmentForm(
-                        editing: false,
-                      ),
-                      _ServantGradesView.edit => _buildAssessmentForm(
-                        editing: true,
-                      ),
-                      _ServantGradesView.addSubject => _buildAddSubjectForm(),
-                      _ServantGradesView.missing => _buildMissingView(
-                        entries: entries,
-                      ),
-                    },
+                    ];
+                  },
+                  body: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: switch (_view) {
+                        _ServantGradesView.list => _buildList(
+                          entries: entries,
+                          totalWeight: totalWeight,
+                        ),
+                        _ServantGradesView.add => _buildAssessmentForm(
+                          editing: false,
+                        ),
+                        _ServantGradesView.edit => _buildAssessmentForm(
+                          editing: true,
+                        ),
+                        _ServantGradesView.addSubject => _buildAddSubjectForm(),
+                        _ServantGradesView.missing => _buildMissingView(
+                          entries: entries,
+                        ),
+                      },
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -4395,11 +4337,6 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     _loadAnnouncementsFromBackend();
     _loadQuestionsFromBackend();
     _loadComplaintsFromBackend();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      AppRefreshScope.of(context).setOnRefresh(_handlePullToRefresh);
-    });
   }
 
   Future<void> _handlePullToRefresh() async {
@@ -4413,9 +4350,6 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
   @override
   void dispose() {
-    try {
-      AppRefreshScope.of(context).setOnRefresh(null);
-    } catch (_) {}
     _announcementTitleController.dispose();
     _announcementMessageController.dispose();
     _feedbackTitleController.dispose();
@@ -5378,185 +5312,195 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                  ),
-                  padding: const EdgeInsets.only(
-                    left: 24,
-                    right: 24,
-                    top: 24,
-                    bottom: 0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).navCommunication,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                        ),
+        child: AppRefreshConfigurator(
+          onRefresh: _handlePullToRefresh,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE2E8F0)),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        AppLocalizations.of(context).servantCommSubtitle,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _ServantCommTabButton(
-                              label: AppLocalizations.of(
-                                context,
-                              ).commAnnouncements,
-                              icon: Icons.campaign_rounded,
-                              selected:
-                                  _activeTab == _ServantCommTab.announcements,
-                              onTap: () {
-                                setState(() {
-                                  _activeTab = _ServantCommTab.announcements;
-                                  _resetInlineEditors();
-                                  _showAnnouncementForm = false;
-                                  _showCreateFeedback = false;
-                                  _viewingFeedbackFormId = null;
-                                });
-                              },
-                            ),
-                            _ServantCommTabButton(
-                              label: AppLocalizations.of(context).commQuestions,
-                              icon: Icons.question_answer_rounded,
-                              selected: _activeTab == _ServantCommTab.questions,
-                              badgeCount: _pendingQuestionsCount,
-                              badgeStyle: _ServantBadgeStyle.amber,
-                              onTap: () {
-                                setState(() {
-                                  _activeTab = _ServantCommTab.questions;
-                                  _resetInlineEditors();
-                                  _showAnnouncementForm = false;
-                                  _showCreateFeedback = false;
-                                  _viewingFeedbackFormId = null;
-                                });
-                              },
-                            ),
-                            _ServantCommTabButton(
-                              label: AppLocalizations.of(
-                                context,
-                              ).commComplaints,
-                              icon: Icons.report_problem_rounded,
-                              selected:
-                                  _activeTab == _ServantCommTab.complaints,
-                              badgeCount: _pendingComplaintsCount,
-                              badgeStyle: _ServantBadgeStyle.red,
-                              onTap: () {
-                                setState(() {
-                                  _activeTab = _ServantCommTab.complaints;
-                                  _resetInlineEditors();
-                                  _showAnnouncementForm = false;
-                                  _showCreateFeedback = false;
-                                  _viewingFeedbackFormId = null;
-                                });
-                              },
-                            ),
-                            _ServantCommTabButton(
-                              label: AppLocalizations.of(context).commFeedback,
-                              icon: Icons.fact_check_rounded,
-                              selected: _activeTab == _ServantCommTab.feedback,
-                              onTap: () {
-                                setState(() {
-                                  _activeTab = _ServantCommTab.feedback;
-                                  _resetInlineEditors();
-                                  _showAnnouncementForm = false;
-                                  _showCreateFeedback = false;
-                                  _viewingFeedbackFormId = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                    child: Builder(
-                      builder: (context) {
-                        switch (_activeTab) {
-                          case _ServantCommTab.announcements:
-                            return _buildAnnouncements();
-                          case _ServantCommTab.questions:
-                            return _buildQuestions();
-                          case _ServantCommTab.complaints:
-                            return _buildComplaints();
-                          case _ServantCommTab.feedback:
-                            return _buildFeedback();
-                        }
-                      },
                     ),
-                  ),
-                ),
-              ],
-            ),
-            if (_showFeedbackSuccessToast)
-              Positioned(
-                top: 12,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF22C55E),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x22374151),
-                          blurRadius: 14,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
+                    padding: const EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      top: 24,
+                      bottom: 0,
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        SizedBox(width: 10),
                         Text(
-                          'Feedback form created successfully!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
+                          AppLocalizations.of(context).navCommunication,
+                          style: const TextStyle(
+                            fontSize: 22,
                             fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          AppLocalizations.of(context).servantCommSubtitle,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _ServantCommTabButton(
+                                label: AppLocalizations.of(
+                                  context,
+                                ).commAnnouncements,
+                                icon: Icons.campaign_rounded,
+                                selected:
+                                    _activeTab == _ServantCommTab.announcements,
+                                onTap: () {
+                                  setState(() {
+                                    _activeTab = _ServantCommTab.announcements;
+                                    _resetInlineEditors();
+                                    _showAnnouncementForm = false;
+                                    _showCreateFeedback = false;
+                                    _viewingFeedbackFormId = null;
+                                  });
+                                },
+                              ),
+                              _ServantCommTabButton(
+                                label: AppLocalizations.of(
+                                  context,
+                                ).commQuestions,
+                                icon: Icons.question_answer_rounded,
+                                selected:
+                                    _activeTab == _ServantCommTab.questions,
+                                badgeCount: _pendingQuestionsCount,
+                                badgeStyle: _ServantBadgeStyle.amber,
+                                onTap: () {
+                                  setState(() {
+                                    _activeTab = _ServantCommTab.questions;
+                                    _resetInlineEditors();
+                                    _showAnnouncementForm = false;
+                                    _showCreateFeedback = false;
+                                    _viewingFeedbackFormId = null;
+                                  });
+                                },
+                              ),
+                              _ServantCommTabButton(
+                                label: AppLocalizations.of(
+                                  context,
+                                ).commComplaints,
+                                icon: Icons.report_problem_rounded,
+                                selected:
+                                    _activeTab == _ServantCommTab.complaints,
+                                badgeCount: _pendingComplaintsCount,
+                                badgeStyle: _ServantBadgeStyle.red,
+                                onTap: () {
+                                  setState(() {
+                                    _activeTab = _ServantCommTab.complaints;
+                                    _resetInlineEditors();
+                                    _showAnnouncementForm = false;
+                                    _showCreateFeedback = false;
+                                    _viewingFeedbackFormId = null;
+                                  });
+                                },
+                              ),
+                              _ServantCommTabButton(
+                                label: AppLocalizations.of(
+                                  context,
+                                ).commFeedback,
+                                icon: Icons.fact_check_rounded,
+                                selected:
+                                    _activeTab == _ServantCommTab.feedback,
+                                onTap: () {
+                                  setState(() {
+                                    _activeTab = _ServantCommTab.feedback;
+                                    _resetInlineEditors();
+                                    _showAnnouncementForm = false;
+                                    _showCreateFeedback = false;
+                                    _viewingFeedbackFormId = null;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                      child: Builder(
+                        builder: (context) {
+                          switch (_activeTab) {
+                            case _ServantCommTab.announcements:
+                              return _buildAnnouncements();
+                            case _ServantCommTab.questions:
+                              return _buildQuestions();
+                            case _ServantCommTab.complaints:
+                              return _buildComplaints();
+                            case _ServantCommTab.feedback:
+                              return _buildFeedback();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-          ],
+              if (_showFeedbackSuccessToast)
+                Positioned(
+                  top: 12,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22C55E),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x22374151),
+                            blurRadius: 14,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Feedback form created successfully!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -5589,16 +5533,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     String categoryEmoji(String category) {
       switch (category) {
         case 'urgent':
-          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨';
+          return '🚨';
         case 'grades':
-          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ';
+          return '📊';
         case 'schedule':
-          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦';
+          return '📅';
         case 'event':
-          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°';
+          return '🎉';
         case 'general':
         default:
-          return 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢';
+          return '📢';
       }
     }
 
@@ -7963,7 +7907,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             bottom: 2,
                                           ),
                                           child: Text(
-                                            'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ $o',
+                                            '• $o',
                                             style: const TextStyle(
                                               fontSize: 12,
                                               color: Color(0xFF64748B),
@@ -9086,7 +9030,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   // ignore: unused_element
   static String _truncate(String text, int max) {
     if (text.length <= max) return text;
-    return '${text.substring(0, max).trimRight()}ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦';
+    return '${text.substring(0, max).trimRight()}…';
   }
 
   static Widget _tinyPill({

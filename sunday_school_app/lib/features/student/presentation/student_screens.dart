@@ -594,9 +594,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _loading = false;
-      });
+        setState(() {
+          _loading = false;
+        });
       }
     }
   }
@@ -617,294 +617,307 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final openComplaints = _stats?.openComplaints ?? 0;
     final pendingTotal = pendingQuestions + openComplaints;
 
-    final attendanceValue = _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$attendancePercent%';
-    final avgValue = _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$academicAvg%';
+    final attendanceValue = _loading ? '—' : '$attendancePercent%';
+    final avgValue = _loading ? '—' : '$academicAvg%';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF8FAFC), // slate-50
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xFF0284C7), // sky-600
-                      Color(0xFF0EA5E9), // sky-500
+        child: AppRefreshConfigurator(
+          onRefresh: _loadStatsFromBackend,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xFF0284C7), // sky-600
+                        Color(0xFF0EA5E9), // sky-500
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.dashboardWelcome,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Color(0xFFBAE6FD), // sky-200
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.dashboardWelcome,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      displayName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Color(0xFFBAE6FD), // sky-200
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(0, -16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_error != null) ...[
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFFCA5A5)),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                size: 18,
-                                color: Color(0xFFB91C1C),
+                Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_error != null) ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFFCA5A5),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF7F1D1D),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 18,
+                                  color: Color(0xFFB91C1C),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF7F1D1D),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              TextButton(
-                                onPressed: _loading
-                                    ? null
-                                    : _loadStatsFromBackend,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFFB91C1C),
+                                const SizedBox(width: 8),
+                                TextButton(
+                                  onPressed: _loading
+                                      ? null
+                                      : _loadStatsFromBackend,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB91C1C),
+                                  ),
+                                  child: Text(l10n.commonRetry),
                                 ),
-                                child: Text(l10n.commonRetry),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DashboardStatCard(
+                                iconBackground: const Color(0xFFE0F2FE),
+                                iconColor: const Color(0xFF0284C7),
+                                icon: Icons.calendar_month_rounded,
+                                value: attendanceValue,
+                                label: l10n.dashboardAttendanceStat,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _DashboardStatCard(
+                                iconBackground: const Color(0xFFFEF3C7),
+                                iconColor: const Color(0xFFD97706),
+                                icon: Icons.emoji_events_rounded,
+                                value: avgValue,
+                                label: l10n.dashboardAverageScoreStat,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Communication overview
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0F000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Color(0xFFF1F5F9),
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.notifications_rounded,
+                                      size: 20,
+                                      color: Color(0xFF475569),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.dashboardCommunicationTitle,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                    if (!_loading && pendingTotal > 0)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0EA5E9),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          l10n.dashboardPendingCount(
+                                            pendingTotal,
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    _KeyValueRow(
+                                      label: l10n.dashboardPendingQuestions,
+                                      value: _loading
+                                          ? '—'
+                                          : '$pendingQuestions',
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _KeyValueRow(
+                                      label: l10n.dashboardOpenComplaints,
+                                      value: _loading ? '—' : '$openComplaints',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.only(
+                                    bottomLeft: Radius.circular(18),
+                                    bottomRight: Radius.circular(18),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        context.go('/student/communication'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0EA5E9),
+                                    ),
+                                    child: Text(
+                                      l10n.dashboardGoToCommunication,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                      ],
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DashboardStatCard(
-                              iconBackground: const Color(0xFFE0F2FE),
-                              iconColor: const Color(0xFF0284C7),
-                              icon: Icons.calendar_month_rounded,
-                              value: attendanceValue,
-                              label: l10n.dashboardAttendanceStat,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _DashboardStatCard(
-                              iconBackground: const Color(0xFFFEF3C7),
-                              iconColor: const Color(0xFFD97706),
-                              icon: Icons.emoji_events_rounded,
-                              value: avgValue,
-                              label: l10n.dashboardAverageScoreStat,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // Communication overview
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0F000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                        // Quick actions
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0F000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
                               ),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(color: Color(0xFFF1F5F9)),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.dashboardQuickActions,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F172A),
                                 ),
                               ),
-                              child: Row(
+                              const SizedBox(height: 12),
+                              Row(
                                 children: [
-                                  const Icon(
-                                    Icons.notifications_rounded,
-                                    size: 20,
-                                    color: Color(0xFF475569),
-                                  ),
-                                  const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      l10n.dashboardCommunicationTitle,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0F172A),
-                                      ),
+                                    child: _QuickActionTile(
+                                      icon: Icons.trending_up_rounded,
+                                      label: l10n.dashboardViewGrades,
+                                      onTap: () =>
+                                          context.go('/student/grades'),
                                     ),
                                   ),
-                                  if (!_loading && pendingTotal > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0EA5E9),
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        l10n.dashboardPendingCount(
-                                          pendingTotal,
-                                        ),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _QuickActionTile(
+                                      icon: Icons.calendar_month_rounded,
+                                      label: l10n.navAttendance,
+                                      onTap: () =>
+                                          context.go('/student/attendance'),
                                     ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  _KeyValueRow(
-                                    label: l10n.dashboardPendingQuestions,
-                                    value: _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$pendingQuestions',
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _KeyValueRow(
-                                    label: l10n.dashboardOpenComplaints,
-                                    value: _loading ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' : '$openComplaints',
                                   ),
                                 ],
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(18),
-                                  bottomRight: Radius.circular(18),
-                                ),
-                              ),
-                              child: Center(
-                                child: TextButton(
-                                  onPressed: () =>
-                                      context.go('/student/communication'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF0EA5E9),
-                                  ),
-                                  child: Text(l10n.dashboardGoToCommunication),
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Quick actions
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0F000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.dashboardQuickActions,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _QuickActionTile(
-                                    icon: Icons.trending_up_rounded,
-                                    label: l10n.dashboardViewGrades,
-                                    onTap: () => context.go('/student/grades'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _QuickActionTile(
-                                    icon: Icons.calendar_month_rounded,
-                                    label: l10n.navAttendance,
-                                    onTap: () =>
-                                        context.go('/student/attendance'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1142,7 +1155,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   String _formatDate(DateTime date) {
-    const weekdays = ['ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€¦Ã‚Â¾', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€¦Ã‚Â¾', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Âµ', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥', 'ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â³ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€¦Ã¢â‚¬Å“', 'ÃƒÆ’Ã‚Â¡Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¡Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Âµ'];
+    const weekdays = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
     final wd = weekdays[(date.weekday - 1).clamp(0, 6)];
     return '$wd, ${EthiopianDateFormatter.formatDateTime(date)}';
   }
@@ -1183,8 +1196,20 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_loadingAttendance) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      return Scaffold(
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                SizedBox(height: 180),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -1192,21 +1217,25 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.navAttendance)),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _attendanceError!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _loadAttendanceFromBackend,
-                  child: Text(l10n.commonRetry),
-                ),
-              ],
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _attendanceError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadAttendanceFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1216,7 +1245,17 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     if (_attendanceSubjects.isEmpty) {
       return Scaffold(
         body: SafeArea(
-          child: Center(child: Text(l10n.commonNoSubjectsForGrade)),
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 160),
+                Center(child: Text(l10n.commonNoSubjectsForGrade)),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -1283,502 +1322,517 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+        child: AppRefreshConfigurator(
+          onRefresh: _loadAttendanceFromBackend,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navAttendance,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.attendanceTrackSubtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFBAE6FD),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.navAttendance,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.attendanceTrackSubtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFBAE6FD),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Overall stats
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14374151),
-                            blurRadius: 16,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  l10n.attendanceOverallTitle,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Overall stats
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14374151),
+                              blurRadius: 16,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l10n.attendanceOverallTitle,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF64748B),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Icon(
-                                Icons.calendar_month_rounded,
-                                size: 20,
-                                color: Colors.grey.shade400,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '$overall%',
-                                style: TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w800,
-                                  color: percentageColor(overall),
+                                Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 20,
+                                  color: Colors.grey.shade400,
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Padding(
-                                padding: EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  l10n.attendanceAcrossAllSubjects,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF94A3B8),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$overall%',
+                                  style: TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w800,
+                                    color: percentageColor(overall),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 10),
+                                Padding(
+                                  padding: EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    l10n.attendanceAcrossAllSubjects,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Subject tabs
-                    SizedBox(
-                      height: 72,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _attendanceSubjects.length,
-                        separatorBuilder: (_, _unused) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final s = _attendanceSubjects[index];
-                          final selected = s.id == selectedSubjectId;
-                          final p = _subjectPercentage(s.id);
-                          return InkWell(
-                            onTap: () =>
-                                setState(() => _selectedSubjectId = s.id),
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
+                      // Subject tabs
+                      SizedBox(
+                        height: 72,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _attendanceSubjects.length,
+                          separatorBuilder: (_, index) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            final s = _attendanceSubjects[index];
+                            final selected = s.id == selectedSubjectId;
+                            final p = _subjectPercentage(s.id);
+                            return InkWell(
+                              onTap: () =>
+                                  setState(() => _selectedSubjectId = s.id),
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? const Color(0xFF0EA5E9)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: selected
+                                      ? const [
+                                          BoxShadow(
+                                            color: Color(0x260EA5E9),
+                                            blurRadius: 14,
+                                            offset: Offset(0, 8),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      s.name,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: selected
+                                            ? Colors.white
+                                            : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.attendancePercentLabel(p),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: selected
+                                            ? const Color(0xFFBAE6FD)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Subject stats
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    subject.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '$subjectPercentage%',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: percentageColor(subjectPercentage),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: selected
-                                    ? const Color(0xFF0EA5E9)
-                                    : Colors.white,
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(14),
-                                boxShadow: selected
-                                    ? const [
-                                        BoxShadow(
-                                          color: Color(0x260EA5E9),
-                                          blurRadius: 14,
-                                          offset: Offset(0, 8),
-                                        ),
-                                      ]
-                                    : null,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Row(
                                 children: [
+                                  Icon(
+                                    performance.icon,
+                                    size: 18,
+                                    color: performance.color,
+                                  ),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    s.name,
+                                    performance.text,
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: selected
-                                          ? Colors.white
-                                          : const Color(0xFF334155),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    l10n.attendancePercentLabel(p),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: selected
-                                          ? const Color(0xFFBAE6FD)
-                                          : const Color(0xFF64748B),
+                                      color: performance.color,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Subject stats
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  subject.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFDCFCE7),
+                                    icon: Icons.check_circle_rounded,
+                                    iconColor: const Color(0xFF16A34A),
+                                    value: '${stats.present}',
+                                    label: l10n.attendancePresent,
                                   ),
                                 ),
-                              ),
-                              Text(
-                                '$subjectPercentage%',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                  color: percentageColor(subjectPercentage),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFFEF3C7),
+                                    icon: Icons.schedule_rounded,
+                                    iconColor: const Color(0xFFD97706),
+                                    value: '${stats.late}',
+                                    label: l10n.attendanceLate,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  performance.icon,
-                                  size: 18,
-                                  color: performance.color,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  performance.text,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: performance.color,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFFEE2E2),
+                                    icon: Icons.cancel_rounded,
+                                    iconColor: const Color(0xFFDC2626),
+                                    value: '${stats.absent}',
+                                    label: l10n.attendanceAbsent,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFDCFCE7),
-                                  icon: Icons.check_circle_rounded,
-                                  iconColor: const Color(0xFF16A34A),
-                                  value: '${stats.present}',
-                                  label: l10n.attendancePresent,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFFEF3C7),
-                                  icon: Icons.schedule_rounded,
-                                  iconColor: const Color(0xFFD97706),
-                                  value: '${stats.late}',
-                                  label: l10n.attendanceLate,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFFEE2E2),
-                                  icon: Icons.cancel_rounded,
-                                  iconColor: const Color(0xFFDC2626),
-                                  value: '${stats.absent}',
-                                  label: l10n.attendanceAbsent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // History
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                      // History
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                16,
+                                20,
+                                12,
                               ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.attendanceHistoryTitle,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
-                                  ),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  l10n.attendanceSessionsRecorded(stats.total),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (subjectRecords.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(32),
+                              ),
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    Icons.calendar_month_rounded,
-                                    size: 52,
-                                    color: Colors.grey.shade300,
-                                  ),
-                                  const SizedBox(height: 12),
                                   Text(
-                                    l10n.attendanceNoRecordsYet,
+                                    l10n.attendanceHistoryTitle,
                                     style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.attendanceSessionsRecorded(
+                                      stats.total,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 11,
                                       color: Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
                               ),
-                            )
-                          else
-                            Column(
-                              children: subjectRecords.map((r) {
-                                final s = statusStyle(r.status);
-                                final statusText = switch (r.status) {
-                                  _AttendanceStatus.present =>
-                                    l10n.attendancePresent,
-                                  _AttendanceStatus.late => l10n.attendanceLate,
-                                  _AttendanceStatus.absent =>
-                                    l10n.attendanceAbsent,
-                                  _AttendanceStatus.permission =>
-                                    l10n.attendancePermission,
-                                };
-                                return Container(
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: Color(0xFFE2E8F0),
+                            ),
+                            if (subjectRecords.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_month_rounded,
+                                      size: 52,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      l10n.attendanceNoRecordsYet,
+                                      style: const TextStyle(
+                                        color: Color(0xFF64748B),
                                       ),
                                     ),
-                                  ),
-                                  child: InkWell(
-                                    onTap: () {},
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 14,
+                                  ],
+                                ),
+                              )
+                            else
+                              Column(
+                                children: subjectRecords.map((r) {
+                                  final s = statusStyle(r.status);
+                                  final statusText = switch (r.status) {
+                                    _AttendanceStatus.present =>
+                                      l10n.attendancePresent,
+                                    _AttendanceStatus.late =>
+                                      l10n.attendanceLate,
+                                    _AttendanceStatus.absent =>
+                                      l10n.attendanceAbsent,
+                                    _AttendanceStatus.permission =>
+                                      l10n.attendancePermission,
+                                  };
+                                  return Container(
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Color(0xFFE2E8F0),
+                                        ),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: s.bg,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: s.border,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              s.icon,
-                                              color: s.text,
-                                              size: 22,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  _formatDate(r.date),
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF0F172A),
-                                                  ),
+                                    ),
+                                    child: InkWell(
+                                      onTap: () {},
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 14,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: s.bg,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: s.border,
                                                 ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  subject.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    color: Color(0xFF64748B),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: s.bg,
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                              border: Border.all(
-                                                color: s.border,
                                               ),
-                                            ),
-                                            child: Text(
-                                              statusText,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
+                                              child: Icon(
+                                                s.icon,
                                                 color: s.text,
+                                                size: 22,
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    _formatDate(r.date),
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    subject.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: s.bg,
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                                border: Border.all(
+                                                  color: s.border,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                statusText,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: s.text,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (subjectPercentage < 85) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFFDE68A)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.info_outline_rounded,
-                              color: Color(0xFFD97706),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.attendanceImproveTitle,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF92400E),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    l10n.attendanceImproveBody,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF92400E),
-                                    ),
-                                  ),
-                                ],
+                                  );
+                                }).toList(),
                               ),
-                            ),
                           ],
                         ),
                       ),
+                      if (subjectPercentage < 85) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                color: Color(0xFFD97706),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.attendanceImproveTitle,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF92400E),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.attendanceImproveBody,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1865,15 +1919,24 @@ class _QuickActionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: const Color(0xFF0EA5E9)),
-            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F2FE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 18, color: const Color(0xFF0284C7)),
+            ),
+            const SizedBox(height: 10),
             Text(
               label,
               style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
@@ -1903,7 +1966,10 @@ class _KeyValueRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xFF0F172A),
+          ),
         ),
       ],
     );
@@ -2243,9 +2309,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _loadingGrades = false;
-      });
+        setState(() {
+          _loadingGrades = false;
+        });
       }
     }
   }
@@ -2376,8 +2442,20 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     final l10n = AppLocalizations.of(context);
 
     if (_loadingGrades) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      return Scaffold(
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                SizedBox(height: 180),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -2385,18 +2463,25 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.navGrades)),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(_gradesError!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _loadGradesFromBackend,
-                  child: Text(l10n.commonRetry),
-                ),
-              ],
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _gradesError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadGradesFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2406,7 +2491,17 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     if (_subjects.isEmpty) {
       return Scaffold(
         body: SafeArea(
-          child: Center(child: Text(l10n.commonNoSubjectsForGrade)),
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 160),
+                Center(child: Text(l10n.commonNoSubjectsForGrade)),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -2465,377 +2560,390 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.studentFinalResultsTitle,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.studentGradesAcademicYearLabel(_academicYear.name),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                width: double.infinity,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(51),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.studentFinalResultsFinalGradeLabel,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFFFDE68A),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$avgGrade%',
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.studentGradesAcademicYearLabel(
-                              _academicYear.name,
-                            ),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFEF3C7), // amber-100
-                            ),
-                          ),
-                        ],
+                    Text(
+                      l10n.studentFinalResultsTitle,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            promotionGradientStart,
-                            promotionGradientEnd,
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
                           ],
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentFinalResultsFinalGradeLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFFFDE68A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$avgGrade%',
+                                        style: const TextStyle(
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.studentGradesAcademicYearLabel(
+                                _academicYear.name,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFFFEF3C7), // amber-100
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(51),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  promotionIcon,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.studentFinalResultsPromotionStatusLabel,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xEFFFFFFF),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      promotionTitle,
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              promotionGradientStart,
+                              promotionGradientEnd,
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            promotionMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xEFFFFFFF),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    promotionIcon,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentFinalResultsPromotionStatusLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xEFFFFFFF),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        promotionTitle,
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Color(0xFFF1F5F9)),
-                              ),
-                            ),
-                            child: Text(
-                              l10n.studentFinalResultsFinalSubjectGradesTitle,
+                            const SizedBox(height: 10),
+                            Text(
+                              promotionMessage,
                               style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
+                                fontSize: 13,
+                                color: Color(0xEFFFFFFF),
                               ),
                             ),
-                          ),
-                          ..._subjects.map((subject) {
-                            final subjectAverage =
-                                _calculateSubjectAverage(
-                                  _currentStudent.id,
-                                  subject.id,
-                                ) ??
-                                0;
-                            return Container(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                14,
-                                16,
-                                14,
+                          ],
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
                               ),
                               decoration: const BoxDecoration(
                                 border: Border(
                                   bottom: BorderSide(color: Color(0xFFF1F5F9)),
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          subject.name,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _gradeBgColor(subjectAverage),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '$subjectAverage%',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: _gradeColor(subjectAverage),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _PercentBar(
-                                    value: subjectAverage,
-                                    backgroundColor: const Color(0xFFF1F5F9),
-                                    barColor: _barColor(subjectAverage),
-                                    height: 8,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.trending_up_rounded,
-                                size: 20,
-                                color: Color(0xFF0284C7), // sky-600
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.studentFinalResultsFinalSummaryTitle,
+                              child: Text(
+                                l10n.studentFinalResultsFinalSubjectGradesTitle,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          _SummaryRow(
-                            label: l10n.studentGradesHighestGradeLabel,
-                            value: '$highest%',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(
-                            label: l10n.studentGradesLowestGradeLabel,
-                            value: '$lowest%',
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          const SizedBox(height: 12),
-                          _SummaryRow(
-                            label: l10n.studentGradesOverallAverageLabel,
-                            value: '$avgGrade%',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2FE), // sky-50
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFBAE6FD)),
-                      ),
-                      padding: const EdgeInsets.all(14),
-                      child: Text(
-                        l10n.studentFinalResultsAcademicYearEndedMessage(
-                          _academicYear.name,
+                            ),
+                            ..._subjects.map((subject) {
+                              final subjectAverage =
+                                  _calculateSubjectAverage(
+                                    _currentStudent.id,
+                                    subject.id,
+                                  ) ??
+                                  0;
+                              return Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  14,
+                                  16,
+                                  14,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Color(0xFFF1F5F9),
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            subject.name,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _gradeBgColor(
+                                              subjectAverage,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$subjectAverage%',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: _gradeColor(
+                                                subjectAverage,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _PercentBar(
+                                      value: subjectAverage,
+                                      backgroundColor: const Color(0xFFF1F5F9),
+                                      barColor: _barColor(subjectAverage),
+                                      height: 8,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
                         ),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF0C4A6E), // sky-900
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 20,
+                                  color: Color(0xFF0284C7), // sky-600
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.studentFinalResultsFinalSummaryTitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            _SummaryRow(
+                              label: l10n.studentGradesHighestGradeLabel,
+                              value: '$highest%',
+                            ),
+                            const SizedBox(height: 8),
+                            _SummaryRow(
+                              label: l10n.studentGradesLowestGradeLabel,
+                              value: '$lowest%',
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 12),
+                            _SummaryRow(
+                              label: l10n.studentGradesOverallAverageLabel,
+                              value: '$avgGrade%',
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE), // sky-50
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          l10n.studentFinalResultsAcademicYearEndedMessage(
+                            _academicYear.name,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF0C4A6E), // sky-900
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2855,398 +2963,460 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              width: double.infinity,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.navGrades,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                width: double.infinity,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.navGrades,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
                           ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(51),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.studentGradesOverallAverageLabel,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFFFDE68A),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$avgGrade%',
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.studentGradesKeepUpExcellentWork,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFEF3C7), // amber-100
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      children: _subjects.map((subject) {
-                        final entries = _entriesForSubject(subject.id);
-                        final missingCount = entries
-                            .where((e) => e.scores[_currentStudent.id] == null)
-                            .length;
-                        final subjectAverage =
-                            _calculateSubjectAverage(
-                              _currentStudent.id,
-                              subject.id,
-                            ) ??
-                            0;
-                        final isExpanded = _expandedSubjectId == subject.id;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x14000000),
-                                blurRadius: 12,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: [
-                              InkWell(
-                                onTap: () => _toggleSubject(subject.id),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    14,
-                                    16,
-                                    12,
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
+                                  child: const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              subject.name,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF0F172A),
-                                              ),
-                                            ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 14,
-                                                      vertical: 8,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: _gradeBgColor(
-                                                    subjectAverage,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  '$subjectAverage%',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: _gradeColor(
-                                                      subjectAverage,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Icon(
-                                                isExpanded
-                                                    ? Icons
-                                                          .keyboard_arrow_up_rounded
-                                                    : Icons
-                                                          .keyboard_arrow_down_rounded,
-                                                color: const Color(
-                                                  0xFF94A3B8,
-                                                ), // slate-400
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _PercentBar(
-                                        value: subjectAverage,
-                                        backgroundColor: const Color(
-                                          0xFFF1F5F9,
+                                      Text(
+                                        l10n.studentGradesOverallAverageLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFFFDE68A),
                                         ),
-                                        barColor: _barColor(subjectAverage),
-                                        height: 8,
                                       ),
-                                      const SizedBox(height: 10),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          l10n.studentGradesAssessmentsCount(
-                                            entries.length,
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(
-                                              0xFF64748B,
-                                            ), // slate-500
-                                          ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$avgGrade%',
+                                        style: const TextStyle(
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.studentGradesKeepUpExcellentWork,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFFFEF3C7), // amber-100
                               ),
-                              if (isExpanded)
-                                Container(
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      top: BorderSide(color: Color(0xFFF1F5F9)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        children: _subjects.map((subject) {
+                          final entries = _entriesForSubject(subject.id);
+                          final missingCount = entries
+                              .where(
+                                (e) => e.scores[_currentStudent.id] == null,
+                              )
+                              .length;
+                          final subjectAverage =
+                              _calculateSubjectAverage(
+                                _currentStudent.id,
+                                subject.id,
+                              ) ??
+                              0;
+                          final isExpanded = _expandedSubjectId == subject.id;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x14000000),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: [
+                                InkWell(
+                                  onTap: () => _toggleSubject(subject.id),
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      12,
                                     ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          12,
-                                          16,
-                                          12,
-                                        ),
-                                        color: const Color(0xFFF8FAFC),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
                                           children: [
-                                            Text(
-                                              l10n.studentGradesAssessmentBreakdownTitle,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(
-                                                  0xFF334155,
-                                                ), // slate-700
+                                            Expanded(
+                                              child: Text(
+                                                subject.name,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF0F172A),
+                                                ),
                                               ),
                                             ),
-                                            if (missingCount > 0) ...[
-                                              const SizedBox(height: 10),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 10,
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 8,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: _gradeBgColor(
+                                                      subjectAverage,
                                                     ),
-                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '$subjectAverage%',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _gradeColor(
+                                                        subjectAverage,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Icon(
+                                                  isExpanded
+                                                      ? Icons
+                                                            .keyboard_arrow_up_rounded
+                                                      : Icons
+                                                            .keyboard_arrow_down_rounded,
                                                   color: const Color(
-                                                    0xFFFFFBEB,
-                                                  ), // amber-50
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  border: Border.all(
-                                                    color: const Color(
-                                                      0xFFFDE68A,
-                                                    ), // amber-200
-                                                  ),
+                                                    0xFF94A3B8,
+                                                  ), // slate-400
                                                 ),
-                                                child: Text(
-                                                  l10n.studentGradesMissingAssessmentsWarning(
-                                                    missingCount,
-                                                  ),
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(
-                                                      0xFF78350F,
-                                                    ), // amber-900
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ],
                                         ),
-                                      ),
-                                      Column(
-                                        children: entries.map((entry) {
-                                          final score =
-                                              entry.scores[_currentStudent.id];
-                                          final hasScore = score != null;
-                                          final percentage = hasScore
-                                              ? ((score / entry.maxScore) * 100)
-                                                    .round()
-                                              : 0;
-
-                                          return Container(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              16,
-                                              12,
-                                              16,
-                                              12,
+                                        const SizedBox(height: 10),
+                                        _PercentBar(
+                                          value: subjectAverage,
+                                          backgroundColor: const Color(
+                                            0xFFF1F5F9,
+                                          ),
+                                          barColor: _barColor(subjectAverage),
+                                          height: 8,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            l10n.studentGradesAssessmentsCount(
+                                              entries.length,
                                             ),
-                                            decoration: const BoxDecoration(
-                                              border: Border(
-                                                top: BorderSide(
-                                                  color: Color(0xFFF1F5F9),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(
+                                                0xFF64748B,
+                                              ), // slate-500
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (isExpanded)
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        top: BorderSide(
+                                          color: Color(0xFFF1F5F9),
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            12,
+                                            16,
+                                            12,
+                                          ),
+                                          color: const Color(0xFFF8FAFC),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Text(
+                                                l10n.studentGradesAssessmentBreakdownTitle,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(
+                                                    0xFF334155,
+                                                  ), // slate-700
                                                 ),
                                               ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
+                                              if (missingCount > 0) ...[
+                                                const SizedBox(height: 10),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 10,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFFFFBEB,
+                                                    ), // amber-50
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFFFDE68A,
+                                                      ), // amber-200
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    l10n.studentGradesMissingAssessmentsWarning(
+                                                      missingCount,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(
+                                                        0xFF78350F,
+                                                      ), // amber-900
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          children: entries.map((entry) {
+                                            final score = entry
+                                                .scores[_currentStudent.id];
+                                            final hasScore = score != null;
+                                            final percentage = hasScore
+                                                ? ((score / entry.maxScore) *
+                                                          100)
+                                                      .round()
+                                                : 0;
+
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    16,
+                                                    12,
+                                                    16,
+                                                    12,
+                                                  ),
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  top: BorderSide(
+                                                    color: Color(0xFFF1F5F9),
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.stretch,
+                                                children: [
+                                                  Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                Text(
+                                                                  entry
+                                                                      .gradeType,
+                                                                  style: const TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    color: Color(
+                                                                      0xFF0F172A,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                if (entry
+                                                                        .weight !=
+                                                                    null) ...[
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                  Container(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          4,
+                                                                    ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color(
+                                                                        0xFFFEF3C7,
+                                                                      ),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            999,
+                                                                          ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      '${entry.weight}%',
+                                                                      style: const TextStyle(
+                                                                        fontSize:
+                                                                            11,
+                                                                        color: Color(
+                                                                          0xFFB45309,
+                                                                        ),
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 6,
+                                                            ),
+                                                            Text(
+                                                              _formatMonthDay(
+                                                                context,
+                                                                entry.date,
+                                                              ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        12,
+                                                                    color: Color(
+                                                                      0xFF64748B,
+                                                                    ),
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Column(
                                                         crossAxisAlignment:
                                                             CrossAxisAlignment
-                                                                .start,
+                                                                .end,
                                                         children: [
-                                                          Row(
-                                                            children: [
-                                                              Text(
-                                                                entry.gradeType,
-                                                                style: const TextStyle(
-                                                                  fontSize: 13,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  color: Color(
-                                                                    0xFF0F172A,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              if (entry
-                                                                      .weight !=
-                                                                  null) ...[
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Container(
-                                                                  padding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            10,
-                                                                        vertical:
-                                                                            4,
-                                                                      ),
-                                                                  decoration: BoxDecoration(
-                                                                    color: const Color(
-                                                                      0xFFFEF3C7,
+                                                          Text(
+                                                            hasScore
+                                                                ? '$percentage%'
+                                                                : l10n.commonPending,
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: hasScore
+                                                                  ? _gradeColor(
+                                                                      percentage,
+                                                                    )
+                                                                  : const Color(
+                                                                      0xFF64748B,
                                                                     ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                          999,
-                                                                        ),
-                                                                  ),
-                                                                  child: Text(
-                                                                    '${entry.weight}%',
-                                                                    style: const TextStyle(
-                                                                      fontSize:
-                                                                          11,
-                                                                      color: Color(
-                                                                        0xFFB45309,
-                                                                      ),
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ],
+                                                            ),
                                                           ),
                                                           const SizedBox(
-                                                            height: 6,
+                                                            height: 2,
                                                           ),
                                                           Text(
-                                                            _formatMonthDay(
-                                                              context,
-                                                              entry.date,
-                                                            ),
+                                                            hasScore
+                                                                ? l10n.studentGradesPointsLabel(
+                                                                    score,
+                                                                    entry
+                                                                        .maxScore,
+                                                                  )
+                                                                : '—',
                                                             style:
                                                                 const TextStyle(
                                                                   fontSize: 12,
@@ -3257,136 +3427,94 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                           ),
                                                         ],
                                                       ),
-                                                    ),
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .end,
-                                                      children: [
-                                                        Text(
-                                                          hasScore
-                                                              ? '$percentage%'
-                                                              : l10n.commonPending,
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: hasScore
-                                                                ? _gradeColor(
-                                                                    percentage,
-                                                                  )
-                                                                : const Color(
-                                                                    0xFF64748B,
-                                                                  ),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        Text(
-                                                          hasScore
-                                                              ? l10n.studentGradesPointsLabel(
-                                                                  score,
-                                                                  entry
-                                                                      .maxScore,
-                                                                )
-                                                              : 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â',
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 12,
-                                                                color: Color(
-                                                                  0xFF64748B,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 10),
-                                                _PercentBar(
-                                                  value: percentage,
-                                                  backgroundColor: const Color(
-                                                    0xFFF1F5F9,
+                                                    ],
                                                   ),
-                                                  barColor: hasScore
-                                                      ? _barColor(percentage)
-                                                      : const Color(0xFFE2E8F0),
-                                                  height: 6,
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
+                                                  const SizedBox(height: 10),
+                                                  _PercentBar(
+                                                    value: percentage,
+                                                    backgroundColor:
+                                                        const Color(0xFFF1F5F9),
+                                                    barColor: hasScore
+                                                        ? _barColor(percentage)
+                                                        : const Color(
+                                                            0xFFE2E8F0,
+                                                          ),
+                                                    height: 6,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 20,
+                                  color: Color(0xFF0284C7),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.studentGradesPerformanceSummaryTitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F172A),
                                   ),
                                 ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            _SummaryRow(
+                              label: l10n.studentGradesHighestGradeLabel,
+                              value: '$highest%',
+                            ),
+                            const SizedBox(height: 8),
+                            _SummaryRow(
+                              label: l10n.studentGradesLowestGradeLabel,
+                              value: '$lowest%',
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 12),
+                            _SummaryRow(
+                              label: l10n.studentGradesTotalSubjectsLabel,
+                              value: '${_subjects.length}',
+                            ),
+                          ],
+                        ),
                       ),
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.trending_up_rounded,
-                                size: 20,
-                                color: Color(0xFF0284C7),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                l10n.studentGradesPerformanceSummaryTitle,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          _SummaryRow(
-                            label: l10n.studentGradesHighestGradeLabel,
-                            value: '$highest%',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(
-                            label: l10n.studentGradesLowestGradeLabel,
-                            value: '$lowest%',
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          const SizedBox(height: 12),
-                          _SummaryRow(
-                            label: l10n.studentGradesTotalSubjectsLabel,
-                            value: '${_subjects.length}',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -3510,6 +3638,13 @@ class _StudentCommunicationScreenState
   int _announcementBadgeCount = 0;
   int _pendingFeedbackBadgeCount = 0;
 
+  final _announcementsKey = GlobalKey<_AnnouncementsSectionState>();
+  final _questionsKey = GlobalKey<_QuestionsListState>();
+  final _questionFormKey = GlobalKey<_QuestionFormState>();
+  final _complaintsKey = GlobalKey<_ComplaintsListState>();
+  final _complaintFormKey = GlobalKey<_ComplaintFormState>();
+  final _feedbackKey = GlobalKey<_FeedbackSectionState>();
+
   @override
   void initState() {
     super.initState();
@@ -3629,10 +3764,55 @@ class _StudentCommunicationScreenState
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _loadingBadges = false;
-      });
+        setState(() {
+          _loadingBadges = false;
+        });
       }
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    await _loadBadgeCountsFromBackend();
+
+    switch (_activeTab) {
+      case _CommTab.announcements:
+        final state = _announcementsKey.currentState;
+        if (state != null) {
+          await state._loadAnnouncementsFromBackend();
+        }
+        return;
+      case _CommTab.questions:
+        if (_showQuestionForm) {
+          final state = _questionFormKey.currentState;
+          if (state != null) {
+            await state._loadContextFromBackend();
+          }
+          return;
+        }
+        final state = _questionsKey.currentState;
+        if (state != null) {
+          await state._loadQuestionsFromBackend();
+        }
+        return;
+      case _CommTab.complaints:
+        if (_showComplaintForm) {
+          final state = _complaintFormKey.currentState;
+          if (state != null) {
+            await state._loadContextFromBackend();
+          }
+          return;
+        }
+        final state = _complaintsKey.currentState;
+        if (state != null) {
+          await state._loadComplaintsFromBackend();
+        }
+        return;
+      case _CommTab.feedback:
+        final state = _feedbackKey.currentState;
+        if (state != null) {
+          await state._loadFeedbackFormsFromBackend();
+        }
+        return;
     }
   }
 
@@ -3673,138 +3853,147 @@ class _StudentCommunicationScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Sticky header with tabs
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: 0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.navCommunication,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+        child: AppRefreshConfigurator(
+          onRefresh: _handleRefresh,
+          child: Column(
+            children: [
+              // Sticky header with tabs
+              Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                padding: const EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 24,
+                  bottom: 0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navCommunication,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _CommTabButton(
-                          label: l10n.commAnnouncements,
-                          icon: Icons.campaign_rounded,
-                          selected: _activeTab == _CommTab.announcements,
-                          badgeCount: unreadAnnouncements,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.announcements;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                            _loadBadgeCountsFromBackend();
-                          },
-                        ),
-                        _CommTabButton(
-                          label: l10n.commQuestions,
-                          icon: Icons.question_answer_rounded,
-                          selected: _activeTab == _CommTab.questions,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.questions;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                        _CommTabButton(
-                          label: l10n.commComplaints,
-                          icon: Icons.report_problem_rounded,
-                          selected: _activeTab == _CommTab.complaints,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.complaints;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                        _CommTabButton(
-                          label: l10n.commFeedback,
-                          icon: Icons.fact_check_rounded,
-                          selected: _activeTab == _CommTab.feedback,
-                          badgeCount: pendingFeedbackForms,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.feedback;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                            _loadBadgeCountsFromBackend();
-                          },
-                        ),
-                      ],
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _CommTabButton(
+                            label: l10n.commAnnouncements,
+                            icon: Icons.campaign_rounded,
+                            selected: _activeTab == _CommTab.announcements,
+                            badgeCount: unreadAnnouncements,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.announcements;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                              _loadBadgeCountsFromBackend();
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commQuestions,
+                            icon: Icons.question_answer_rounded,
+                            selected: _activeTab == _CommTab.questions,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.questions;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commComplaints,
+                            icon: Icons.report_problem_rounded,
+                            selected: _activeTab == _CommTab.complaints,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.complaints;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commFeedback,
+                            icon: Icons.fact_check_rounded,
+                            selected: _activeTab == _CommTab.feedback,
+                            badgeCount: pendingFeedbackForms,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.feedback;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                              _loadBadgeCountsFromBackend();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Builder(
-                  builder: (context) {
-                    switch (_activeTab) {
-                      case _CommTab.announcements:
-                        return const _AnnouncementsSection();
-                      case _CommTab.questions:
-                        if (_showQuestionForm) {
-                          return _QuestionForm(
-                            onCancel: () {
-                              setState(() => _showQuestionForm = false);
-                            },
-                          );
-                        }
-                        return _QuestionsList(
-                          onAskQuestion: () {
-                            setState(() => _showQuestionForm = true);
-                          },
-                        );
-                      case _CommTab.complaints:
-                        if (_showComplaintForm) {
-                          return _ComplaintForm(
-                            onCancel: () {
-                              setState(() => _showComplaintForm = false);
-                            },
-                          );
-                        }
-                        return _ComplaintsList(
-                          onSubmitComplaint: () {
-                            setState(() => _showComplaintForm = true);
-                          },
-                        );
-                      case _CommTab.feedback:
-                        return _FeedbackSection(
-                          onSubmitted: _loadBadgeCountsFromBackend,
-                        );
-                    }
-                  },
+                  ],
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Builder(
+                    builder: (context) {
+                      switch (_activeTab) {
+                        case _CommTab.announcements:
+                          return _AnnouncementsSection(key: _announcementsKey);
+                        case _CommTab.questions:
+                          if (_showQuestionForm) {
+                            return _QuestionForm(
+                              key: _questionFormKey,
+                              onCancel: () {
+                                setState(() => _showQuestionForm = false);
+                              },
+                            );
+                          }
+                          return _QuestionsList(
+                            key: _questionsKey,
+                            onAskQuestion: () {
+                              setState(() => _showQuestionForm = true);
+                            },
+                          );
+                        case _CommTab.complaints:
+                          if (_showComplaintForm) {
+                            return _ComplaintForm(
+                              key: _complaintFormKey,
+                              onCancel: () {
+                                setState(() => _showComplaintForm = false);
+                              },
+                            );
+                          }
+                          return _ComplaintsList(
+                            key: _complaintsKey,
+                            onSubmitComplaint: () {
+                              setState(() => _showComplaintForm = true);
+                            },
+                          );
+                        case _CommTab.feedback:
+                          return _FeedbackSection(
+                            key: _feedbackKey,
+                            onSubmitted: _loadBadgeCountsFromBackend,
+                          );
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3882,7 +4071,7 @@ class _CommTabButton extends StatelessWidget {
 // --- Communication tab content widgets ---
 
 class _AnnouncementsSection extends StatefulWidget {
-  const _AnnouncementsSection();
+  const _AnnouncementsSection({super.key});
 
   @override
   State<_AnnouncementsSection> createState() => _AnnouncementsSectionState();
@@ -4111,7 +4300,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                     children: [
                       const Padding(
                         padding: EdgeInsets.only(top: 2),
-                        child: Text('ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¢', style: TextStyle(fontSize: 22)),
+                        child: Text('📢', style: TextStyle(fontSize: 22)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -4250,7 +4439,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
 }
 
 class _QuestionsList extends StatefulWidget {
-  const _QuestionsList({required this.onAskQuestion});
+  const _QuestionsList({super.key, required this.onAskQuestion});
 
   final VoidCallback onAskQuestion;
 
@@ -4578,7 +4767,7 @@ class _QuestionCard extends StatelessWidget {
 }
 
 class _QuestionForm extends StatefulWidget {
-  const _QuestionForm({required this.onCancel});
+  const _QuestionForm({super.key, required this.onCancel});
 
   final VoidCallback onCancel;
 
@@ -4702,9 +4891,9 @@ class _QuestionFormState extends State<_QuestionForm> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _loadingContext = false;
-      });
+        setState(() {
+          _loadingContext = false;
+        });
       }
     }
   }
@@ -4758,9 +4947,9 @@ class _QuestionFormState extends State<_QuestionForm> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _submitting = false;
-      });
+        setState(() {
+          _submitting = false;
+        });
       }
     }
   }
@@ -4971,7 +5160,7 @@ class _QuestionSubjectOption {
 }
 
 class _ComplaintsList extends StatefulWidget {
-  const _ComplaintsList({required this.onSubmitComplaint});
+  const _ComplaintsList({super.key, required this.onSubmitComplaint});
 
   final VoidCallback onSubmitComplaint;
 
@@ -5257,7 +5446,7 @@ class _ComplaintCard extends StatelessWidget {
 }
 
 class _ComplaintForm extends StatefulWidget {
-  const _ComplaintForm({required this.onCancel});
+  const _ComplaintForm({super.key, required this.onCancel});
 
   final VoidCallback onCancel;
 
@@ -5309,7 +5498,6 @@ class _ComplaintFormState extends State<_ComplaintForm> {
   }
 
   Future<void> _loadContextFromBackend() async {
-    final l10n = AppLocalizations.of(context);
     if (_loadingContext) return;
 
     setState(() {
@@ -5350,9 +5538,9 @@ class _ComplaintFormState extends State<_ComplaintForm> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _loadingContext = false;
-      });
+        setState(() {
+          _loadingContext = false;
+        });
       }
     }
   }
@@ -5409,9 +5597,9 @@ class _ComplaintFormState extends State<_ComplaintForm> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _submitting = false;
-      });
+        setState(() {
+          _submitting = false;
+        });
       }
     }
   }
@@ -5665,7 +5853,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
 }
 
 class _FeedbackSection extends StatefulWidget {
-  const _FeedbackSection({required this.onSubmitted});
+  const _FeedbackSection({super.key, required this.onSubmitted});
 
   final VoidCallback onSubmitted;
 
@@ -5946,9 +6134,9 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _submitting = false;
-      });
+        setState(() {
+          _submitting = false;
+        });
       }
     }
   }
@@ -6990,9 +7178,9 @@ class _StudentChangePasswordScreenState
       });
     } finally {
       if (mounted) {
-      setState(() {
-        _submitting = false;
-      });
+        setState(() {
+          _submitting = false;
+        });
       }
     }
   }
@@ -7005,6 +7193,7 @@ class _StudentChangePasswordScreenState
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
           children: [
             Container(

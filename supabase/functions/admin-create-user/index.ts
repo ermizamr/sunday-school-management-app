@@ -147,12 +147,8 @@ serve(async (req: Request) => {
     }
 
     // Servants may only create students in their own grade.
-    if (callerRole === "servant" && gradeId !== callerGradeId) {
-      return jsonResponse(
-        { error: "Forbidden: you can only create students in your grade." },
-        { status: 403 },
-      );
-    }
+    // NOTE: We intentionally allow servants to register students into any grade.
+    // If you need to restrict this in the future, reintroduce a grade-bound check here.
 
     // Validate grade exists (avoid creating orphan auth users).
     const { data: gradeRow, error: gradeError } = await guard.adminClient

@@ -435,6 +435,7 @@
   "servantRegisterStudentFullNameLabel": "የተማሪው ሙሉ ስም",
   "servantRegisterStudentFullNameHint": "ለምሳሌ፡ ዮሐንስ ዶ",
   "servantRegisterStudentGradeLabel": "የሚመዘገብበት ክፍል",
+  "servantRegisterStudentNoGradesMessage": "ክፍሎች አልተገኙም። እባክዎ የክፍል ኃላፊዎን ያነጋግሩ።",
   "servantRegisterStudentSubmit": "መመዝገብ",
   "servantRegisterStudentNameRequired": "የተማሪውን ሙሉ ስም ያስገቡ",
   "servantRegisterStudentGradeRequired": "ክፍል ይምረጡ",
@@ -468,6 +469,10 @@
   "servantAnalyticsLoadFailed": "ትንተናውን መጫን አልተሳካም።",
 
   "servantAnalyticsSubtitle": "የአፈጻጸም ግንዛቤ እና አዝማሚያዎች",
+
+  "servantAnalyticsTabOverview": "አጠቃላይ",
+  "servantAnalyticsTabBySubject": "በትምህርት",
+  "servantAnalyticsTabStudents": "ተማሪዎች",
 
   "servantAnalyticsMetricClassAverage": "የክፍል አማካኝ",
   "servantAnalyticsStudentsWithGradesLabel": "{graded}/{total} ተማሪዎች",

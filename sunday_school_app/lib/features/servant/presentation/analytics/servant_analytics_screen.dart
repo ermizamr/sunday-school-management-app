@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
+import '../../../../core/refresh/app_refresh_configurator.dart';
 import 'servant_analytics_calculations.dart';
 import 'servant_analytics_repository.dart';
 import 'servant_analytics_widgets.dart';
@@ -43,174 +44,194 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
     });
   }
 
+  Future<void> _handleRefresh() async {
+    final future = _repository.loadActiveYearForCurrentServantGrade();
+    setState(() {
+      _future = future;
+    });
+
+    try {
+      await future;
+    } catch (_) {
+      // Surface the failure via FutureBuilder.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    return FutureBuilder<ServantAnalyticsSnapshot>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          final message = snapshot.error is ServantAnalyticsException
-              ? (snapshot.error as ServantAnalyticsException).message
-              : l10n.servantAnalyticsLoadFailed;
-          return Scaffold(
-            appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () {
-                        setState(() {
-                          _future = _repository
-                              .loadActiveYearForCurrentServantGrade();
-                        });
-                      },
-                      child: Text(l10n.commonRetry),
-                    ),
-                  ],
-                ),
+    return AppRefreshConfigurator(
+      onRefresh: _handleRefresh,
+      child: FutureBuilder<ServantAnalyticsSnapshot>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF8FAFC),
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: const [
+                  SizedBox(height: 180),
+                  Center(child: CircularProgressIndicator()),
+                ],
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        final data = calculateAnalyticsData(snapshot.requireData);
+          if (snapshot.hasError) {
+            final message = snapshot.error is ServantAnalyticsException
+                ? (snapshot.error as ServantAnalyticsException).message
+                : l10n.servantAnalyticsLoadFailed;
+            return Scaffold(
+              appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const SizedBox(height: 120),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _handleRefresh,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
+            );
+          }
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
-          body: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 170,
-                  backgroundColor: cs.primary,
-                  automaticallyImplyLeading: false,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [cs.primary, cs.primary.withAlpha(230)],
+          final data = calculateAnalyticsData(snapshot.requireData);
+
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            body: NestedScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 170,
+                    backgroundColor: cs.primary,
+                    automaticallyImplyLeading: false,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [cs.primary, cs.primary.withAlpha(230)],
+                          ),
                         ),
-                      ),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  InkWell(
-                                    onTap: () =>
-                                        context.go('/servant/dashboard'),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withAlpha(51),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.arrow_back_rounded,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          l10n.servantAnalyticsTitle,
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () =>
+                                          context.go('/servant/dashboard'),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withAlpha(51),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          l10n.servantAnalyticsSubtitle,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withOpacity(
-                                              0.85,
+                                        child: const Icon(
+                                          Icons.arrow_back_rounded,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            l10n.servantAnalyticsTitle,
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            l10n.servantAnalyticsSubtitle,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white.withAlpha(
+                                                217,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              AnalyticsHeaderTabs(
-                                selected: _selectedView,
-                                onSelected: _setView,
-                              ),
-                            ],
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                AnalyticsHeaderTabs(
+                                  selected: _selectedView,
+                                  onSelected: _setView,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ];
-            },
-            body: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
-              children: [
-                if (_selectedView == AnalyticsView.overview)
-                  _OverviewView(data: data, tooltip: _tooltip),
-                if (_selectedView == AnalyticsView.subjects)
-                  _SubjectsView(
-                    data: data,
-                    selectedSubjectId: _selectedSubjectId,
-                    onSelectSubject: (id) {
-                      setState(() {
-                        _tooltip.hide();
-                        _selectedSubjectId = id;
-                      });
-                    },
-                    onBack: () {
-                      setState(() {
-                        _tooltip.hide();
-                        _selectedSubjectId = null;
-                      });
-                    },
-                    tooltip: _tooltip,
-                  ),
-                if (_selectedView == AnalyticsView.students)
-                  _StudentsView(data: data),
-              ],
+                ];
+              },
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
+                children: [
+                  if (_selectedView == AnalyticsView.overview)
+                    _OverviewView(data: data, tooltip: _tooltip),
+                  if (_selectedView == AnalyticsView.subjects)
+                    _SubjectsView(
+                      data: data,
+                      selectedSubjectId: _selectedSubjectId,
+                      onSelectSubject: (id) {
+                        setState(() {
+                          _tooltip.hide();
+                          _selectedSubjectId = id;
+                        });
+                      },
+                      onBack: () {
+                        setState(() {
+                          _tooltip.hide();
+                          _selectedSubjectId = null;
+                        });
+                      },
+                      tooltip: _tooltip,
+                    ),
+                  if (_selectedView == AnalyticsView.students)
+                    _StudentsView(data: data),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

@@ -818,6 +818,10 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantRegisterStudentGradeLabel => 'የሚመዘገብበት ክፍል';
 
   @override
+  String get servantRegisterStudentNoGradesMessage =>
+      'ክፍሎች አልተገኙም። እባክዎ የክፍል ኃላፊዎን ያነጋግሩ።';
+
+  @override
   String get servantRegisterStudentSubmit => 'መመዝገብ';
 
   @override
@@ -880,6 +884,15 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get servantAnalyticsSubtitle => 'የአፈጻጸም ግንዛቤ እና አዝማሚያዎች';
+
+  @override
+  String get servantAnalyticsTabOverview => 'አጠቃላይ';
+
+  @override
+  String get servantAnalyticsTabBySubject => 'በትምህርት';
+
+  @override
+  String get servantAnalyticsTabStudents => 'ተማሪዎች';
 
   @override
   String get servantAnalyticsMetricClassAverage => 'የክፍል አማካኝ';

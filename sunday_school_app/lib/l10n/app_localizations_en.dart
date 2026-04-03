@@ -834,6 +834,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get servantRegisterStudentGradeLabel => 'Registering grade';
 
   @override
+  String get servantRegisterStudentNoGradesMessage =>
+      'No grades found. Please contact your class admin.';
+
+  @override
   String get servantRegisterStudentSubmit => 'Register';
 
   @override
@@ -898,6 +902,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get servantAnalyticsSubtitle => 'Performance Insights & Trends';
+
+  @override
+  String get servantAnalyticsTabOverview => 'Overview';
+
+  @override
+  String get servantAnalyticsTabBySubject => 'By Subject';
+
+  @override
+  String get servantAnalyticsTabStudents => 'Students';
 
   @override
   String get servantAnalyticsMetricClassAverage => 'Class Average';
