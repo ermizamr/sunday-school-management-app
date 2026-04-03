@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_providers.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/push/push_notifications_service.dart';
@@ -4150,8 +4151,8 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
         final createdById = map['created_by']?.toString() ?? '';
         return _Announcement(
           id: map['id'] as String,
-          title: (map['title'] as String?) ?? '',
-          message: (map['message'] as String?) ?? '',
+          title: maybeFixMojibake((map['title'] as String?) ?? ''),
+          message: maybeFixMojibake((map['message'] as String?) ?? ''),
           createdBy: createdById == userId ? 'you' : 'servant',
           createdDate: createdAt.isNotEmpty
               ? _dateOnly(createdAt)
@@ -4529,11 +4530,11 @@ class _QuestionsListState extends State<_QuestionsList> {
         final answered = (map['answered'] as bool?) ?? false;
 
         return _Question(
-          subject: subjectName?.trim() ?? '',
-          question: (map['question'] as String?) ?? '',
+          subject: maybeFixMojibake(subjectName?.trim() ?? ''),
+          question: maybeFixMojibake((map['question'] as String?) ?? ''),
           status: answered ? 'answered' : 'pending',
           answered: answered,
-          answer: map['answer'] as String?,
+          answer: maybeFixMojibakeNullable(map['answer'] as String?),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
         );
       }).toList();
@@ -5244,7 +5245,7 @@ class _ComplaintsListState extends State<_ComplaintsList> {
         return _Complaint(
           category: map['category']?.toString() ?? 'other',
           status: map['status']?.toString() ?? 'pending',
-          text: map['complaint']?.toString() ?? '',
+          text: maybeFixMojibake(map['complaint']?.toString() ?? ''),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
         );
       }).toList();

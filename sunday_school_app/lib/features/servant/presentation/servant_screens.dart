@@ -13,6 +13,7 @@ import '../../../core/config/supabase_config.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/push/push_notifications_service.dart';
 import 'attendance/servant_attendance_home_screen.dart';
@@ -4502,8 +4503,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         final createdById = map['created_by']?.toString() ?? '';
         return _ServantAnnouncement(
           id: map['id'] as String,
-          title: (map['title'] as String?) ?? '',
-          message: (map['message'] as String?) ?? '',
+          title: maybeFixMojibake((map['title'] as String?) ?? ''),
+          message: maybeFixMojibake((map['message'] as String?) ?? ''),
           category: (map['category'] as String?) ?? 'general',
           createdBy: createdById == userId ? 'You' : 'Servant',
           createdDate: createdAt.isNotEmpty
@@ -4666,7 +4667,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = p as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            studentNames[id] = (m['name'] as String?) ?? 'Student';
+            studentNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'Student');
           }
         } catch (_) {}
       }
@@ -4682,7 +4683,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = s as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            subjectNames[id] = (m['name'] as String?) ?? 'General';
+            subjectNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'General');
           }
         } catch (_) {}
       }
@@ -4698,15 +4699,15 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return _ServantQuestion(
           id: map['id'] as String,
           studentId: studentId,
-          studentName: studentNames[studentId] ?? 'Student',
+          studentName: maybeFixMojibake(studentNames[studentId] ?? 'Student'),
           subjectId: subjectId ?? '',
           subjectName: (subjectId == null || subjectId.isEmpty)
               ? 'General'
-              : (subjectNames[subjectId] ?? 'General'),
-          question: (map['question'] as String?) ?? '',
+              : maybeFixMojibake(subjectNames[subjectId] ?? 'General'),
+          question: maybeFixMojibake((map['question'] as String?) ?? ''),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
           answered: (map['answered'] as bool?) ?? false,
-          answer: map['answer'] as String?,
+          answer: maybeFixMojibakeNullable(map['answer'] as String?),
           answeredBy: answeredById == null
               ? null
               : (answeredById == userId ? 'You' : 'Servant'),
@@ -4834,7 +4835,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = p as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            studentNames[id] = (m['name'] as String?) ?? 'Student';
+            studentNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'Student');
           }
         } catch (_) {}
       }
@@ -4850,12 +4851,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return _ServantComplaint(
           id: map['id'] as String,
           studentId: studentId,
-          studentName: studentNames[studentId] ?? 'Student',
+          studentName: maybeFixMojibake(studentNames[studentId] ?? 'Student'),
           category: (map['category'] as String?) ?? 'other',
-          complaint: (map['complaint'] as String?) ?? '',
+          complaint: maybeFixMojibake((map['complaint'] as String?) ?? ''),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
           status: _complaintStatusFromDb(statusDb),
-          response: map['response'] as String?,
+          response: maybeFixMojibakeNullable(map['response'] as String?),
           respondedBy: respondedById == null
               ? null
               : (respondedById == userId ? 'You' : 'Servant'),
