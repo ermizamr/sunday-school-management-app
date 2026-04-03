@@ -9,6 +9,7 @@ import {
   Megaphone, 
   GraduationCap, 
   BookOpen, 
+  FileText,
   LogOut,
   ShieldCheck
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { to: "/admin/promotions", label: t("navPromotions"), icon: TrendingUp },
   { to: "/admin/announcements", label: t("navAnnouncements"), icon: Megaphone },
   { to: "/admin/graduates", label: t("navGraduates"), icon: UserCheck },
+  { to: "/admin/documents", label: t("navDocuments"), icon: FileText },
 ] as const;
 
 export function AdminLayout() {

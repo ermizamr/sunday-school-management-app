@@ -78,7 +78,7 @@ export function DashboardPage() {
     <div className="space-y-8 max-w-6xl mx-auto pb-10">
       <div>
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{t("dashboardTitle")}</h1>
-        <p className="text-muted-foreground mt-2 text-lg">
+        <p className="text-muted-foreground mt-2 text-lg whitespace-pre-line">
           {t("dashboardSubtitle")}
         </p>
       </div>

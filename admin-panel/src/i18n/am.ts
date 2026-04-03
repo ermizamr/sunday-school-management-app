@@ -37,6 +37,16 @@ export const am = {
   navPromotions: "ዝውውር",
   navAnnouncements: "ማስታወቂያዎች",
   navGraduates: "የተመረቁ",
+  navDocuments: "ሰነዶች",
+
+  // Documents
+  documentsTitle: "ሰነዶች",
+  documentsSubtitle: "የአስተዳዳሪ መመሪያ ሰነዶችን ከዚህ ያንብቡ።",
+  documentsChooseLanguage: "ቋንቋ ይምረጡ",
+  documentsLanguageAmharic: "አማርኛ",
+  documentsLanguageEnglish: "English",
+  documentsBack: "ወደ ቋንቋ ምርጫ ተመለስ",
+  documentsViewerHint: "ሰነዱ ከዚህ በታች በ Markdown ቅርጽ ይታያል።",
 
   // Auth
   authAdminSignInTitle: "የአስተዳዳሪ መግቢያ",

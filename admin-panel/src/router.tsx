@@ -16,6 +16,7 @@ import { AnnouncementsPage } from "./pages/AnnouncementsPage";
 import { ServantsPage } from "./pages/ServantsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { GraduatesPage } from "./pages/GraduatesPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
 import { t } from "./i18n/t";
 
 const router = createBrowserRouter([
@@ -38,6 +39,8 @@ const router = createBrowserRouter([
           { path: "/admin/announcements", element: <AnnouncementsPage /> },
           { path: "/admin/grades", element: <GradesPage /> },
           { path: "/admin/subjects", element: <SubjectsPage /> },
+          { path: "/admin/documents", element: <DocumentsPage /> },
+          { path: "/admin/documents/:language", element: <DocumentsPage /> },
 
           // Back-compat redirects
           { path: "/academic-years", element: <Navigate to="/admin/academic-year" replace /> },
