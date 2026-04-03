@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction } from "../lib/invokeEdgeFunction";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
@@ -102,13 +103,13 @@ export function ServantsPage() {
         return;
       }
 
-      const { error: fnError } = await supabase.functions.invoke(
+      const { error: fnError } = await invokeEdgeFunction(
         "admin-set-account-status",
-        { body: { user_id: p.id, account_status: next } },
+        { user_id: p.id, account_status: next },
       );
 
       if (fnError) {
-        setError(fnError.message);
+        setError(fnError);
         return;
       }
 

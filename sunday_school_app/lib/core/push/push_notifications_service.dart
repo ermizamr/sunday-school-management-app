@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../routing/app_router.dart';
 
@@ -36,6 +37,20 @@ class PushNotificationsService {
 
   final Map<String, int> _recentOnlineNoticeIds = {};
 
+  AppLocalizations _resolveL10n() {
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx != null) {
+      return AppLocalizations.of(ctx);
+    }
+
+    try {
+      final locale = WidgetsBinding.instance.platformDispatcher.locale;
+      return lookupAppLocalizations(locale);
+    } catch (_) {
+      return lookupAppLocalizations(const Locale('en'));
+    }
+  }
+
   String _formatLabel(String input) {
     final raw = input.trim();
     if (raw.isEmpty) return '';
@@ -54,6 +69,23 @@ class PushNotificationsService {
     if (text.length <= max) return text;
     final cut = (max - 3).clamp(0, max);
     return '${text.substring(0, cut).trimRight()}...';
+  }
+
+  String _announcementCategoryLabel(String raw, AppLocalizations l10n) {
+    switch (raw.trim().toLowerCase()) {
+      case 'urgent':
+        return l10n.commAnnouncementCategoryUrgent;
+      case 'grades':
+        return l10n.commAnnouncementCategoryGrades;
+      case 'schedule':
+        return l10n.commAnnouncementCategorySchedule;
+      case 'event':
+        return l10n.commAnnouncementCategoryEvent;
+      case 'general':
+        return l10n.commAnnouncementCategoryGeneral;
+      default:
+        return _formatLabel(raw);
+    }
   }
 
   Future<void> init() async {
@@ -83,7 +115,8 @@ class PushNotificationsService {
       // Firebase isn't available.
       final androidPlugin = _localNotifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.requestNotificationsPermission();
     }
 
@@ -121,10 +154,14 @@ class PushNotificationsService {
       }
     });
 
-    _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+    _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
+      token,
+    ) {
       _currentToken = token;
       if (kDebugMode) {
-        debugPrint('PushNotificationsService: token refreshed (len=${token.length})');
+        debugPrint(
+          'PushNotificationsService: token refreshed (len=${token.length})',
+        );
       }
       unawaited(_registerToken(token));
     });
@@ -172,7 +209,9 @@ class PushNotificationsService {
           if (announcementId == null || announcementId.isEmpty) return;
 
           final nowMs = DateTime.now().millisecondsSinceEpoch;
-          _recentOnlineNoticeIds.removeWhere((_, ts) => nowMs - ts > 10 * 60 * 1000);
+          _recentOnlineNoticeIds.removeWhere(
+            (_, ts) => nowMs - ts > 10 * 60 * 1000,
+          );
           if (_recentOnlineNoticeIds.containsKey(announcementId)) return;
           _recentOnlineNoticeIds[announcementId] = nowMs;
 
@@ -191,14 +230,18 @@ class PushNotificationsService {
           final announcementGradeId = record['grade_id']?.toString();
           if (gradeId != null && gradeId.isNotEmpty) {
             // If the announcement targets another grade, ignore it.
-            if (announcementGradeId != null && announcementGradeId.isNotEmpty && announcementGradeId != gradeId) {
+            if (announcementGradeId != null &&
+                announcementGradeId.isNotEmpty &&
+                announcementGradeId != gradeId) {
               return;
             }
           }
 
+          final l10n = _resolveL10n();
           final categoryRaw = record['category']?.toString() ?? 'general';
-          final categoryLabel = _formatLabel(categoryRaw);
-          final title = 'Announcement • ${categoryLabel.isEmpty ? 'General' : categoryLabel}';
+          final categoryLabel = _announcementCategoryLabel(categoryRaw, l10n);
+          final title =
+              '${l10n.commAnnouncements} • ${categoryLabel.isEmpty ? l10n.commAnnouncementCategoryGeneral : categoryLabel}';
 
           final annTitle = record['title']?.toString() ?? '';
           final message = record['message']?.toString() ?? '';
@@ -207,7 +250,10 @@ class PushNotificationsService {
             if (message.trim().isNotEmpty) _truncateText(message, 120),
           ].join(' — ');
 
-          final notifPayload = jsonEncode({'type': 'announcement', 'id': announcementId});
+          final notifPayload = jsonEncode({
+            'type': 'announcement',
+            'id': announcementId,
+          });
 
           const androidDetails = AndroidNotificationDetails(
             'communications',
@@ -274,7 +320,8 @@ class PushNotificationsService {
 
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.createNotificationChannel(channel);
   }
 
@@ -282,7 +329,8 @@ class PushNotificationsService {
     // Android 13+: runtime permission.
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.requestNotificationsPermission();
 
     // iOS/macOS.
@@ -297,7 +345,9 @@ class PushNotificationsService {
     final idFromData = message.data['id']?.toString();
     if (idFromData != null && idFromData.trim().isNotEmpty) {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      _recentOnlineNoticeIds.removeWhere((_, ts) => nowMs - ts > 10 * 60 * 1000);
+      _recentOnlineNoticeIds.removeWhere(
+        (_, ts) => nowMs - ts > 10 * 60 * 1000,
+      );
       if (_recentOnlineNoticeIds.containsKey(idFromData)) {
         return;
       }
@@ -328,7 +378,10 @@ class PushNotificationsService {
     );
   }
 
-  Future<void> _handleNotificationOpen({Map<String, dynamic>? data, String? payload}) async {
+  Future<void> _handleNotificationOpen({
+    Map<String, dynamic>? data,
+    String? payload,
+  }) async {
     String? type;
     String? id;
 
@@ -337,7 +390,9 @@ class PushNotificationsService {
       id = data['id']?.toString();
     }
 
-    if ((type == null || type.isEmpty) && payload != null && payload.trim().isNotEmpty) {
+    if ((type == null || type.isEmpty) &&
+        payload != null &&
+        payload.trim().isNotEmpty) {
       try {
         final decoded = jsonDecode(payload) as Map<String, dynamic>;
         type = decoded['type']?.toString();
@@ -362,7 +417,7 @@ class PushNotificationsService {
     final uri = Uri(
       path: base,
       queryParameters: {
-        'tab': ?tab,
+        ...?(tab == null ? null : {'tab': tab}),
         if (id != null && id.isNotEmpty) 'id': id,
       },
     );
@@ -425,16 +480,13 @@ class PushNotificationsService {
     };
 
     try {
-      await Supabase.instance.client.from('device_push_tokens').upsert(
-        {
-          'user_id': userId,
-          'fcm_token': token,
-          'platform': platform,
-          'enabled': true,
-          'last_seen_at': DateTime.now().toIso8601String(),
-        },
-        onConflict: 'fcm_token',
-      );
+      await Supabase.instance.client.from('device_push_tokens').upsert({
+        'user_id': userId,
+        'fcm_token': token,
+        'platform': platform,
+        'enabled': true,
+        'last_seen_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'fcm_token');
       if (kDebugMode) {
         debugPrint('PushNotificationsService: token upsert OK');
       }

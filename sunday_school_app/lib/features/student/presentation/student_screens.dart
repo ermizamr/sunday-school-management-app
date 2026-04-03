@@ -132,10 +132,19 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
         context.go('/student/dashboard');
       }
     } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+      final looksLikeInvalidCredentials =
+          msg.contains('invalid login credentials') ||
+          msg.contains('invalid credentials') ||
+          msg.contains('invalid_grant');
+      if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = looksLikeInvalidCredentials
+            ? l10n.authInvalidCredentialsError
+            : l10n.authLoginFailedGeneric;
       });
     } catch (e) {
+      debugPrint('Student login failed: $e');
       setState(() {
         _error = l10n.authLoginFailedGeneric;
       });
@@ -498,6 +507,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   Future<void> _loadStatsFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -589,9 +599,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         );
       });
     } catch (e) {
+      debugPrint('Student dashboard load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = l10n.studentDashboardLoadFailed;
       });
     } finally {
       if (mounted) {
@@ -983,6 +994,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   Future<void> _loadAttendanceFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loadingAttendance = true;
       _attendanceError = null;
@@ -1026,7 +1038,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           .map(
             (r) => _AttendanceSubject(
               id: (r as Map)['id'] as String,
-              name: (r)['name'] as String? ?? 'Subject',
+              name: (r)['name'] as String? ?? l10n.commSubjectLabel,
             ),
           )
           .toList();
@@ -1096,9 +1108,10 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         _selectedSubjectId = nextSelected;
       });
     } catch (e) {
+      debugPrint('Student attendance load failed: $e');
       if (!mounted) return;
       setState(() {
-        _attendanceError = e.toString();
+        _attendanceError = l10n.attendanceLoadFailed;
       });
     } finally {
       if (mounted) {
@@ -1967,10 +1980,7 @@ class _KeyValueRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFF0F172A),
-          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
         ),
       ],
     );
@@ -2304,9 +2314,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         }
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student grades load failed: $e');
       if (!mounted) return;
       setState(() {
-        _gradesError = e.toString();
+        _gradesError = l10n.gradesLoadFailed;
       });
     } finally {
       if (mounted) {
@@ -4547,9 +4559,11 @@ class _QuestionsListState extends State<_QuestionsList> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student questions load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = l10n.commLoadQuestionsFailed;
         _questions.clear();
         _isLoading = false;
       });
@@ -4886,9 +4900,10 @@ class _QuestionFormState extends State<_QuestionForm> {
         }
       });
     } catch (e) {
+      debugPrint('Student question form context load failed: $e');
       if (!mounted) return;
       setState(() {
-        _contextError = e.toString();
+        _contextError = l10n.commLoadContextFailed;
       });
     } finally {
       if (mounted) {
@@ -4942,9 +4957,11 @@ class _QuestionFormState extends State<_QuestionForm> {
         widget.onCancel();
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student question submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = e.toString();
+        _submitError = l10n.commSubmitQuestionFailed;
       });
     } finally {
       if (mounted) {
@@ -5258,9 +5275,11 @@ class _ComplaintsListState extends State<_ComplaintsList> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student complaints load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = l10n.commLoadComplaintsFailed;
         _complaints.clear();
         _isLoading = false;
       });
@@ -5499,6 +5518,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
   }
 
   Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     if (_loadingContext) return;
 
     setState(() {
@@ -5533,9 +5553,10 @@ class _ComplaintFormState extends State<_ComplaintForm> {
         _academicYearId = academicYearId;
       });
     } catch (e) {
+      debugPrint('Student complaint form context load failed: $e');
       if (!mounted) return;
       setState(() {
-        _contextError = e.toString();
+        _contextError = l10n.commLoadContextFailed;
       });
     } finally {
       if (mounted) {
@@ -5592,9 +5613,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
         widget.onCancel();
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student complaint submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = e.toString();
+        _submitError = l10n.commSubmitComplaintFailed;
       });
     } finally {
       if (mounted) {
@@ -6049,9 +6072,11 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student feedback forms load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = l10n.commLoadFeedbackFormsFailed;
         _forms.clear();
         _isLoading = false;
       });
@@ -6129,9 +6154,10 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       widget.onSubmitted();
       await _loadFeedbackFormsFromBackend();
     } catch (e) {
+      debugPrint('Student feedback submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = e.toString();
+        _submitError = l10n.commSubmitFeedbackFailed;
       });
     } finally {
       if (mounted) {
@@ -7168,9 +7194,10 @@ class _StudentChangePasswordScreenState
       ).showSnackBar(SnackBar(content: Text(l10n.authPasswordUpdateSuccess)));
       context.pop();
     } on AuthException catch (e) {
+      debugPrint('Student password update failed: ${e.message}');
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = l10n.authPasswordUpdateFailedGeneric;
       });
     } catch (_) {
       if (!mounted) return;

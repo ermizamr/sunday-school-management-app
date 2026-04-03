@@ -1,6 +1,8 @@
 import * as React from "react";
 
 import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction } from "../lib/invokeEdgeFunction";
+import { useAuth } from "../auth/useAuth";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
@@ -58,6 +60,8 @@ export function AnnouncementsPage() {
   const [announcements, setAnnouncements] = React.useState<AnnouncementRow[]>([]);
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
   const [years, setYears] = React.useState<AcademicYearRow[]>([]);
+
+  const { user } = useAuth();
 
   function categoryEmoji(category: string) {
     switch (category) {
@@ -171,21 +175,15 @@ export function AnnouncementsPage() {
     setError(null);
     setNotice(null);
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError) {
-      setError(userError.message);
-      return;
-    }
-    if (!user) {
-      setError(t("announcementsMustSignIn"));
+    const title = createTitle.trim();
+    const message = createMessage.trim();
+    const userId = user?.id ?? null;
+
+    if (!userId) {
+      setError(t("commonUnknownError"));
       return;
     }
 
-    const title = createTitle.trim();
-    const message = createMessage.trim();
     if (!title || !message) {
       setError(t("announcementsValidationTitleMessageRequired"));
       return;
@@ -211,7 +209,7 @@ export function AnnouncementsPage() {
           priority: createPriority.trim() || "medium",
           expires_on: validExpires,
           active: createActive,
-          created_by: user.id,
+          created_by: userId,
         })
         .select("id")
         .single();
@@ -223,13 +221,18 @@ export function AnnouncementsPage() {
 
       let pushData: unknown = null;
       if (insertedAnnouncement?.id) {
-        const { data, error: pushError } = await supabase.functions.invoke("push-notify", {
-          body: { event: "announcement_created", announcementId: insertedAnnouncement.id },
-        });
+        const { data, error: pushError } = await invokeEdgeFunction(
+          "push-notify",
+          { event: "announcement_created", announcementId: insertedAnnouncement.id },
+        );
 
         if (pushError) {
+          console.error("Push notify failed", {
+            announcementId: insertedAnnouncement.id,
+            pushError,
+          });
           setNotice(
-            t("announcementsNoticePushFailed", { details: pushError.message }),
+            t("announcementsNoticePushFailed"),
           );
         } else {
           pushData = data;
@@ -240,8 +243,12 @@ export function AnnouncementsPage() {
       if (pushData && typeof pushData === "object") {
         const response = pushData as PushNotifyResponse;
         if (response.ok === false) {
+          console.error("Push notify returned ok=false", {
+            announcementId: insertedAnnouncement?.id,
+            response,
+          });
           setNotice(
-            t("announcementsNoticePushFailed", { details: response.error ?? t("commonUnknownError") }),
+            t("announcementsNoticePushFailed"),
           );
         }
         const sentCount =
@@ -251,16 +258,12 @@ export function AnnouncementsPage() {
               ? response.success
               : null;
         if (sentCount === 0) {
-          const reason = typeof response.reason === "string" ? response.reason : t("commonUnknown");
-          const firstError = Array.isArray(response.errors) ? response.errors[0] : null;
-          const firstErrorText = firstError ? JSON.stringify(firstError) : null;
+          console.error("Push notify sent=0", {
+            announcementId: insertedAnnouncement?.id,
+            response,
+          });
           setNotice(
-            t("announcementsNoticeNoPushSent", {
-              reason,
-              recipients: String(response.recipients ?? "?"),
-              tokens: String(response.tokens ?? "?"),
-              firstError: firstErrorText ? `, firstError: ${firstErrorText}` : "",
-            }),
+            t("announcementsNoticeNoPushSent"),
           );
         }
       }

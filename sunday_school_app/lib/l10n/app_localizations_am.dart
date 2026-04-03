@@ -423,7 +423,10 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get authDemoMode =>
-      'ሙከራ (Demo): ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል ይጠቀሙ\nጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ።';
+      'ሙከራ ሁኔታ፡ ጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል መጠቀም ይችላሉ።';
+
+  @override
+  String get authInvalidCredentialsError => 'ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም።';
 
   @override
   String get authLoginFailedGeneric => 'መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
@@ -480,6 +483,10 @@ class AppLocalizationsAm extends AppLocalizations {
   String get dashboardViewGrades => 'ውጤት ይመልከቱ';
 
   @override
+  String get studentDashboardLoadFailed =>
+      'የዳሽቦርዱን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
   String get attendanceTrackSubtitle => 'የክፍል ተሳትፎዎን ይከታተሉ';
 
   @override
@@ -487,6 +494,9 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get attendanceAcrossAllSubjects => 'በሁሉም ትምህርቶች';
+
+  @override
+  String get attendanceLoadFailed => 'መገኘትን መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
   String attendancePercentLabel(Object percent) {
@@ -567,6 +577,10 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantAttendanceSearchStudentsHint => 'ተማሪዎችን ፈልግ';
 
   @override
+  String get servantAttendanceLoadFailed =>
+      'የመገኘት መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
   String get servantAttendanceSaved => 'መገኘት ተመዝግቧል';
 
   @override
@@ -595,6 +609,40 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get commAnnouncementsLoadFailed => 'ማስታወቂያዎችን መጫን አልተሳካም።';
+
+  @override
+  String get commLoadQuestionsFailed => 'ጥያቄዎችን መጫን አልተሳካም።';
+
+  @override
+  String get commLoadComplaintsFailed => 'ቅሬታዎችን መጫን አልተሳካም።';
+
+  @override
+  String get commLoadFeedbackFormsFailed => 'የግብረመልስ ቅጾችን መጫን አልተሳካም።';
+
+  @override
+  String get commLoadContextFailed => 'የሚፈለገውን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get commSubmitQuestionFailed => 'ጥያቄዎን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get commSubmitComplaintFailed => 'ቅሬታዎን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get commSubmitFeedbackFailed => 'ግብረመልስን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get servantCommLoadQuestionsFailed => 'ጥያቄዎችን መጫን አልተሳካም።';
+
+  @override
+  String get servantCommLoadComplaintsFailed => 'ቅሬታዎችን መጫን አልተሳካም።';
+
+  @override
+  String get servantCommSendResponseFailed => 'መልስ መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get servantCommUpdateComplaintFailed =>
+      'ቅሬታውን ማዘመን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
   String get commAnnouncementCategoryUrgent => 'አስቸኳይ';
@@ -763,17 +811,20 @@ class AppLocalizationsAm extends AppLocalizations {
   String get bootstrapErrorTitle => 'መተግበሪያው መጀመር አልቻለም';
 
   @override
-  String get bootstrapErrorFix => 'መፍትሄ: የSupabase ቅንብር ያረጋግጡ';
+  String get bootstrapErrorFix => 'መፍትሄ፡ የኢንተርኔት ግንኙነትዎን ያረጋግጡ እና እንደገና ይሞክሩ።';
 
   @override
-  String get bootstrapErrorVerifyPath =>
-      'lib/core/config/supabase_config.dart ውስጥ ያሉ እሴቶችን ያረጋግጡ';
+  String get bootstrapErrorVerifyPath => 'ችግሩ ካልተፈታ እባክዎ አስተዳዳሪዎን ያነጋግሩ።';
 
   @override
   String get servantDashboardTitle => 'የአገልጋይ ዳሽቦርድ';
 
   @override
   String get servantDashboardSubtitle => 'የክፍል አስተዳደር';
+
+  @override
+  String get servantDashboardLoadFailed =>
+      'የዳሽቦርዱን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
   String get servantTotalStudents => 'ጠቅላላ ተማሪዎች';
@@ -829,6 +880,10 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get servantRegisterStudentGradeRequired => 'ክፍል ይምረጡ';
+
+  @override
+  String get servantRegisterStudentFailedGeneric =>
+      'ተማሪውን መመዝገብ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
   String get servantRegisterStudentSuccessTitle => 'ተማሪ ተመዝግቧል';
@@ -1134,6 +1189,9 @@ class AppLocalizationsAm extends AppLocalizations {
   String get studentGradesTotalSubjectsLabel => 'ጠቅላላ ትምህርቶች';
 
   @override
+  String get gradesLoadFailed => 'ውጤቶችን መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
   String get servantGradesLoadSubjectsFailed => 'ትምህርቶችን መጫን አልተሳካም።';
 
   @override
@@ -1176,6 +1234,10 @@ class AppLocalizationsAm extends AppLocalizations {
   @override
   String get servantAnnouncementsEnterTitleAndMessageError =>
       'እባክዎ ርዕስ እና መልዕክት ያስገቡ።';
+
+  @override
+  String get servantAnnouncementsPostFailed =>
+      'ማስታወቂያውን መለጠፍ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 
   @override
   String get servantAnnouncementsSavedLocallySyncFailed =>
@@ -1264,6 +1326,13 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantFeedbackCreateFormButton => 'የግብረመልስ ቅጽ ፍጠር';
 
   @override
+  String get servantFeedbackCreateFormSuccessToast =>
+      'የግብረመልስ ቅጹ በተሳካ ሁኔታ ተፈጥሯል!';
+
+  @override
+  String get servantFeedbackLoadFormsFailed => 'የግብረመልስ ቅጾችን መጫን አልተሳካም።';
+
+  @override
   String get servantFeedbackEmptyTitle => 'እስካሁን የግብረመልስ ቅጾች የሉም';
 
   @override
@@ -1291,6 +1360,9 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get servantFeedbackDeleteFormTitle => 'የግብረመልስ ቅጽ ይሰረዝ?';
+
+  @override
+  String get servantFeedbackDeleteFormFailed => 'የግብረመልስ ቅጹን ማጥፋት አልተሳካም።';
 
   @override
   String servantFeedbackDeleteFormBody(Object responseCount) {
@@ -1456,6 +1528,9 @@ class AppLocalizationsAm extends AppLocalizations {
       'ተማሪዎች ግብረመልስ ሲያስገቡ ትንተናው እዚህ ይታያል';
 
   @override
+  String get servantFeedbackLoadResponsesFailed => 'መልሶችን መጫን አልተሳካም።';
+
+  @override
   String get servantFeedbackAverageRatingLabel => 'አማካኝ ደረጃ';
 
   @override
@@ -1484,7 +1559,7 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get servantFeedbackValidDatesError =>
-      'እባክዎ ትክክለኛ የመጀመሪያ እና የመጨረሻ ቀናት (YYYY-MM-DD) ያስገቡ።';
+      'እባክዎ ትክክለኛ የመጀመሪያ እና የመጨረሻ ቀናት ይምረጡ።';
 
   @override
   String get servantFeedbackEndAfterStartError =>
@@ -1492,4 +1567,8 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get servantFeedbackSelectTypeError => 'እባክዎ አይነት ይምረጡ።';
+
+  @override
+  String get servantFeedbackCreateFormFailed =>
+      'የግብረመልስ ቅጽ መፍጠር አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።';
 }

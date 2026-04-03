@@ -143,9 +143,10 @@ class _ServantAttendanceHomeScreenState
         await _loadSessionsForSelectedSubject();
       }
     } catch (e) {
+      debugPrint('Servant attendance home load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = 'load_failed';
       });
     } finally {
       if (mounted) {
@@ -222,7 +223,7 @@ class _ServantAttendanceHomeScreenState
         .map(
           (r) => _Student(
             id: (r as Map)['id'] as String,
-            name: (r)['name'] as String? ?? 'Student',
+            name: ((r)['name'] as String?)?.trim() ?? '',
           ),
         )
         .toList();
@@ -437,7 +438,10 @@ class _ServantAttendanceHomeScreenState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                Text(
+                  l10n.servantAttendanceLoadFailed,
+                  style: const TextStyle(color: Colors.red),
+                ),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadInitial,
@@ -663,7 +667,9 @@ class _ServantAttendanceHomeScreenState
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              r.student.name,
+                                              r.student.name.isNotEmpty
+                                                  ? r.student.name
+                                                  : l10n.roleStudent,
                                               style: const TextStyle(
                                                 fontSize: 13,
                                                 color: Color(0xFF0F172A),

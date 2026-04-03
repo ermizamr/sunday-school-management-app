@@ -24,6 +24,8 @@ export const am = {
   commonArchiving: "በአርካይቭ ላይ…",
   commonUpdate: "አዘምን",
   commonUpdating: "በማዘመን ላይ…",
+  commonNetworkError: "ግንኙነት ችግኝ አለ። እባክዎ ደግመው ይሞክሩ።",
+  commonSystemMisconfigured: "የስርዓቱ ቅንብሮች ተሟልተው አልተዘጋጁም።",
 
   // Navigation
   navDashboard: "ዳሽቦርድ",
@@ -45,7 +47,10 @@ export const am = {
   authSignInFailedTitle: "መግባት አልተሳካም",
   authSigningIn: "በመግባት ላይ…",
   authSignInButton: "ግባ",
-  authRlsNote: "መዳረሻ በዳታቤዝ RLS ፖሊሲዎች ይቆጣጠራል።",
+  authRlsNote: "መዳረሻ በስርዓቱ የፍቃድ ህጎች ይቆጣጠራል።",
+  authPleaseSignIn: "እባክዎ በመጀመሪያ ይግቡ።",
+  authInvalidLoginCredentials: "የመግቢያ መረጃ ትክክል አይደለም።",
+  authEmailNotConfirmed: "ኢሜይሉ አልተረጋገጠም።",
 
   // RequireAuth errors
   authNotAdminMessage: "አስተዳዳሪ አይደሉም። እባክዎ በአስተዳዳሪ መለያ ይግቡ።",
@@ -69,15 +74,14 @@ export const am = {
   usersSubtitle: "ከተማሪዎች፣ የክፍል ምደባ እና ትምህርታዊ መለያ ጋር የተገናኙ ጉዳዮችን እዚህ ያስተዳድሩ።",
   usersCreateUserTitle: "ተማሪ ለመመዝገብ",
   usersAcademicIdLabel: "ትምህርታዊ መለያ",
-  usersAcademicIdPlaceholder: "ባዶ ከተዉ በራሱ ይመደባል (0001/yy ጀምሮ)",
+  usersAcademicIdPlaceholder: "ባዶ ከተዉ በራሱ ይመደባል።",
   usersNameLabel: "ስም",
   usersNamePlaceholder: "ሙሉ ስም",
   usersPasswordLabel: "የይለፍ ቃል",
   usersEmailOptionalLabel: "ኢሜይል (አማራጭ)",
-  usersEmailPlaceholder: "ካልተሞላ፣ እንደ academic_id@school.local አድርጎ ይመዘግባል።",
+  usersEmailPlaceholder: "ካልተሞላ፣ በትምህርታዊ መለያ ቁጥር መሠረት ራሱ ይፈጠራል።",
   usersGradeLabel: "ክፍል",
   usersCreateUserButton: "ተማሪ መዝግብ",
-  usersUsesEdgeFunctionPrefix: "Edge Function ይጠቀማል፦",
   usersAllUsersTitle: "ሁሉም ተማሪዎች",
   usersAllStatuses: "ሁሉም",
   usersStatusActive: "በመማር ላይ ያለ",
@@ -95,7 +99,7 @@ export const am = {
   usersDeactivate: "በመማር ላይ",
   usersValidationRequired: "ስም እና ክፍል ያስፈልጋሉ። ትምህርታዊ መለያ/የይለፍ ቃል ካልተሞሉ በራሳቸው ይመደባሉ።",
   usersGraduatedReadOnlyError:
-    "ተመራቂ ተጠቃሚዎች በዚህ መቀያየሪያ ውስጥ ለመቀየር ተቆልፈዋል። ካስፈለገ በbackend admin tools ይቀይሩ።",
+    "ተመራቂ ተማሪዎች በዚህ ገጽ ላይ ሊቀየሩ አይችሉም። ካስፈለገ ከአስተዳዳሪ ቡድን ጋር ያነጋግሩ።",
   usersConfirmToggleStatus: "እርግጠኛ ነዎት የሚፈልጉት እርምጃ ({action}) በ{name} ላይ እንዲፈጸም?",
 
   // Grades
@@ -104,9 +108,9 @@ export const am = {
   gradesAddGradeTitle: "አዲስ ክፍል ጨምር",
   gradesNameLabel: "የክፍሉ ስም",
   gradesCodeLabel: "ኮድ",
-  gradesSortOrderLabel: "የቅደም ተከተል ቅድሚያ (priority)",
+  gradesSortOrderLabel: "የቅደም ተከተል ቅድሚያ",
   gradesAllGradesTitle: "ሁሉም ክፍሎች",
-  gradesTableSort: "ቅደም ተከተል (prority)",
+  gradesTableSort: "ቅደም ተከተል",
 
   // Subjects
   subjectsTitle: "ትምህርቶች",
@@ -168,7 +172,6 @@ export const am = {
   academicYearYearNamePlaceholder: "ለምሳሌ፣ 2018-2019",
   academicYearStartDate: "መጀመሪያ ቀን",
   academicYearEndDate: "መጨረሻ ቀን",
-  academicYearRpcNotePrefix: "",
   academicYearAllYears: "ሁሉም የትምህርት ዘመናት",
   academicYearTableName: "ስም",
   academicYearTableStatus: "ሁኔታ",
@@ -189,7 +192,7 @@ export const am = {
     "የትምህርት ዓመቱ ሳያልቅ እዚህ ምንም አይነት ተግባር ባያደርጉ ይመከራል!",
   promotionsCriteriaTitle: "የማዘዋወሪያ መስፈርቶች",  
   promotionsCriteriaNote:
-    "አጠቃቀም፡ በዚህ ገጽ  ተማሪዎችን ማዘዋወር ይችላሉ። ከማዘዋወርዎ በፊት የእያንዳንዱን የትምህርት ክፍል እና የትምህርት አይነት ዝቅተኛ ማለፊያ ነጥብ ማስቀመጥ እና save ማድረግ ይኖርቦዎታል። ያንን ማድረግዎን እርግጠኛ ሲሆኑ ከታች አዘዋውር የሚለውን አዝራር በመንካት ሁሉንም ተማሪዎች በአንድ ጊዜ ማዘዋወር ይችላሉ።  ",
+    "አጠቃቀም፡ በዚህ ገጽ ተማሪዎችን ማዘዋወር ይችላሉ። ከማዘዋወርዎ በፊት ለእያንዳንዱ ክፍል እና ትምህርት ዝቅተኛ ማለፊያ ነጥብ ማስቀመጥ አለብዎት። ያንን ካጠናቀቁ በኋላ ከታች ያለውን “አዘዋውር” በመጫን ሁሉንም ተማሪዎች በአንድ ጊዜ ማዘዋወር ይችላሉ።",
   promotionsActiveYearLabel: "የትምህርት ዘመን፡ ",
   promotionsNotSet: "አልተዘጋጀም",
   promotionsGradeLabel: "ክፍል",
@@ -212,7 +215,7 @@ export const am = {
   promotionsRunTitle: "ዝውውር ለመፈጸም",
   promotionsRunNote: "ሁሉም ክፍል ውስጥ ያሉትን ተማሪዎች ያዘዋውራል። እርግጠኛ ይሁኑ፡ ይህን ተግባር ማድረግ ከፈለጉ በፊት የማዘዋወሪያ መስፈርቶችን እንዲያስቀመጡ ይመከራል።",
   promotionsNotesLabel: "መልዕክት ወይም ማስታወሻ (አማራጭ)",
-  promotionsNotesPlaceholder: "optional ማስታወሻ",
+  promotionsNotesPlaceholder: "ማስታወሻ (አማራጭ)",
   promotionsRunning: "በማዘዋወር ላይ…",
   promotionsRunButton: "አዘዋውር",
   promotionsResultTitle: "ውጤት",
@@ -233,7 +236,7 @@ export const am = {
   promotionsValidationMissingAttendanceDays: "መስፈርቶችን ከማስቀመጥ በፊት ለእያንዳንዱ ትምህርት ዝቅተኛ የመገኘት ቀናት ያስገቡ።",
   promotionsValidationMissingSubjectGrades: "መስፈርቶችን ከማስቀመጥ በፊት ለእያንዳንዱ ትምህርት ዝቅተኛ ነጥብ ያስገቡ።",
   promotionsErrorSaveCriteriaDetails: "መስፈርቶችን ማስቀመጥ አልተሳካም። ዝርዝር፦ {details}",
-  promotionsErrorCriteriaSetIdMissing: "የcriteria set id አልተመለሰም፤ ስለዚህ የትምህርት መስፈርቶችን ማስቀመጥ አልተቻለም።",
+  promotionsErrorCriteriaSetIdMissing: "የመስፈርቶቹ መለያ አልተመለሰም፤ ስለዚህ መስፈርቶችን ማስቀመጥ አልተቻለም።",
   promotionsErrorLoadExistingCriteriaDetails: "ነባር የትምህርት መስፈርቶችን መጫን አልተሳካም። ዝርዝር፦ {details}",
   promotionsErrorSaveSubjectRulesDetails: "የትምህርት የመገኘት-ቀን መስፈርቶችን ማስቀመጥ አልተሳካም። ዝርዝር፦ {details}",
   promotionsValidationChooseYear: "የትምህርት ዘመን ይምረጡ።",
@@ -268,9 +271,10 @@ export const am = {
   announcementsMustSignIn: "ማስታወቂያ ለመፍጠር መግባት አለብዎት።",
   announcementsValidationTitleMessageRequired: "ርዕስ እና መልዕክት ያስፈልጋሉ።",
   announcementsActiveSuffix: " (ንቁ)",
-  announcementsNoticePushFailed: "ማስታወቂያው ተፈጥሯል፣ ነገር ግን የpush ማሳወቂያ አልተሳካም፦ {details}። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
+  announcementsNoticePushFailed:
+    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን ወደ ስልክ ማሳወቂያ መላክ አልተቻለም። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
   announcementsNoticeNoPushSent:
-    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን push አልተላከም (ምክንያት፦ {reason}፣ ተቀባዮች፦ {recipients}፣ tokens፦ {tokens}{firstError})። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
+    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን ወደ ስልክ ማሳወቂያ አልተላከም። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
 
   // Servants
   servantsTitle: "አገልጋዮች",

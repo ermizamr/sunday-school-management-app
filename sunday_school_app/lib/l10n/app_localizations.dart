@@ -866,6 +866,12 @@ abstract class AppLocalizations {
   /// **'Demo mode: use any valid email & password\nwhile backend is being wired fully.'**
   String get authDemoMode;
 
+  /// No description provided for @authInvalidCredentialsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect email or password.'**
+  String get authInvalidCredentialsError;
+
   /// No description provided for @authLoginFailedGeneric.
   ///
   /// In en, this message translates to:
@@ -962,6 +968,12 @@ abstract class AppLocalizations {
   /// **'View Grades'**
   String get dashboardViewGrades;
 
+  /// No description provided for @studentDashboardLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load dashboard data. Please try again.'**
+  String get studentDashboardLoadFailed;
+
   /// No description provided for @attendanceTrackSubtitle.
   ///
   /// In en, this message translates to:
@@ -979,6 +991,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'across all subjects'**
   String get attendanceAcrossAllSubjects;
+
+  /// No description provided for @attendanceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load attendance. Please try again.'**
+  String get attendanceLoadFailed;
 
   /// No description provided for @attendancePercentLabel.
   ///
@@ -1118,6 +1136,12 @@ abstract class AppLocalizations {
   /// **'Search students'**
   String get servantAttendanceSearchStudentsHint;
 
+  /// No description provided for @servantAttendanceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load attendance data. Please try again.'**
+  String get servantAttendanceLoadFailed;
+
   /// No description provided for @servantAttendanceSaved.
   ///
   /// In en, this message translates to:
@@ -1177,6 +1201,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load announcements.'**
   String get commAnnouncementsLoadFailed;
+
+  /// No description provided for @commLoadQuestionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load questions.'**
+  String get commLoadQuestionsFailed;
+
+  /// No description provided for @commLoadComplaintsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load complaints.'**
+  String get commLoadComplaintsFailed;
+
+  /// No description provided for @commLoadFeedbackFormsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load feedback forms.'**
+  String get commLoadFeedbackFormsFailed;
+
+  /// No description provided for @commLoadContextFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load required information. Please try again.'**
+  String get commLoadContextFailed;
+
+  /// No description provided for @commSubmitQuestionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit question. Please try again.'**
+  String get commSubmitQuestionFailed;
+
+  /// No description provided for @commSubmitComplaintFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit complaint. Please try again.'**
+  String get commSubmitComplaintFailed;
+
+  /// No description provided for @commSubmitFeedbackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit feedback. Please try again.'**
+  String get commSubmitFeedbackFailed;
+
+  /// No description provided for @servantCommLoadQuestionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load questions.'**
+  String get servantCommLoadQuestionsFailed;
+
+  /// No description provided for @servantCommLoadComplaintsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load complaints.'**
+  String get servantCommLoadComplaintsFailed;
+
+  /// No description provided for @servantCommSendResponseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send response. Please try again.'**
+  String get servantCommSendResponseFailed;
+
+  /// No description provided for @servantCommUpdateComplaintFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update complaint. Please try again.'**
+  String get servantCommUpdateComplaintFailed;
 
   /// No description provided for @commAnnouncementCategoryUrgent.
   ///
@@ -1505,13 +1595,13 @@ abstract class AppLocalizations {
   /// No description provided for @bootstrapErrorFix.
   ///
   /// In en, this message translates to:
-  /// **'Fix: check Supabase configuration'**
+  /// **'Fix: check your internet connection and try again.'**
   String get bootstrapErrorFix;
 
   /// No description provided for @bootstrapErrorVerifyPath.
   ///
   /// In en, this message translates to:
-  /// **'Verify the values in lib/core/config/supabase_config.dart'**
+  /// **'If the problem persists, contact your administrator.'**
   String get bootstrapErrorVerifyPath;
 
   /// No description provided for @servantDashboardTitle.
@@ -1525,6 +1615,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Class Management'**
   String get servantDashboardSubtitle;
+
+  /// No description provided for @servantDashboardLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load dashboard data. Please try again.'**
+  String get servantDashboardLoadFailed;
 
   /// No description provided for @servantTotalStudents.
   ///
@@ -1633,6 +1729,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select a grade'**
   String get servantRegisterStudentGradeRequired;
+
+  /// No description provided for @servantRegisterStudentFailedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not register student. Please try again.'**
+  String get servantRegisterStudentFailedGeneric;
 
   /// No description provided for @servantRegisterStudentSuccessTitle.
   ///
@@ -2066,6 +2168,12 @@ abstract class AppLocalizations {
   /// **'Total Subjects'**
   String get studentGradesTotalSubjectsLabel;
 
+  /// No description provided for @gradesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load grades. Please try again.'**
+  String get gradesLoadFailed;
+
   /// No description provided for @servantGradesLoadSubjectsFailed.
   ///
   /// In en, this message translates to:
@@ -2137,6 +2245,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter a title and message.'**
   String get servantAnnouncementsEnterTitleAndMessageError;
+
+  /// No description provided for @servantAnnouncementsPostFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to post announcement. Please try again.'**
+  String get servantAnnouncementsPostFailed;
 
   /// No description provided for @servantAnnouncementsSavedLocallySyncFailed.
   ///
@@ -2282,6 +2396,18 @@ abstract class AppLocalizations {
   /// **'Create Feedback Form'**
   String get servantFeedbackCreateFormButton;
 
+  /// No description provided for @servantFeedbackCreateFormSuccessToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback form created successfully!'**
+  String get servantFeedbackCreateFormSuccessToast;
+
+  /// No description provided for @servantFeedbackLoadFormsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load feedback forms.'**
+  String get servantFeedbackLoadFormsFailed;
+
   /// No description provided for @servantFeedbackEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -2323,6 +2449,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete Feedback Form?'**
   String get servantFeedbackDeleteFormTitle;
+
+  /// No description provided for @servantFeedbackDeleteFormFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete feedback form.'**
+  String get servantFeedbackDeleteFormFailed;
 
   /// No description provided for @servantFeedbackDeleteFormBody.
   ///
@@ -2576,6 +2708,12 @@ abstract class AppLocalizations {
   /// **'Analytics will appear here as students submit feedback'**
   String get servantFeedbackNoResponsesSubtitle;
 
+  /// No description provided for @servantFeedbackLoadResponsesFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load responses.'**
+  String get servantFeedbackLoadResponsesFailed;
+
   /// No description provided for @servantFeedbackAverageRatingLabel.
   ///
   /// In en, this message translates to:
@@ -2615,7 +2753,7 @@ abstract class AppLocalizations {
   /// No description provided for @servantFeedbackValidDatesError.
   ///
   /// In en, this message translates to:
-  /// **'Please enter valid start and end dates (YYYY-MM-DD).'**
+  /// **'Please select valid start and end dates.'**
   String get servantFeedbackValidDatesError;
 
   /// No description provided for @servantFeedbackEndAfterStartError.
@@ -2629,6 +2767,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select a type.'**
   String get servantFeedbackSelectTypeError;
+
+  /// No description provided for @servantFeedbackCreateFormFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create feedback form. Please try again.'**
+  String get servantFeedbackCreateFormFailed;
 }
 
 class _AppLocalizationsDelegate

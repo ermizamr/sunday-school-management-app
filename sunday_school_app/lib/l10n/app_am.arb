@@ -237,7 +237,8 @@
   "authForgotPassword": "የይለፍ ቃል ረስተዋል?",
   "authForgotPasswordDialogTitle": "የይለፍ ቃል መቀየር",
   "authForgotPasswordDialogBody": "የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ክፍል ኃላፊ\"ን ያነጋግሩ።",
-  "authDemoMode": "ሙከራ (Demo): ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል ይጠቀሙ\nጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ።",
+  "authDemoMode": "ሙከራ ሁኔታ፡ ጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል መጠቀም ይችላሉ።",
+  "authInvalidCredentialsError": "ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም።",
   "authLoginFailedGeneric": "መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
   "authRoleMismatchStudent": "ይህ መለያ የተማሪ መለያ አይደለም። ለመቀጠል የአገልጋይ ሚና ይምረጡ።",
   "authRoleMismatchServant": "ይህ መለያ የአገልጋይ መለያ አይደለም። ለመቀጠል የተማሪ ሚና ይምረጡ።",
@@ -266,10 +267,12 @@
 
   "dashboardQuickActions": "ፈጣን እርምጃዎች",
   "dashboardViewGrades": "ውጤት ይመልከቱ",
+  "studentDashboardLoadFailed": "የዳሽቦርዱን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
 
   "attendanceTrackSubtitle": "የክፍል ተሳትፎዎን ይከታተሉ",
   "attendanceOverallTitle": "አጠቃላይ መገኘት",
   "attendanceAcrossAllSubjects": "በሁሉም ትምህርቶች",
+  "attendanceLoadFailed": "መገኘትን መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
 
   "attendancePercentLabel": "{percent}% መገኘት",
   "@@attendancePercentLabel": {
@@ -328,6 +331,7 @@
   "servantAttendancePreviousDates": "ቀደም ያሉ ቀናት",
   "servantAttendanceNoDatesYet": "እስካሁን የመገኘት ቀናት የሉም።",
   "servantAttendanceSearchStudentsHint": "ተማሪዎችን ፈልግ",
+  "servantAttendanceLoadFailed": "የመገኘት መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
   "servantAttendanceSaved": "መገኘት ተመዝግቧል",
   "servantAttendanceSaveFailed": "መገኘት ማስቀመጥ አልተሳካም",
 
@@ -341,6 +345,19 @@
   "commNoAnnouncements": "ማስታወቂያ የለም",
   "commAnnouncementsEmptySubtitle": "ለአዳዲስ መረጃዎች ቆይተው ይመለሱ",
   "commAnnouncementsLoadFailed": "ማስታወቂያዎችን መጫን አልተሳካም።",
+
+  "commLoadQuestionsFailed": "ጥያቄዎችን መጫን አልተሳካም።",
+  "commLoadComplaintsFailed": "ቅሬታዎችን መጫን አልተሳካም።",
+  "commLoadFeedbackFormsFailed": "የግብረመልስ ቅጾችን መጫን አልተሳካም።",
+  "commLoadContextFailed": "የሚፈለገውን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "commSubmitQuestionFailed": "ጥያቄዎን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "commSubmitComplaintFailed": "ቅሬታዎን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "commSubmitFeedbackFailed": "ግብረመልስን መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+
+  "servantCommLoadQuestionsFailed": "ጥያቄዎችን መጫን አልተሳካም።",
+  "servantCommLoadComplaintsFailed": "ቅሬታዎችን መጫን አልተሳካም።",
+  "servantCommSendResponseFailed": "መልስ መላክ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+  "servantCommUpdateComplaintFailed": "ቅሬታውን ማዘመን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
 
     "commAnnouncementCategoryUrgent": "አስቸኳይ",
     "commAnnouncementCategoryGrades": "ውጤቶች",
@@ -415,11 +432,12 @@
     "commFeedbackEmptySubtitle": "አገልጋዩ በወደፊት የግብረመልስ ቅጾችን ሊካፈል ይችላል። ከጊዜ በኋላ ይመለሱ።",
 
   "bootstrapErrorTitle": "መተግበሪያው መጀመር አልቻለም",
-  "bootstrapErrorFix": "መፍትሄ: የSupabase ቅንብር ያረጋግጡ",
-  "bootstrapErrorVerifyPath": "lib/core/config/supabase_config.dart ውስጥ ያሉ እሴቶችን ያረጋግጡ",
+  "bootstrapErrorFix": "መፍትሄ፡ የኢንተርኔት ግንኙነትዎን ያረጋግጡ እና እንደገና ይሞክሩ።",
+  "bootstrapErrorVerifyPath": "ችግሩ ካልተፈታ እባክዎ አስተዳዳሪዎን ያነጋግሩ።",
 
   "servantDashboardTitle": "የአገልጋይ ዳሽቦርድ",
   "servantDashboardSubtitle": "የክፍል አስተዳደር",
+  "servantDashboardLoadFailed": "የዳሽቦርዱን መረጃ መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
   "servantTotalStudents": "ጠቅላላ ተማሪዎች",
 
   "servantDashboardAvgAttendanceLabel": "አማካኝ መገኘት",
@@ -439,6 +457,7 @@
   "servantRegisterStudentSubmit": "መመዝገብ",
   "servantRegisterStudentNameRequired": "የተማሪውን ሙሉ ስም ያስገቡ",
   "servantRegisterStudentGradeRequired": "ክፍል ይምረጡ",
+  "servantRegisterStudentFailedGeneric": "ተማሪውን መመዝገብ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
   "servantRegisterStudentSuccessTitle": "ተማሪ ተመዝግቧል",
   "servantRegisterStudentSuccessMessage": "አካዳሚክ መለያ፡ {academicId}\nየመጀመሪያ የይለፍ ቃል፡ ከአካዳሚክ መለያው ጋር አንድ ነው",
   "@@servantRegisterStudentSuccessMessage": {
@@ -607,6 +626,8 @@
   "studentGradesPerformanceSummaryTitle": "የአፈጻጸም ማጠቃለያ",
   "studentGradesTotalSubjectsLabel": "ጠቅላላ ትምህርቶች",
 
+  "gradesLoadFailed": "ውጤቶችን መጫን አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
+
   "servantGradesLoadSubjectsFailed": "ትምህርቶችን መጫን አልተሳካም።",
   "servantGradesLoadStudentsFailed": "ተማሪዎችን መጫን አልተሳካም።",
   "servantGradesLoadGradeEntriesFailed": "የውጤት ምዝገባዎችን መጫን አልተሳካም።",
@@ -642,6 +663,7 @@
   "servantGradesNoMissingAssessmentsFound": "ያልተሟሉ ምዘናዎች አልተገኙም።",
 
   "servantAnnouncementsEnterTitleAndMessageError": "እባክዎ ርዕስ እና መልዕክት ያስገቡ።",
+  "servantAnnouncementsPostFailed": "ማስታወቂያውን መለጠፍ አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
   "servantAnnouncementsSavedLocallySyncFailed": "በአካባቢ ተቀምጧል፤ ማመሳሰል አልተሳካም።",
   "servantAnnouncementsCreateTitle": "ማስታወቂያ ፍጠር",
   "servantAnnouncementsCategoryLabel": "ምድብ",
@@ -693,6 +715,8 @@
   "servantFeedbackTypeGeneral": "አጠቃላይ",
 
   "servantFeedbackCreateFormButton": "የግብረመልስ ቅጽ ፍጠር",
+  "servantFeedbackCreateFormSuccessToast": "የግብረመልስ ቅጹ በተሳካ ሁኔታ ተፈጥሯል!",
+  "servantFeedbackLoadFormsFailed": "የግብረመልስ ቅጾችን መጫን አልተሳካም።",
   "servantFeedbackEmptyTitle": "እስካሁን የግብረመልስ ቅጾች የሉም",
   "servantFeedbackEmptySubtitle": "የተማሪ ግብረመልስ ለመሰብሰብ ቅጽ ይፍጠሩ",
   "servantFeedbackActiveFormsLabel": "ንቁ ቅጾች",
@@ -707,6 +731,7 @@
     }
   },
   "servantFeedbackDeleteFormTitle": "የግብረመልስ ቅጽ ይሰረዝ?",
+  "servantFeedbackDeleteFormFailed": "የግብረመልስ ቅጹን ማጥፋት አልተሳካም።",
   "servantFeedbackDeleteFormBody": "ቅጹን እና የተማሪዎች {responseCount} ምላሾችን በቋሚነት ይሰርዛል። ይህ እርምጃ መመለስ አይቻልም።",
   "@@servantFeedbackDeleteFormBody": {
     "placeholders": {
@@ -806,6 +831,7 @@
   "servantFeedbackRateLabel": "መጠን",
   "servantFeedbackNoResponsesTitle": "እስካሁን ምላሾች የሉም",
   "servantFeedbackNoResponsesSubtitle": "ተማሪዎች ግብረመልስ ሲያስገቡ ትንተናው እዚህ ይታያል",
+  "servantFeedbackLoadResponsesFailed": "መልሶችን መጫን አልተሳካም።",
   "servantFeedbackAverageRatingLabel": "አማካኝ ደረጃ",
   "servantFeedbackDistributionLabel": "ስርጭት:",
   "servantFeedbackResponsesCountLabel": "{count,plural,=1{1 ምላሽ} other{{count} ምላሾች}}",
@@ -819,7 +845,8 @@
   "servantFeedbackEnterTitleError": "እባክዎ ርዕስ ያስገቡ።",
   "servantFeedbackEnterDescriptionError": "እባክዎ መግለጫ ያስገቡ።",
   "servantFeedbackAddAtLeastOneQuestionError": "እባክዎ በግብረመልስ ቅጹ ውስጥ ቢያንስ አንድ ጥያቄ ያክሉ።",
-  "servantFeedbackValidDatesError": "እባክዎ ትክክለኛ የመጀመሪያ እና የመጨረሻ ቀናት (YYYY-MM-DD) ያስገቡ።",
+  "servantFeedbackValidDatesError": "እባክዎ ትክክለኛ የመጀመሪያ እና የመጨረሻ ቀናት ይምረጡ።",
   "servantFeedbackEndAfterStartError": "የመጨረሻ ቀን ከመጀመሪያ ቀን በኋላ መሆን አለበት።",
-  "servantFeedbackSelectTypeError": "እባክዎ አይነት ይምረጡ።"
+  "servantFeedbackSelectTypeError": "እባክዎ አይነት ይምረጡ።",
+  "servantFeedbackCreateFormFailed": "የግብረመልስ ቅጽ መፍጠር አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።"
 }

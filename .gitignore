@@ -13,3 +13,6 @@ admin-panel/.env.*.local
 
 # Firebase / FCM service account (never commit)
 service-account.json
+
+# Supabase CLI internal state
+supabase/.branches/

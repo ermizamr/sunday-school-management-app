@@ -432,6 +432,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Demo mode: use any valid email & password\nwhile backend is being wired fully.';
 
   @override
+  String get authInvalidCredentialsError => 'Incorrect email or password.';
+
+  @override
   String get authLoginFailedGeneric => 'Login failed. Please try again.';
 
   @override
@@ -486,6 +489,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardViewGrades => 'View Grades';
 
   @override
+  String get studentDashboardLoadFailed =>
+      'Could not load dashboard data. Please try again.';
+
+  @override
   String get attendanceTrackSubtitle => 'Track your class participation';
 
   @override
@@ -493,6 +500,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attendanceAcrossAllSubjects => 'across all subjects';
+
+  @override
+  String get attendanceLoadFailed =>
+      'Failed to load attendance. Please try again.';
 
   @override
   String attendancePercentLabel(Object percent) {
@@ -575,6 +586,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get servantAttendanceSearchStudentsHint => 'Search students';
 
   @override
+  String get servantAttendanceLoadFailed =>
+      'Failed to load attendance data. Please try again.';
+
+  @override
   String get servantAttendanceSaved => 'Attendance saved';
 
   @override
@@ -604,6 +619,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commAnnouncementsLoadFailed => 'Failed to load announcements.';
+
+  @override
+  String get commLoadQuestionsFailed => 'Failed to load questions.';
+
+  @override
+  String get commLoadComplaintsFailed => 'Failed to load complaints.';
+
+  @override
+  String get commLoadFeedbackFormsFailed => 'Failed to load feedback forms.';
+
+  @override
+  String get commLoadContextFailed =>
+      'Failed to load required information. Please try again.';
+
+  @override
+  String get commSubmitQuestionFailed =>
+      'Failed to submit question. Please try again.';
+
+  @override
+  String get commSubmitComplaintFailed =>
+      'Failed to submit complaint. Please try again.';
+
+  @override
+  String get commSubmitFeedbackFailed =>
+      'Failed to submit feedback. Please try again.';
+
+  @override
+  String get servantCommLoadQuestionsFailed => 'Failed to load questions.';
+
+  @override
+  String get servantCommLoadComplaintsFailed => 'Failed to load complaints.';
+
+  @override
+  String get servantCommSendResponseFailed =>
+      'Failed to send response. Please try again.';
+
+  @override
+  String get servantCommUpdateComplaintFailed =>
+      'Failed to update complaint. Please try again.';
 
   @override
   String get commAnnouncementCategoryUrgent => 'Urgent';
@@ -776,17 +830,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bootstrapErrorTitle => 'App startup failed';
 
   @override
-  String get bootstrapErrorFix => 'Fix: check Supabase configuration';
+  String get bootstrapErrorFix =>
+      'Fix: check your internet connection and try again.';
 
   @override
   String get bootstrapErrorVerifyPath =>
-      'Verify the values in lib/core/config/supabase_config.dart';
+      'If the problem persists, contact your administrator.';
 
   @override
   String get servantDashboardTitle => 'Servant Dashboard';
 
   @override
   String get servantDashboardSubtitle => 'Class Management';
+
+  @override
+  String get servantDashboardLoadFailed =>
+      'Could not load dashboard data. Please try again.';
 
   @override
   String get servantTotalStudents => 'Total Students';
@@ -846,6 +905,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get servantRegisterStudentGradeRequired => 'Please select a grade';
+
+  @override
+  String get servantRegisterStudentFailedGeneric =>
+      'Could not register student. Please try again.';
 
   @override
   String get servantRegisterStudentSuccessTitle => 'Student registered';
@@ -1156,6 +1219,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studentGradesTotalSubjectsLabel => 'Total Subjects';
 
   @override
+  String get gradesLoadFailed => 'Failed to load grades. Please try again.';
+
+  @override
   String get servantGradesLoadSubjectsFailed => 'Failed to load subjects.';
 
   @override
@@ -1200,6 +1266,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get servantAnnouncementsEnterTitleAndMessageError =>
       'Please enter a title and message.';
+
+  @override
+  String get servantAnnouncementsPostFailed =>
+      'Failed to post announcement. Please try again.';
 
   @override
   String get servantAnnouncementsSavedLocallySyncFailed =>
@@ -1290,6 +1360,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get servantFeedbackCreateFormButton => 'Create Feedback Form';
 
   @override
+  String get servantFeedbackCreateFormSuccessToast =>
+      'Feedback form created successfully!';
+
+  @override
+  String get servantFeedbackLoadFormsFailed => 'Failed to load feedback forms.';
+
+  @override
   String get servantFeedbackEmptyTitle => 'No feedback forms yet';
 
   @override
@@ -1318,6 +1395,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get servantFeedbackDeleteFormTitle => 'Delete Feedback Form?';
+
+  @override
+  String get servantFeedbackDeleteFormFailed =>
+      'Failed to delete feedback form.';
 
   @override
   String servantFeedbackDeleteFormBody(Object responseCount) {
@@ -1486,6 +1567,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Analytics will appear here as students submit feedback';
 
   @override
+  String get servantFeedbackLoadResponsesFailed => 'Failed to load responses.';
+
+  @override
   String get servantFeedbackAverageRatingLabel => 'Average Rating';
 
   @override
@@ -1515,7 +1599,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get servantFeedbackValidDatesError =>
-      'Please enter valid start and end dates (YYYY-MM-DD).';
+      'Please select valid start and end dates.';
 
   @override
   String get servantFeedbackEndAfterStartError =>
@@ -1523,4 +1607,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get servantFeedbackSelectTypeError => 'Please select a type.';
+
+  @override
+  String get servantFeedbackCreateFormFailed =>
+      'Failed to create feedback form. Please try again.';
 }

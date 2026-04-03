@@ -375,9 +375,6 @@ export function AcademicYearsPage() {
                   />
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                {t("academicYearRpcNotePrefix")} <span className="font-mono">start_new_academic_year</span>.
-              </div>
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={isCreating}>

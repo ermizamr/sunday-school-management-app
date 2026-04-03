@@ -25,6 +25,43 @@ void _debugLog(String message) {
   }());
 }
 
+Future<({int status, dynamic data})> _invokeEdgeFunctionViaHttp({
+  required SupabaseClient client,
+  required String functionName,
+  required Map<String, dynamic> body,
+}) async {
+  final session = client.auth.currentSession;
+  final accessToken = session?.accessToken;
+  if (accessToken == null || accessToken.isEmpty) {
+    throw const _AuthRequiredException();
+  }
+
+  final uri = Uri.parse('${SupabaseConfig.url}/functions/v1/$functionName');
+
+  final res = await http.post(
+    uri,
+    headers: {
+      // Keep the gateway happy with a HS256 JWT.
+      'Authorization': 'Bearer ${SupabaseConfig.anonKey}',
+      // Actual signed-in user token consumed by Edge Function guards.
+      'X-Authorization': 'Bearer $accessToken',
+      'apikey': SupabaseConfig.anonKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: jsonEncode(body),
+  );
+
+  dynamic data;
+  try {
+    data = res.body.isEmpty ? null : jsonDecode(res.body);
+  } catch (_) {
+    data = {'raw': res.body};
+  }
+
+  return (status: res.statusCode, data: data);
+}
+
 class ServantShell extends StatelessWidget {
   const ServantShell({super.key, required this.navigationShell});
 
@@ -144,10 +181,20 @@ class _ServantLoginScreenState extends ConsumerState<ServantLoginScreen> {
         context.go('/servant/dashboard');
       }
     } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+      final looksLikeInvalidCredentials =
+          msg.contains('invalid login credentials') ||
+          msg.contains('invalid credentials') ||
+          msg.contains('invalid_grant');
+      if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = looksLikeInvalidCredentials
+            ? l10n.authInvalidCredentialsError
+            : l10n.authLoginFailedGeneric;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Servant login failed: $e');
+      if (!mounted) return;
       setState(() {
         _error = l10n.authLoginFailedGeneric;
       });
@@ -464,35 +511,11 @@ class ServantDashboardScreen extends StatefulWidget {
     required SupabaseClient client,
     required Map<String, dynamic> body,
   }) async {
-    final session = client.auth.currentSession;
-    final accessToken = session?.accessToken;
-    if (accessToken == null || accessToken.isEmpty) {
-      throw const _AuthRequiredException();
-    }
-
-    final uri = Uri.parse(
-      '${SupabaseConfig.url}/functions/v1/admin-create-user',
+    return _invokeEdgeFunctionViaHttp(
+      client: client,
+      functionName: 'admin-create-user',
+      body: body,
     );
-
-    final res = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'apikey': SupabaseConfig.anonKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(body),
-    );
-
-    dynamic data;
-    try {
-      data = res.body.isEmpty ? null : jsonDecode(res.body);
-    } catch (_) {
-      data = {'raw': res.body};
-    }
-
-    return (status: res.statusCode, data: data);
   }
 
   String _accessTokenDebugSummary(String token) {
@@ -782,7 +805,6 @@ class ServantDashboardScreen extends StatefulWidget {
     }
 
     List<_RegisterStudentGrade> grades = const [];
-    String? gradesLoadError;
     try {
       dynamic rows;
       try {
@@ -816,7 +838,6 @@ class ServantDashboardScreen extends StatefulWidget {
     } catch (e) {
       debugPrint('RegisterStudent: grades load failed: $e');
       grades = const [];
-      gradesLoadError = e.toString();
     }
 
     if (!context.mounted) return;
@@ -948,15 +969,6 @@ class ServantDashboardScreen extends StatefulWidget {
                             l10n.servantRegisterStudentNoGradesMessage,
                             style: const TextStyle(color: Colors.red),
                           ),
-                          if (gradesLoadError != null) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              gradesLoadError,
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ],
                         ],
                         if (error != null) ...[
                           const SizedBox(height: 12),
@@ -1293,7 +1305,7 @@ class ServantDashboardScreen extends StatefulWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              error,
+                              l10n.servantDashboardLoadFailed,
                               maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1539,9 +1551,10 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
         );
       });
     } catch (e) {
+      debugPrint('Servant dashboard load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = 'load_failed';
       });
     } finally {
       if (mounted) {
@@ -4576,8 +4589,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         .single();
 
     try {
-      await client.functions.invoke(
-        'push-notify',
+      await _invokeEdgeFunctionViaHttp(
+        client: client,
+        functionName: 'push-notify',
         body: {
           'event': 'announcement_created',
           'announcementId': inserted['id'],
@@ -4611,6 +4625,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
   Future<void> _loadQuestionsFromBackend() async {
     final client = SupabaseClientManager.instance.client;
+    final l10n = AppLocalizations.of(context);
 
     if (mounted) {
       setState(() {
@@ -4667,7 +4682,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = p as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            studentNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'Student');
+            studentNames[id] = maybeFixMojibake(
+              (m['name'] as String?) ?? l10n.roleStudent,
+            );
           }
         } catch (_) {}
       }
@@ -4683,7 +4700,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = s as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            subjectNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'General');
+            subjectNames[id] = maybeFixMojibake(
+              (m['name'] as String?) ?? l10n.commSubjectGeneral,
+            );
           }
         } catch (_) {}
       }
@@ -4699,11 +4718,15 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return _ServantQuestion(
           id: map['id'] as String,
           studentId: studentId,
-          studentName: maybeFixMojibake(studentNames[studentId] ?? 'Student'),
+          studentName: maybeFixMojibake(
+            studentNames[studentId] ?? l10n.roleStudent,
+          ),
           subjectId: subjectId ?? '',
           subjectName: (subjectId == null || subjectId.isEmpty)
-              ? 'General'
-              : maybeFixMojibake(subjectNames[subjectId] ?? 'General'),
+              ? l10n.commSubjectGeneral
+              : maybeFixMojibake(
+                  subjectNames[subjectId] ?? l10n.commSubjectGeneral,
+                ),
           question: maybeFixMojibake((map['question'] as String?) ?? ''),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
           answered: (map['answered'] as bool?) ?? false,
@@ -4758,8 +4781,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           .eq('id', questionId);
 
       try {
-        await client.functions.invoke(
-          'push-notify',
+        await _invokeEdgeFunctionViaHttp(
+          client: client,
+          functionName: 'push-notify',
           body: {'event': 'question_answered', 'questionId': questionId},
         );
       } catch (_) {}
@@ -4781,6 +4805,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
   Future<void> _loadComplaintsFromBackend() async {
     final client = SupabaseClientManager.instance.client;
+    final l10n = AppLocalizations.of(context);
 
     if (mounted) {
       setState(() {
@@ -4835,7 +4860,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = p as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            studentNames[id] = maybeFixMojibake((m['name'] as String?) ?? 'Student');
+            studentNames[id] = maybeFixMojibake(
+              (m['name'] as String?) ?? l10n.roleStudent,
+            );
           }
         } catch (_) {}
       }
@@ -4851,7 +4878,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return _ServantComplaint(
           id: map['id'] as String,
           studentId: studentId,
-          studentName: maybeFixMojibake(studentNames[studentId] ?? 'Student'),
+          studentName: maybeFixMojibake(
+            studentNames[studentId] ?? l10n.roleStudent,
+          ),
           category: (map['category'] as String?) ?? 'other',
           complaint: maybeFixMojibake((map['complaint'] as String?) ?? ''),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
@@ -4910,8 +4939,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           .eq('id', complaintId);
 
       try {
-        await client.functions.invoke(
-          'push-notify',
+        await _invokeEdgeFunctionViaHttp(
+          client: client,
+          functionName: 'push-notify',
           body: {'event': 'complaint_responded', 'complaintId': complaintId},
         );
       } catch (_) {}
@@ -5084,6 +5114,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
   Future<void> _loadFeedbackResponsesForForm(String formId) async {
     final client = SupabaseClientManager.instance.client;
+    final l10n = AppLocalizations.of(context);
 
     if (mounted) {
       setState(() {
@@ -5120,7 +5151,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             final m = p as Map;
             final id = m['id']?.toString();
             if (id == null) continue;
-            studentNames[id] = (m['name'] as String?) ?? 'Student';
+            studentNames[id] = (m['name'] as String?) ?? l10n.roleStudent;
           }
         } catch (_) {}
       }
@@ -5143,7 +5174,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           id: map['id'] as String,
           formId: formId,
           studentId: studentId,
-          studentName: studentNames[studentId] ?? 'Student',
+          studentName: studentNames[studentId] ?? l10n.roleStudent,
           submittedDate: submittedDate,
           answers: answers,
         );
@@ -5227,8 +5258,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     }
 
     try {
-      await client.functions.invoke(
-        'push-notify',
+      await _invokeEdgeFunctionViaHttp(
+        client: client,
+        functionName: 'push-notify',
         body: {'event': 'feedback_form_created', 'formId': formId},
       );
     } catch (_) {}
@@ -5478,17 +5510,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                         horizontal: 16,
                         vertical: 12,
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.check_circle_rounded,
                             color: Colors.white,
                             size: 18,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
-                            'Feedback form created successfully!',
+                            AppLocalizations.of(
+                              context,
+                            ).servantFeedbackCreateFormSuccessToast,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -5627,7 +5661,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
       if (created == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to post announcement.')),
+          SnackBar(content: Text(l10n.servantAnnouncementsPostFailed)),
         );
         return;
       }
@@ -5872,16 +5906,6 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0F172A),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _announcementsError!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
                   Align(
@@ -6210,23 +6234,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Failed to load questions.',
-                  style: TextStyle(
+                Text(
+                  l10n.servantCommLoadQuestionsFailed,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _questionsError!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -6435,9 +6449,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Failed to send response. Please try again.',
+                                                  l10n.servantCommSendResponseFailed,
                                                 ),
                                               ),
                                             );
@@ -6697,23 +6711,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Failed to load complaints.',
-                  style: TextStyle(
+                Text(
+                  l10n.servantCommLoadComplaintsFailed,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _complaintsError!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -6944,9 +6948,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Failed to update complaint. Please try again.',
+                                                  l10n.servantCommUpdateComplaintFailed,
                                                 ),
                                               ),
                                             );
@@ -7323,23 +7327,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Failed to load feedback forms.',
-                  style: TextStyle(
+                Text(
+                  l10n.servantFeedbackLoadFormsFailed,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _feedbackError!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -7433,9 +7427,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Failed to delete feedback form.',
+                                            l10n.servantFeedbackDeleteFormFailed,
                                           ),
                                         ),
                                       );
@@ -8366,10 +8360,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
 
                     if (created == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Failed to create feedback form. Please try again.',
-                          ),
+                        SnackBar(
+                          content: Text(l10n.servantFeedbackCreateFormFailed),
                         ),
                       );
                       return;
@@ -8606,23 +8598,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Failed to load responses.',
-                  style: TextStyle(
+                Text(
+                  l10n.servantFeedbackLoadResponsesFailed,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _feedbackResponsesError!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Align(

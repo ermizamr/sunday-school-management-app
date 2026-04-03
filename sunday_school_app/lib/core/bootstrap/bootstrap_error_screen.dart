@@ -9,6 +9,12 @@ class BootstrapErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    assert(() {
+      debugPrint('Bootstrap error: $message');
+      return true;
+    }());
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -25,12 +31,6 @@ class BootstrapErrorScreen extends StatelessWidget {
                   Text(
                     l10n.bootstrapErrorTitle,
                     style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    message,
-                    style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),

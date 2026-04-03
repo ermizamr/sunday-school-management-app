@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction } from "../lib/invokeEdgeFunction";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
@@ -177,17 +178,15 @@ export function UsersPage() {
       if (academicId) body.academic_id = academicId;
       if (password) body.password = password;
 
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-create-user",
         {
-          body: {
-            ...body,
-          },
+          ...body,
         },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
@@ -220,13 +219,13 @@ export function UsersPage() {
     setError(null);
     setActionId(userId);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-reset-password",
-        { body: { user_id: userId, new_password: newPassword } },
+        { user_id: userId, new_password: newPassword },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
@@ -255,13 +254,13 @@ export function UsersPage() {
     setError(null);
     setActionId(p.id);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-set-account-status",
-        { body: { user_id: p.id, account_status: next } },
+        { user_id: p.id, account_status: next },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
@@ -354,9 +353,6 @@ export function UsersPage() {
             <Button disabled={isCreating} onClick={() => void createUser()}>
               {isCreating ? t("commonCreating") : t("usersCreateUserButton")}
             </Button>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {t("usersUsesEdgeFunctionPrefix")} <span className="font-mono">admin-create-user</span>.
-            </div>
           </div>
         </CardContent>
       </Card>

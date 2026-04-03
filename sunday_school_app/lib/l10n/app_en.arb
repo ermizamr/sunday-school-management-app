@@ -238,6 +238,7 @@
   "authForgotPasswordDialogTitle": "Change password",
   "authForgotPasswordDialogBody": "To change your password, please contact your class admin.",
   "authDemoMode": "Demo mode: use any valid email & password\nwhile backend is being wired fully.",
+  "authInvalidCredentialsError": "Incorrect email or password.",
   "authLoginFailedGeneric": "Login failed. Please try again.",
   "authRoleMismatchStudent": "This account is not a student account. Please select Servant role to continue.",
   "authRoleMismatchServant": "This account is not a servant account. Please select Student role to continue.",
@@ -266,10 +267,12 @@
 
   "dashboardQuickActions": "Quick Actions",
   "dashboardViewGrades": "View Grades",
+  "studentDashboardLoadFailed": "Could not load dashboard data. Please try again.",
 
   "attendanceTrackSubtitle": "Track your class participation",
   "attendanceOverallTitle": "Overall Attendance",
   "attendanceAcrossAllSubjects": "across all subjects",
+  "attendanceLoadFailed": "Failed to load attendance. Please try again.",
 
   "attendancePercentLabel": "{percent}% attendance",
   "@@attendancePercentLabel": {
@@ -328,6 +331,7 @@
   "servantAttendancePreviousDates": "Previous dates",
   "servantAttendanceNoDatesYet": "No attendance dates yet.",
   "servantAttendanceSearchStudentsHint": "Search students",
+  "servantAttendanceLoadFailed": "Failed to load attendance data. Please try again.",
   "servantAttendanceSaved": "Attendance saved",
   "servantAttendanceSaveFailed": "Failed to save attendance",
 
@@ -341,6 +345,19 @@
   "commNoAnnouncements": "No announcements",
   "commAnnouncementsEmptySubtitle": "Check back later for updates",
   "commAnnouncementsLoadFailed": "Failed to load announcements.",
+
+  "commLoadQuestionsFailed": "Failed to load questions.",
+  "commLoadComplaintsFailed": "Failed to load complaints.",
+  "commLoadFeedbackFormsFailed": "Failed to load feedback forms.",
+  "commLoadContextFailed": "Failed to load required information. Please try again.",
+  "commSubmitQuestionFailed": "Failed to submit question. Please try again.",
+  "commSubmitComplaintFailed": "Failed to submit complaint. Please try again.",
+  "commSubmitFeedbackFailed": "Failed to submit feedback. Please try again.",
+
+  "servantCommLoadQuestionsFailed": "Failed to load questions.",
+  "servantCommLoadComplaintsFailed": "Failed to load complaints.",
+  "servantCommSendResponseFailed": "Failed to send response. Please try again.",
+  "servantCommUpdateComplaintFailed": "Failed to update complaint. Please try again.",
 
   "commAnnouncementCategoryUrgent": "Urgent",
   "commAnnouncementCategoryGrades": "Grades",
@@ -415,11 +432,12 @@
   "commFeedbackEmptySubtitle": "Your servant may share feedback forms in the future. Check back later.",
 
   "bootstrapErrorTitle": "App startup failed",
-  "bootstrapErrorFix": "Fix: check Supabase configuration",
-  "bootstrapErrorVerifyPath": "Verify the values in lib/core/config/supabase_config.dart",
+  "bootstrapErrorFix": "Fix: check your internet connection and try again.",
+  "bootstrapErrorVerifyPath": "If the problem persists, contact your administrator.",
 
   "servantDashboardTitle": "Servant Dashboard",
   "servantDashboardSubtitle": "Class Management",
+  "servantDashboardLoadFailed": "Could not load dashboard data. Please try again.",
   "servantTotalStudents": "Total Students",
 
   "servantDashboardAvgAttendanceLabel": "Avg Attendance",
@@ -439,6 +457,7 @@
   "servantRegisterStudentSubmit": "Register",
   "servantRegisterStudentNameRequired": "Please enter the student's full name",
   "servantRegisterStudentGradeRequired": "Please select a grade",
+  "servantRegisterStudentFailedGeneric": "Could not register student. Please try again.",
   "servantRegisterStudentSuccessTitle": "Student registered",
   "servantRegisterStudentSuccessMessage": "Academic ID: {academicId}\nInitial password: same as Academic ID",
   "@@servantRegisterStudentSuccessMessage": {
@@ -607,6 +626,8 @@
   "studentGradesPerformanceSummaryTitle": "Performance Summary",
   "studentGradesTotalSubjectsLabel": "Total Subjects",
 
+  "gradesLoadFailed": "Failed to load grades. Please try again.",
+
   "servantGradesLoadSubjectsFailed": "Failed to load subjects.",
   "servantGradesLoadStudentsFailed": "Failed to load students.",
   "servantGradesLoadGradeEntriesFailed": "Failed to load grade entries.",
@@ -642,6 +663,7 @@
   "servantGradesNoMissingAssessmentsFound": "No missing assessments found.",
 
   "servantAnnouncementsEnterTitleAndMessageError": "Please enter a title and message.",
+  "servantAnnouncementsPostFailed": "Failed to post announcement. Please try again.",
   "servantAnnouncementsSavedLocallySyncFailed": "Saved locally; sync failed.",
   "servantAnnouncementsCreateTitle": "Create Announcement",
   "servantAnnouncementsCategoryLabel": "Category",
@@ -693,6 +715,8 @@
   "servantFeedbackTypeGeneral": "General",
 
   "servantFeedbackCreateFormButton": "Create Feedback Form",
+  "servantFeedbackCreateFormSuccessToast": "Feedback form created successfully!",
+  "servantFeedbackLoadFormsFailed": "Failed to load feedback forms.",
   "servantFeedbackEmptyTitle": "No feedback forms yet",
   "servantFeedbackEmptySubtitle": "Create a form to collect student feedback",
   "servantFeedbackActiveFormsLabel": "Active Forms",
@@ -707,6 +731,7 @@
     }
   },
   "servantFeedbackDeleteFormTitle": "Delete Feedback Form?",
+  "servantFeedbackDeleteFormFailed": "Failed to delete feedback form.",
   "servantFeedbackDeleteFormBody": "This will permanently delete the form and all {responseCount} student responses. This action cannot be undone.",
   "@@servantFeedbackDeleteFormBody": {
     "placeholders": {
@@ -806,6 +831,7 @@
   "servantFeedbackRateLabel": "Rate",
   "servantFeedbackNoResponsesTitle": "No responses yet",
   "servantFeedbackNoResponsesSubtitle": "Analytics will appear here as students submit feedback",
+  "servantFeedbackLoadResponsesFailed": "Failed to load responses.",
   "servantFeedbackAverageRatingLabel": "Average Rating",
   "servantFeedbackDistributionLabel": "Distribution:",
   "servantFeedbackResponsesCountLabel": "{count,plural,=1{1 response} other{{count} responses}}",
@@ -819,7 +845,8 @@
   "servantFeedbackEnterTitleError": "Please enter a title.",
   "servantFeedbackEnterDescriptionError": "Please enter a description.",
   "servantFeedbackAddAtLeastOneQuestionError": "Please add at least one question to the feedback form.",
-  "servantFeedbackValidDatesError": "Please enter valid start and end dates (YYYY-MM-DD).",
+  "servantFeedbackValidDatesError": "Please select valid start and end dates.",
   "servantFeedbackEndAfterStartError": "End date must be after start date.",
-  "servantFeedbackSelectTypeError": "Please select a type."
+  "servantFeedbackSelectTypeError": "Please select a type.",
+  "servantFeedbackCreateFormFailed": "Failed to create feedback form. Please try again."
 }

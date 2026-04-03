@@ -263,7 +263,7 @@ async function requireCaller(req: Request) {
     } as const;
   }
 
-  const authHeader = req.headers.get("Authorization") ?? "";
+  const authHeader = req.headers.get("X-Authorization") ?? req.headers.get("Authorization") ?? "";
 
   const callerClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },

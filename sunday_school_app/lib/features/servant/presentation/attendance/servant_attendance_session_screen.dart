@@ -115,7 +115,7 @@ class _ServantAttendanceSessionScreenState
           .map(
             (r) => _Student(
               id: (r as Map)['id'] as String,
-              name: (r)['name'] as String? ?? 'Student',
+              name: ((r)['name'] as String?)?.trim() ?? '',
             ),
           )
           .toList();
@@ -148,9 +148,10 @@ class _ServantAttendanceSessionScreenState
           ..addAll(statusByStudent);
       });
     } catch (e) {
+      debugPrint('Servant attendance session load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = 'load_failed';
       });
     } finally {
       if (mounted) {
@@ -247,7 +248,10 @@ class _ServantAttendanceSessionScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    Text(
+                      l10n.servantAttendanceLoadFailed,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _load,
@@ -294,7 +298,11 @@ class _ServantAttendanceSessionScreenState
                             _statusByStudentId[student.id] ?? 'present';
 
                         return ListTile(
-                          title: Text(student.name),
+                          title: Text(
+                            student.name.isNotEmpty
+                                ? student.name
+                                : l10n.roleStudent,
+                          ),
                           trailing: DropdownButton<String>(
                             value: _statuses.contains(current)
                                 ? current

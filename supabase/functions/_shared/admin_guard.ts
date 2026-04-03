@@ -20,7 +20,7 @@ export async function requireAdmin(req: Request): Promise<GuardResult> {
     };
   }
 
-  const authHeader = req.headers.get("Authorization") ?? "";
+  const authHeader = req.headers.get("X-Authorization") ?? req.headers.get("Authorization") ?? "";
 
   const callerClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },

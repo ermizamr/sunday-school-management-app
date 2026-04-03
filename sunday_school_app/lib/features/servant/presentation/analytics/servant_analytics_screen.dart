@@ -82,9 +82,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
           }
 
           if (snapshot.hasError) {
-            final message = snapshot.error is ServantAnalyticsException
-                ? (snapshot.error as ServantAnalyticsException).message
-                : l10n.servantAnalyticsLoadFailed;
+            debugPrint('Servant analytics load failed: ${snapshot.error}');
             return Scaffold(
               appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
               body: ListView(
@@ -93,7 +91,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                 children: [
                   const SizedBox(height: 120),
                   Text(
-                    message,
+                    l10n.servantAnalyticsLoadFailed,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Color(0xFF64748B)),
                   ),
