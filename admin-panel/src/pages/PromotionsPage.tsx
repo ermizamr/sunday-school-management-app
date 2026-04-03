@@ -79,10 +79,16 @@ export function PromotionsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<unknown>(null);
   const [criteriaSaving, setCriteriaSaving] = React.useState(false);
+  const [promotionLocked, setPromotionLocked] = React.useState(false);
 
   const activeYear = React.useMemo(
     () => years.find((y) => y.status === "active") ?? null,
     [years],
+  );
+
+  const promotionYear = React.useMemo(
+    () => (selectedYearId ? years.find((y) => y.id === selectedYearId) ?? null : null),
+    [selectedYearId, years],
   );
 
   const promotionSummary = React.useMemo<AllGradesSummary | null>(() => {
@@ -154,16 +160,47 @@ export function PromotionsPage() {
   }, [load]);
 
   React.useEffect(() => {
-    if (!selectedYearId && activeYear?.id) {
-      setSelectedYearId(activeYear.id);
+    if (selectedYearId) return;
+
+    const nextYearId =
+      activeYear?.id ??
+      years.find((y) => y.status === "ended")?.id ??
+      years[0]?.id ??
+      null;
+
+    if (nextYearId) {
+      setSelectedYearId(nextYearId);
     }
-  }, [activeYear?.id, selectedYearId]);
+  }, [activeYear?.id, selectedYearId, years]);
 
   React.useEffect(() => {
     if (!selectedGradeId && grades.length > 0) {
       setSelectedGradeId(grades[0].id);
     }
   }, [grades, selectedGradeId]);
+
+  React.useEffect(() => {
+    async function checkPromotionLocked() {
+      setPromotionLocked(false);
+      if (!selectedYearId) return;
+
+      const { data, error: lockError } = await supabase
+        .from("promotion_runs")
+        .select("id")
+        .eq("academic_year_id", selectedYearId)
+        .limit(1)
+        .maybeSingle();
+
+      if (lockError) {
+        setError(lockError.message);
+        return;
+      }
+
+      setPromotionLocked(Boolean(data));
+    }
+
+    void checkPromotionLocked();
+  }, [selectedYearId]);
 
   React.useEffect(() => {
     async function loadSubjects() {
@@ -442,6 +479,7 @@ export function PromotionsPage() {
       }
 
       setResult(data);
+      setPromotionLocked(true);
     } finally {
       setIsRunning(false);
     }
@@ -468,7 +506,7 @@ export function PromotionsPage() {
           </div>
 
           <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            {t("promotionsActiveYearLabel")} <span className="font-medium text-foreground">{activeYear?.name ?? t("promotionsNotSet")}</span>
+            {t("promotionsActiveYearLabel")} <span className="font-medium text-foreground">{promotionYear?.name ?? t("promotionsNotSet")}</span>
           </div>
 
           <div className="grid gap-2">
@@ -645,6 +683,12 @@ export function PromotionsPage() {
             {t("promotionsRunNote")}
           </div>
 
+          {promotionLocked ? (
+            <div className="md:col-span-3 text-xs text-amber-700 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              {t("promotionsAlreadyDoneThisYear")}
+            </div>
+          ) : null}
+
           <div className="grid gap-2 md:col-span-3">
             <Label htmlFor="notes">{t("promotionsNotesLabel")}</Label>
             <Input
@@ -656,7 +700,7 @@ export function PromotionsPage() {
           </div>
 
           <div className="md:col-span-3">
-            <Button disabled={isLoading || isRunning} onClick={() => void runPromotion()}>
+            <Button disabled={isLoading || isRunning || promotionLocked} onClick={() => void runPromotion()}>
               {isRunning ? t("promotionsRunning") : t("promotionsRunButton")}
             </Button>
           </div>

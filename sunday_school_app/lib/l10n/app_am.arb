@@ -594,6 +594,8 @@
   "studentFinalResultsFinalSummaryTitle": "የመጨረሻ ማጠቃለያ",
   "studentGradesHighestGradeLabel": "ከፍተኛ ውጤት",
   "studentGradesLowestGradeLabel": "ዝቅተኛ ውጤት",
+  "studentGradesSemester1AverageLabel": "የ1ኛ ሴሚስተር አማካኝ",
+  "studentGradesSemester2AverageLabel": "የ2ኛ ሴሚስተር አማካኝ",
   "studentGradesOverallAverageLabel": "አጠቃላይ አማካኝ",
   "studentFinalResultsAcademicYearEndedMessage": "የትምህርት ዘመኑ ተጠናቋል። እነዚህ ለ{yearName} የመጨረሻ ውጤቶችዎ ናቸው። እረፍትዎን ይደሰቱ እና በቀጣዩ የትምህርት ዘመን እንገናኛለን!",
   "@@studentFinalResultsAcademicYearEndedMessage": {

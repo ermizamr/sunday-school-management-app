@@ -594,6 +594,8 @@
   "studentFinalResultsFinalSummaryTitle": "Final Summary",
   "studentGradesHighestGradeLabel": "Highest Grade",
   "studentGradesLowestGradeLabel": "Lowest Grade",
+  "studentGradesSemester1AverageLabel": "Semester 1 Average",
+  "studentGradesSemester2AverageLabel": "Semester 2 Average",
   "studentGradesOverallAverageLabel": "Overall Average",
   "studentFinalResultsAcademicYearEndedMessage": "The academic year has ended. These are your final grades for {yearName}. Enjoy your break and we look forward to seeing you in the next academic year!",
   "@@studentFinalResultsAcademicYearEndedMessage": {

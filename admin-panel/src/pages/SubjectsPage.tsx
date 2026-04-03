@@ -80,6 +80,7 @@ export function SubjectsPage() {
 
   const [isCreating, setIsCreating] = React.useState(false);
   const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [togglingActiveId, setTogglingActiveId] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const gradeNameById = React.useMemo(() => {
@@ -278,6 +279,30 @@ export function SubjectsPage() {
     }
   }
 
+  async function toggleSubjectActive(subject: SubjectRow) {
+    setError(null);
+    setTogglingActiveId(subject.id);
+    try {
+      const nextActive = subject.active === false;
+
+      const { error: updateError } = await supabase
+        .from("subjects")
+        .update({ active: nextActive })
+        .eq("id", subject.id);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setSubjects((prev) =>
+        prev.map((s) => (s.id === subject.id ? { ...s, active: nextActive } : s)),
+      );
+    } finally {
+      setTogglingActiveId(null);
+    }
+  }
+
   function isDeleteBlocked(message: string): boolean {
     const m = (message ?? "").toLowerCase();
     return (
@@ -441,6 +466,7 @@ export function SubjectsPage() {
                   <TableHead>{t("subjectsTablePrereqMin")}</TableHead>
                   <TableHead>{t("subjectsTablePassing")}</TableHead>
                   <TableHead>{t("subjectsTableWeight")}</TableHead>
+                  <TableHead>{t("subjectsTableActive")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -560,6 +586,19 @@ export function SubjectsPage() {
                             }))
                           }
                         />
+                      </TableCell>
+                      <TableCell>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={s.active !== false}
+                            disabled={togglingActiveId === s.id}
+                            onChange={() => void toggleSubjectActive(s)}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {s.active === false ? t("commonNo") : t("commonYes")}
+                          </span>
+                        </label>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

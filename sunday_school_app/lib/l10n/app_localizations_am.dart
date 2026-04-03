@@ -1141,6 +1141,12 @@ class AppLocalizationsAm extends AppLocalizations {
   String get studentGradesLowestGradeLabel => 'ዝቅተኛ ውጤት';
 
   @override
+  String get studentGradesSemester1AverageLabel => 'የ1ኛ ሴሚስተር አማካኝ';
+
+  @override
+  String get studentGradesSemester2AverageLabel => 'የ2ኛ ሴሚስተር አማካኝ';
+
+  @override
   String get studentGradesOverallAverageLabel => 'አጠቃላይ አማካኝ';
 
   @override

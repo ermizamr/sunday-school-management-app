@@ -2114,6 +2114,18 @@ abstract class AppLocalizations {
   /// **'Lowest Grade'**
   String get studentGradesLowestGradeLabel;
 
+  /// No description provided for @studentGradesSemester1AverageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Semester 1 Average'**
+  String get studentGradesSemester1AverageLabel;
+
+  /// No description provided for @studentGradesSemester2AverageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Semester 2 Average'**
+  String get studentGradesSemester2AverageLabel;
+
   /// No description provided for @studentGradesOverallAverageLabel.
   ///
   /// In en, this message translates to:

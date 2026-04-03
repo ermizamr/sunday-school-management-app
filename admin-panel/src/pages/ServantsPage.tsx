@@ -98,7 +98,7 @@ export function ServantsPage() {
       const current = (p.account_status ?? "active").toLowerCase();
       const isInactive = current === "inactive_pending_admin" || current === "inactive";
       const next = isInactive ? "active" : "inactive_pending_admin";
-      const actionLabel = next === "active" ? t("usersActivate") : t("usersDeactivate");
+      const actionLabel = next === "active" ? t("servantsActivate") : t("servantsDeactivate");
       if (!window.confirm(t("servantsConfirmToggleStatus", { action: actionLabel, name: p.name ?? p.id }))) {
         return;
       }
@@ -187,8 +187,8 @@ export function ServantsPage() {
                             {actionId === p.id
                               ? t("commonWorking")
                               : isInactive
-                                ? t("usersActivate")
-                                : t("usersDeactivate")}
+                                ? t("servantsActivate")
+                                : t("servantsDeactivate")}
                           </Button>
                         </TableCell>
                       </TableRow>

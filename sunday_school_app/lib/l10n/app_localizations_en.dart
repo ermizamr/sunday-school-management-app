@@ -1170,6 +1170,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studentGradesLowestGradeLabel => 'Lowest Grade';
 
   @override
+  String get studentGradesSemester1AverageLabel => 'Semester 1 Average';
+
+  @override
+  String get studentGradesSemester2AverageLabel => 'Semester 2 Average';
+
+  @override
   String get studentGradesOverallAverageLabel => 'Overall Average';
 
   @override

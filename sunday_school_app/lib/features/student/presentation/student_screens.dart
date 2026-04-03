@@ -2081,7 +2081,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   List<_GradesSubject> _subjects = const [];
   List<_GradesEntry> _gradeEntries = const [];
 
-  int? _overallAverage;
+  int? _semester1Average;
+  int? _semester2Average;
+  int? _yearAverage;
   final Map<String, int?> _subjectAverages = {};
 
   bool get _isYearActive => _academicYear.status == _AcademicYearStatus.active;
@@ -2179,102 +2181,176 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
       final subjectRows = await client
           .from('subjects')
-          .select('id, name')
+          .select('id, name, active')
           .eq('grade_id', gradeId)
-          .eq('active', true)
           .order('name');
 
-      final subjects = subjectRows
+      final allSubjects = subjectRows
           .map(
             (r) => _GradesSubject(
               id: (r as Map)['id'] as String,
               name: (r)['name'] as String? ?? 'Subject',
+              active: (r)['active'] as bool? ?? true,
             ),
           )
           .toList();
 
-      final subjectIds = subjects.map((s) => s.id).toList();
-
       final entries = <_GradesEntry>[];
-      if (subjectIds.isNotEmpty) {
-        final assessmentRows = await client
-            .from('assessments')
-            .select(
-              'id, subject_id, grade_type, max_score, weight, assessment_date',
-            )
-            .eq('academic_year_id', academicYearId)
-            .eq('grade_id', gradeId)
-            .inFilter('subject_id', subjectIds)
-            .order('assessment_date', ascending: false);
+      final assessmentRows = await client
+          .from('assessments')
+          .select('id, subject_id, grade_type, max_score, weight, assessment_date')
+          .eq('academic_year_id', academicYearId)
+          .eq('grade_id', gradeId)
+          .order('assessment_date', ascending: false);
 
-        final assessmentIds = <String>[];
-        for (final r in assessmentRows) {
-          final id = (r as Map)['id']?.toString();
-          if (id != null && id.isNotEmpty) assessmentIds.add(id);
-        }
-
-        final scoreByAssessmentId = <String, int?>{};
-        if (assessmentIds.isNotEmpty) {
-          final scoreRows = await client
-              .from('assessment_scores')
-              .select('assessment_id, score')
-              .eq('student_id', userId)
-              .inFilter('assessment_id', assessmentIds);
-
-          for (final r in scoreRows) {
-            final map = r as Map;
-            final aid = map['assessment_id']?.toString();
-            if (aid == null || aid.isEmpty) continue;
-            final score = map['score'];
-            scoreByAssessmentId[aid] = score == null ? null : _asInt(score);
-          }
-        }
-
-        for (final r in assessmentRows) {
-          final map = r as Map;
-          final id = map['id']?.toString();
-          final subjectId = map['subject_id']?.toString();
-          if (id == null || subjectId == null) continue;
-
-          final dateRaw = map['assessment_date']?.toString() ?? '';
-          final date = DateTime.tryParse(dateRaw) ?? DateTime.now();
-
-          final maxScore = _asInt(map['max_score'], fallback: 1);
-          final maxScoreSafe = maxScore <= 0 ? 1 : maxScore;
-
-          final weight = _asInt(map['weight']);
-          final weightValue = weight <= 0 ? null : weight;
-
-          entries.add(
-            _GradesEntry(
-              id: id,
-              subjectId: subjectId,
-              gradeType: map['grade_type']?.toString() ?? '',
-              maxScore: maxScoreSafe,
-              weight: weightValue,
-              date: date,
-              scores: {userId: scoreByAssessmentId[id]},
-            ),
-          );
+      final assessedSubjectIds = <String>{};
+      final assessmentIds = <String>[];
+      for (final r in assessmentRows) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id != null && id.isNotEmpty) assessmentIds.add(id);
+        final subjectId = map['subject_id']?.toString();
+        if (subjectId != null && subjectId.isNotEmpty) {
+          assessedSubjectIds.add(subjectId);
         }
       }
 
-      int? overallAverage;
+      var subjects = yearStatus == _AcademicYearStatus.ended
+          ? allSubjects.where((s) => assessedSubjectIds.contains(s.id)).toList()
+          : allSubjects
+              .where((s) => s.active || assessedSubjectIds.contains(s.id))
+              .toList();
+
+      if (subjects.isEmpty && allSubjects.isNotEmpty) {
+        subjects = allSubjects;
+      }
+
+      final scoreByAssessmentId = <String, int?>{};
+      if (assessmentIds.isNotEmpty) {
+        final scoreRows = await client
+            .from('assessment_scores')
+            .select('assessment_id, score')
+            .eq('student_id', userId)
+            .inFilter('assessment_id', assessmentIds);
+
+        for (final r in scoreRows) {
+          final map = r as Map;
+          final aid = map['assessment_id']?.toString();
+          if (aid == null || aid.isEmpty) continue;
+          final score = map['score'];
+          scoreByAssessmentId[aid] = score == null ? null : _asInt(score);
+        }
+      }
+
+      final displayedSubjectIds = subjects.map((s) => s.id).toSet();
+      for (final r in assessmentRows) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        final subjectId = map['subject_id']?.toString();
+        if (id == null || subjectId == null) continue;
+        if (!displayedSubjectIds.contains(subjectId)) continue;
+
+        final dateRaw = map['assessment_date']?.toString() ?? '';
+        final date = DateTime.tryParse(dateRaw) ?? DateTime.now();
+
+        final maxScore = _asInt(map['max_score'], fallback: 1);
+        final maxScoreSafe = maxScore <= 0 ? 1 : maxScore;
+
+        final weight = _asInt(map['weight']);
+        final weightValue = weight <= 0 ? null : weight;
+
+        entries.add(
+          _GradesEntry(
+            id: id,
+            subjectId: subjectId,
+            gradeType: map['grade_type']?.toString() ?? '',
+            maxScore: maxScoreSafe,
+            weight: weightValue,
+            date: date,
+            scores: {userId: scoreByAssessmentId[id]},
+          ),
+        );
+      }
+
+      int? semester1Average;
+      int? semester2Average;
+      int? yearAverage;
       final subjectAverages = <String, int?>{};
       var promotionStatus = _PromotionStatus.eligible;
+      var gotAcademicAssessment = false;
 
       try {
-        final snapRaw = await client.rpc(
-          'get_my_grading_snapshot',
+        final raw = await client.rpc(
+          'get_my_academic_assessment',
           params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
         );
-        if (snapRaw is Map) {
-          overallAverage = _asInt(snapRaw['overall_average']);
+
+        if (raw is Map) {
+          gotAcademicAssessment = true;
+          final sem1Raw = raw['semester1_average'];
+          final sem2Raw = raw['semester2_average'];
+          final yearRaw = raw['year_average'];
+          semester1Average = sem1Raw == null ? null : _asInt(sem1Raw);
+          semester2Average = sem2Raw == null ? null : _asInt(sem2Raw);
+          yearAverage = yearRaw == null ? null : _asInt(yearRaw);
           promotionStatus = _promotionStatusFromDb(
-            snapRaw['status']?.toString(),
+            raw['promotion_status']?.toString(),
           );
         }
       } catch (_) {}
+
+      if (!gotAcademicAssessment) {
+        try {
+          final sem1Raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': 'semester1',
+            },
+          );
+          if (sem1Raw is Map) {
+            semester1Average = sem1Raw['overall_average'] == null
+                ? null
+                : _asInt(sem1Raw['overall_average']);
+          }
+        } catch (_) {}
+
+        try {
+          final sem2Raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': 'semester2',
+            },
+          );
+          if (sem2Raw is Map) {
+            semester2Average = sem2Raw['overall_average'] == null
+                ? null
+                : _asInt(sem2Raw['overall_average']);
+          }
+        } catch (_) {}
+
+        if (semester1Average != null && semester2Average != null) {
+          yearAverage = ((semester1Average + semester2Average) / 2).round();
+        }
+
+        try {
+          final snapRaw = await client.rpc(
+            'get_my_grading_snapshot',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+            },
+          );
+          if (snapRaw is Map) {
+            promotionStatus = _promotionStatusFromDb(
+              snapRaw['status']?.toString(),
+            );
+          }
+        } catch (_) {}
+      }
 
       try {
         final raw = await client.rpc(
@@ -2305,7 +2381,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         );
         _subjects = subjects;
         _gradeEntries = entries;
-        _overallAverage = overallAverage;
+        _semester1Average = semester1Average;
+        _semester2Average = semester2Average;
+        _yearAverage = yearAverage;
         _subjectAverages
           ..clear()
           ..addAll(subjectAverages);
@@ -2420,23 +2498,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return (totalPercentage / entries.length).round();
   }
 
-  int _calculateOverallAverage(String studentId) {
-    final fromRpc = _overallAverage;
-    if (fromRpc != null) return fromRpc;
-
-    if (_subjects.isEmpty) return 0;
-
-    var total = 0;
-    var count = 0;
-    for (final subject in _subjects) {
-      final subjectAvg = _calculateSubjectAverage(studentId, subject.id);
-      if (subjectAvg != null) {
-        total += subjectAvg;
-        count++;
-      }
-    }
-    if (count == 0) return 0;
-    return (total / count).round();
+  int? _calculateOverallAverage(String _) {
+    return _yearAverage;
   }
 
   String _formatMonthDay(BuildContext context, DateTime date) {
@@ -2528,6 +2591,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   Widget _buildFinalResults(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final avgGrade = _calculateOverallAverage(_currentStudent.id);
+    final avgGradeText = avgGrade == null ? '—' : '$avgGrade%';
+    final sem1Text = _semester1Average == null ? '—' : '${_semester1Average!}%';
+    final sem2Text = _semester2Average == null ? '—' : '${_semester2Average!}%';
 
     Color promotionGradientStart;
     Color promotionGradientEnd;
@@ -2664,10 +2730,64 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '$avgGrade%',
+                                        avgGradeText,
                                         style: const TextStyle(
                                           fontSize: 30,
                                           fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester1AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem1Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester2AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem2Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -2928,7 +3048,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                             const SizedBox(height: 12),
                             _SummaryRow(
                               label: l10n.studentGradesOverallAverageLabel,
-                              value: '$avgGrade%',
+                              value: avgGradeText,
                             ),
                           ],
                         ),
@@ -2965,6 +3085,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   Widget _buildActiveYear(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final avgGrade = _calculateOverallAverage(_currentStudent.id);
+    final avgGradeText = avgGrade == null ? '—' : '$avgGrade%';
+    final sem1Text = _semester1Average == null ? '—' : '${_semester1Average!}%';
+    final sem2Text = _semester2Average == null ? '—' : '${_semester2Average!}%';
 
     final highest = _subjects
         .map((s) => _calculateSubjectAverage(_currentStudent.id, s.id) ?? 0)
@@ -3057,10 +3180,64 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '$avgGrade%',
+                                        avgGradeText,
                                         style: const TextStyle(
                                           fontSize: 30,
                                           fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester1AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem1Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester2AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem2Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -3562,10 +3739,11 @@ class _GradesStudent {
 }
 
 class _GradesSubject {
-  const _GradesSubject({required this.id, required this.name});
+  const _GradesSubject({required this.id, required this.name, required this.active});
 
   final String id;
   final String name;
+  final bool active;
 }
 
 class _GradesEntry {
