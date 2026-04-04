@@ -336,14 +336,16 @@ Use this as a quick “where do I go?” map:
   - Start date (required)
   - End date (required)
 
-**Critical rule: promotions required before starting a new year**
-- If there is an existing active year, starting a new academic year will fail unless **promotions have been run for every grade** in that previous active year.
+**Critical rule: end-year + promotions required before starting a new year**
+- You must **end the active year first** (Academic Years → End Active Year).
+- Then you must **run promotions for every grade** for the most recently ended academic year (Promotions page).
+- If any grade is missing a promotion run for that ended year, starting a new academic year will fail.
 
 **What “Start new academic year” does (important)**
-- Automatically ends the previous active year.
+- Requires: no academic year with status `active`.
 - Creates the new year as `active` with current period = `semester1`.
-- Updates student grade/status based on the latest promotion results in the previous year:
-  - `eligible` + next grade exists → student is moved to next grade and kept `active`
+- Uses the most recently `ended` year (if any) and applies the latest promotion run per grade to student records:
+  - `eligible` + next grade exists → student is moved to next grade and set `active`
   - `eligible` + no next grade → student is marked `graduated`
   - otherwise → student becomes `inactive_pending_admin` (admin must review/activate)
 
