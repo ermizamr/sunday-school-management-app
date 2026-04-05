@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/push/push_notifications_service.dart';
 import '../../../core/supabase/supabase_client.dart';
 
 class AuthRepository {
@@ -45,8 +46,12 @@ class AuthRepository {
     return profile?['role']?.toString();
   }
 
-  Future<void> signOut() {
-    return _client.auth.signOut();
+  Future<void> signOut() async {
+    try {
+      await PushNotificationsService.instance.unregisterBeforeSignOut();
+    } catch (_) {}
+
+    await _client.auth.signOut();
   }
 }
 

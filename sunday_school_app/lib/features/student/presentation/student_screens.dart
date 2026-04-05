@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_providers.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../core/errors/app_error_message.dart';
 import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
@@ -602,7 +605,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       debugPrint('Student dashboard load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = l10n.studentDashboardLoadFailed;
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.studentDashboardLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -1004,7 +1011,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       final client = Supabase.instance.client;
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('Not signed in');
+        throw StateError('not_signed_in');
       }
 
       final academicYear = await client
@@ -1023,8 +1030,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
       final academicYearId = academicYear?['id'] as String?;
       final gradeId = profile?['grade_id'] as String?;
-      if (academicYearId == null || gradeId == null) {
-        throw Exception('Missing active academic year or grade assignment');
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('missing_academic_year');
+      }
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('missing_grade_assignment');
       }
 
       final subjectRows = await client
@@ -1111,7 +1121,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       debugPrint('Student attendance load failed: $e');
       if (!mounted) return;
       setState(() {
-        _attendanceError = l10n.attendanceLoadFailed;
+        _attendanceError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.attendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -2064,18 +2078,22 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   String? _expandedSubjectId;
   PromotionCriteriaSet _criteria = PromotionCriteriaSet.defaults;
 
+  _AcademicYearPeriod _displayPeriod = _AcademicYearPeriod.semester1;
+
   bool _loadingGrades = true;
   String? _gradesError;
 
   _GradesAcademicYear _academicYear = const _GradesAcademicYear(
     name: '',
     status: _AcademicYearStatus.active,
+    period: _AcademicYearPeriod.semester1,
   );
 
   _GradesStudent _currentStudent = const _GradesStudent(
     id: '',
     name: '',
     promotionStatus: _PromotionStatus.eligible,
+    accountStatus: _AccountStatus.active,
   );
 
   List<_GradesSubject> _subjects = const [];
@@ -2087,6 +2105,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   final Map<String, int?> _subjectAverages = {};
 
   bool get _isYearActive => _academicYear.status == _AcademicYearStatus.active;
+  bool get _isActiveAccount =>
+      _currentStudent.accountStatus == _AccountStatus.active;
 
   @override
   void initState() {
@@ -2098,6 +2118,74 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     if (value is int) return value;
     if (value is num) return value.round();
     return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static DateTime? _asDate(Object? value) {
+    if (value is DateTime) return value;
+    final raw = value?.toString();
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  static _AccountStatus _accountStatusFromDb(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'active':
+        return _AccountStatus.active;
+      case 'inactive_pending_admin':
+        return _AccountStatus.inactivePendingAdmin;
+      case 'graduated':
+        return _AccountStatus.graduated;
+    }
+    return _AccountStatus.unknown;
+  }
+
+  static _AcademicYearPeriod _academicYearPeriodFromDb(
+    String? raw, {
+    _AcademicYearPeriod fallback = _AcademicYearPeriod.semester1,
+  }) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'semester1':
+        return _AcademicYearPeriod.semester1;
+      case 'semester2':
+        return _AcademicYearPeriod.semester2;
+      case 'break':
+        return _AcademicYearPeriod.breakPeriod;
+    }
+    return fallback;
+  }
+
+  static ({DateTime start, DateTime end})? _dateRangeForPeriod({
+    required _AcademicYearPeriod period,
+    required DateTime? startDate,
+    required DateTime? endDate,
+    required DateTime? semester1EndDate,
+    required DateTime? semester2StartDate,
+  }) {
+    final today = DateTime.now();
+
+    DateTime? rangeStart;
+    DateTime? rangeEnd;
+
+    if (period == _AcademicYearPeriod.semester1) {
+      rangeStart = startDate;
+      rangeEnd = semester1EndDate ?? today;
+    } else if (period == _AcademicYearPeriod.semester2) {
+      rangeStart = semester2StartDate;
+      if (rangeStart == null && startDate != null && endDate != null) {
+        final midOffset = (endDate.difference(startDate).inDays / 2).floor();
+        rangeStart = startDate.add(Duration(days: midOffset + 1));
+      }
+      rangeEnd = today;
+    }
+
+    if (rangeStart == null || rangeEnd == null) return null;
+
+    if (endDate != null && rangeEnd.isAfter(endDate)) {
+      rangeEnd = endDate;
+    }
+
+    if (rangeStart.isAfter(rangeEnd)) return null;
+    return (start: rangeStart, end: rangeEnd);
   }
 
   static _PromotionStatus _promotionStatusFromDb(String? raw) {
@@ -2128,7 +2216,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
       final profile = await client
           .from('profiles')
-          .select('name, grade_id')
+          .select('name, grade_id, account_status')
           .eq('id', userId)
           .maybeSingle();
       final profileMap = (profile as Map?) ?? const <String, Object?>{};
@@ -2140,10 +2228,35 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       final studentName =
           (profileMap['name'] as String?)?.trim() ?? (user?.email ?? '');
 
+      final accountStatus = _accountStatusFromDb(
+        profileMap['account_status']?.toString(),
+      );
+
+      if (accountStatus != _AccountStatus.active) {
+        if (!mounted) return;
+        setState(() {
+          _currentStudent = _GradesStudent(
+            id: userId,
+            name: studentName,
+            promotionStatus: _PromotionStatus.eligible,
+            accountStatus: accountStatus,
+          );
+          _subjects = const [];
+          _gradeEntries = const [];
+          _semester1Average = null;
+          _semester2Average = null;
+          _yearAverage = null;
+          _subjectAverages.clear();
+        });
+        return;
+      }
+
       Map<String, dynamic>? yearRow;
       yearRow = await client
           .from('academic_years')
-          .select('id, name, status')
+          .select(
+            'id, name, status, current_period, start_date, end_date, semester1_end_date, semester2_start_date',
+          )
           .eq('status', 'active')
           .order('created_at', ascending: false)
           .limit(1)
@@ -2151,7 +2264,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
       yearRow ??= await client
           .from('academic_years')
-          .select('id, name, status')
+          .select(
+            'id, name, status, current_period, start_date, end_date, semester1_end_date, semester2_start_date',
+          )
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -2159,6 +2274,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       final academicYearId = yearRow?['id']?.toString();
       final academicYearName = yearRow?['name']?.toString() ?? '';
       final yearStatusRaw = yearRow?['status']?.toString() ?? 'active';
+      final yearPeriodRaw = yearRow?['current_period']?.toString();
+      final startDate = _asDate(yearRow?['start_date']);
+      final endDate = _asDate(yearRow?['end_date']);
+      final semester1EndDate = _asDate(yearRow?['semester1_end_date']);
+      final semester2StartDate = _asDate(yearRow?['semester2_start_date']);
 
       if (academicYearId == null || academicYearId.isEmpty) {
         throw StateError('Missing academic year');
@@ -2167,6 +2287,34 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       final yearStatus = yearStatusRaw == 'active'
           ? _AcademicYearStatus.active
           : _AcademicYearStatus.ended;
+
+      final yearPeriod = _academicYearPeriodFromDb(
+        yearPeriodRaw,
+        fallback: yearStatus == _AcademicYearStatus.active
+            ? _AcademicYearPeriod.semester1
+            : _AcademicYearPeriod.breakPeriod,
+      );
+
+      var displayPeriod = yearPeriod;
+      if (yearStatus == _AcademicYearStatus.active &&
+          yearPeriod == _AcademicYearPeriod.breakPeriod) {
+        final today = DateTime.now();
+        if (semester2StartDate != null && !today.isBefore(semester2StartDate)) {
+          displayPeriod = _AcademicYearPeriod.semester2;
+        } else {
+          displayPeriod = _AcademicYearPeriod.semester1;
+        }
+      }
+
+      final assessmentRange = yearStatus == _AcademicYearStatus.active
+          ? _dateRangeForPeriod(
+              period: displayPeriod,
+              startDate: startDate,
+              endDate: endDate,
+              semester1EndDate: semester1EndDate,
+              semester2StartDate: semester2StartDate,
+            )
+          : null;
 
       PromotionCriteriaSet? criteria;
       try {
@@ -2198,28 +2346,60 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       final entries = <_GradesEntry>[];
       final assessmentRows = await client
           .from('assessments')
-          .select('id, subject_id, grade_type, max_score, weight, assessment_date')
+          .select(
+            'id, subject_id, grade_type, max_score, weight, assessment_date',
+          )
           .eq('academic_year_id', academicYearId)
           .eq('grade_id', gradeId)
           .order('assessment_date', ascending: false);
 
-      final assessedSubjectIds = <String>{};
+      final assessedSubjectIdsAllYear = <String>{};
+      final assessedSubjectIdsView = <String>{};
       final assessmentIds = <String>[];
+      final viewAssessmentRows = <Map<String, Object?>>[];
+
+      bool isInRange(DateTime? dt) {
+        if (assessmentRange == null) return true;
+        if (dt == null) return false;
+        if (dt.isBefore(assessmentRange.start)) return false;
+        if (dt.isAfter(assessmentRange.end)) return false;
+        return true;
+      }
+
       for (final r in assessmentRows) {
-        final map = r as Map;
-        final id = map['id']?.toString();
-        if (id != null && id.isNotEmpty) assessmentIds.add(id);
+        final map = (r as Map).cast<String, Object?>();
         final subjectId = map['subject_id']?.toString();
         if (subjectId != null && subjectId.isNotEmpty) {
-          assessedSubjectIds.add(subjectId);
+          assessedSubjectIdsAllYear.add(subjectId);
         }
+
+        final date = DateTime.tryParse(
+          map['assessment_date']?.toString() ?? '',
+        );
+        if (!isInRange(date)) continue;
+
+        final id = map['id']?.toString();
+        if (id != null && id.isNotEmpty) assessmentIds.add(id);
+        if (subjectId != null && subjectId.isNotEmpty) {
+          assessedSubjectIdsView.add(subjectId);
+        }
+        viewAssessmentRows.add(map);
       }
 
       var subjects = yearStatus == _AcademicYearStatus.ended
-          ? allSubjects.where((s) => assessedSubjectIds.contains(s.id)).toList()
-          : allSubjects
-              .where((s) => s.active || assessedSubjectIds.contains(s.id))
-              .toList();
+          ? allSubjects
+                .where((s) => assessedSubjectIdsAllYear.contains(s.id))
+                .toList()
+          : (yearPeriod == _AcademicYearPeriod.breakPeriod
+                ? allSubjects
+                      .where((s) => assessedSubjectIdsView.contains(s.id))
+                      .toList()
+                : allSubjects
+                      .where(
+                        (s) =>
+                            s.active || assessedSubjectIdsView.contains(s.id),
+                      )
+                      .toList());
 
       if (subjects.isEmpty && allSubjects.isNotEmpty) {
         subjects = allSubjects;
@@ -2243,8 +2423,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       }
 
       final displayedSubjectIds = subjects.map((s) => s.id).toSet();
-      for (final r in assessmentRows) {
-        final map = r as Map;
+      for (final map in viewAssessmentRows) {
         final id = map['id']?.toString();
         final subjectId = map['subject_id']?.toString();
         if (id == null || subjectId == null) continue;
@@ -2357,7 +2536,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           'get_my_subject_averages',
           params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
         );
-        if (raw is List) {
+        if (yearStatus != _AcademicYearStatus.active && raw is List) {
           for (final item in raw) {
             if (item is! Map) continue;
             final sid = item['subject_id']?.toString();
@@ -2368,16 +2547,50 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         }
       } catch (_) {}
 
+      if (yearStatus == _AcademicYearStatus.active) {
+        try {
+          final semesterParam = displayPeriod == _AcademicYearPeriod.semester2
+              ? 'semester2'
+              : 'semester1';
+          final raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': semesterParam,
+            },
+          );
+
+          if (raw is Map) {
+            final list = raw['subject_averages'];
+            if (list is List) {
+              for (final item in list) {
+                if (item is! Map) continue;
+                final sid = item['subject_id']?.toString();
+                if (sid == null || sid.isEmpty) continue;
+                final avg = item['average'];
+                subjectAverages[sid] = avg == null ? null : _asInt(avg);
+              }
+            }
+          }
+        } catch (_) {
+          // Ignore; fallback calculation uses loaded assessments.
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _academicYear = _GradesAcademicYear(
           name: academicYearName,
           status: yearStatus,
+          period: yearPeriod,
         );
+        _displayPeriod = displayPeriod;
         _currentStudent = _GradesStudent(
           id: userId,
           name: studentName,
           promotionStatus: promotionStatus,
+          accountStatus: accountStatus,
         );
         _subjects = subjects;
         _gradeEntries = entries;
@@ -2396,7 +2609,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       debugPrint('Student grades load failed: $e');
       if (!mounted) return;
       setState(() {
-        _gradesError = l10n.gradesLoadFailed;
+        _gradesError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.gradesLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -2564,6 +2781,10 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       );
     }
 
+    if (!_isActiveAccount) {
+      return _buildInactiveAccount(context);
+    }
+
     if (_subjects.isEmpty) {
       return Scaffold(
         body: SafeArea(
@@ -2586,6 +2807,86 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       return _buildFinalResults(context);
     }
     return _buildActiveYear(context);
+  }
+
+  Widget _buildInactiveAccount(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                width: double.infinity,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.navGrades,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB), // amber-50
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.lock_rounded,
+                          color: Color(0xFFB45309),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.studentGradesAccountInactiveTitle,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF78350F),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      l10n.studentGradesAccountInactiveMessage,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF78350F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildFinalResults(BuildContext context) {
@@ -3084,8 +3385,13 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
   Widget _buildActiveYear(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final avgGrade = _calculateOverallAverage(_currentStudent.id);
-    final avgGradeText = avgGrade == null ? '—' : '$avgGrade%';
+    final displayAvg = _displayPeriod == _AcademicYearPeriod.semester2
+        ? _semester2Average
+        : _semester1Average;
+    final displayAvgText = displayAvg == null ? '—' : '${displayAvg}%';
+    final displayAvgLabel = _displayPeriod == _AcademicYearPeriod.semester2
+        ? l10n.studentGradesSemester2AverageLabel
+        : l10n.studentGradesSemester1AverageLabel;
     final sem1Text = _semester1Average == null ? '—' : '${_semester1Average!}%';
     final sem2Text = _semester2Average == null ? '—' : '${_semester2Average!}%';
 
@@ -3110,16 +3416,26 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 width: double.infinity,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.navGrades,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navGrades,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -3129,6 +3445,48 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (_academicYear.period ==
+                          _AcademicYearPeriod.breakPeriod)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFBEB), // amber-50
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFFDE68A), // amber-200
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            l10n.studentGradesBreakModeMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF78350F),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE), // sky-50
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFBAE6FD), // sky-200
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            _academicYear.period ==
+                                    _AcademicYearPeriod.semester2
+                                ? l10n.studentGradesSemester2ModeMessage
+                                : l10n.studentGradesSemester1ModeMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF0C4A6E), // sky-900
+                            ),
+                          ),
+                        ),
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
@@ -3172,7 +3530,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        l10n.studentGradesOverallAverageLabel,
+                                        displayAvgLabel,
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: Color(0xFFFDE68A),
@@ -3180,7 +3538,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        avgGradeText,
+                                        displayAvgText,
                                         style: const TextStyle(
                                           fontSize: 30,
                                           fontWeight: FontWeight.w700,
@@ -3711,17 +4069,22 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 }
 
-enum _AcademicYearStatus {
-  active,
-  // ignore: unused_field
-  ended,
-}
+enum _AcademicYearStatus { active, ended }
+
+enum _AcademicYearPeriod { semester1, semester2, breakPeriod }
+
+enum _AccountStatus { active, inactivePendingAdmin, graduated, unknown }
 
 class _GradesAcademicYear {
-  const _GradesAcademicYear({required this.name, required this.status});
+  const _GradesAcademicYear({
+    required this.name,
+    required this.status,
+    required this.period,
+  });
 
   final String name;
   final _AcademicYearStatus status;
+  final _AcademicYearPeriod period;
 }
 
 enum _PromotionStatus { eligible, atRisk, notEligible }
@@ -3731,15 +4094,21 @@ class _GradesStudent {
     required this.id,
     required this.name,
     required this.promotionStatus,
+    required this.accountStatus,
   });
 
   final String id;
   final String name;
   final _PromotionStatus promotionStatus;
+  final _AccountStatus accountStatus;
 }
 
 class _GradesSubject {
-  const _GradesSubject({required this.id, required this.name, required this.active});
+  const _GradesSubject({
+    required this.id,
+    required this.name,
+    required this.active,
+  });
 
   final String id;
   final String name;
@@ -4296,7 +4665,17 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
   Future<void> _loadAnnouncementsFromBackend() async {
     final client = Supabase.instance.client;
     final userId = client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      final l10n = AppLocalizations.of(context);
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.errorAuthRequired;
+        _items.clear();
+        _expandedId = null;
+        _isLoading = false;
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -4364,7 +4743,11 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = l10n.commAnnouncementsLoadFailed;
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commAnnouncementsLoadFailed,
+        );
         _items.clear();
         _expandedId = null;
         _isLoading = false;
@@ -4741,7 +5124,11 @@ class _QuestionsListState extends State<_QuestionsList> {
       debugPrint('Student questions load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = l10n.commLoadQuestionsFailed;
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadQuestionsFailed,
+        );
         _questions.clear();
         _isLoading = false;
       });
@@ -5081,7 +5468,11 @@ class _QuestionFormState extends State<_QuestionForm> {
       debugPrint('Student question form context load failed: $e');
       if (!mounted) return;
       setState(() {
-        _contextError = l10n.commLoadContextFailed;
+        _contextError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadContextFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5139,7 +5530,11 @@ class _QuestionFormState extends State<_QuestionForm> {
       debugPrint('Student question submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = l10n.commSubmitQuestionFailed;
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitQuestionFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5457,7 +5852,11 @@ class _ComplaintsListState extends State<_ComplaintsList> {
       debugPrint('Student complaints load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = l10n.commLoadComplaintsFailed;
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadComplaintsFailed,
+        );
         _complaints.clear();
         _isLoading = false;
       });
@@ -5734,7 +6133,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
       debugPrint('Student complaint form context load failed: $e');
       if (!mounted) return;
       setState(() {
-        _contextError = l10n.commLoadContextFailed;
+        _contextError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadContextFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5795,7 +6198,11 @@ class _ComplaintFormState extends State<_ComplaintForm> {
       debugPrint('Student complaint submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = l10n.commSubmitComplaintFailed;
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitComplaintFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -6254,7 +6661,11 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       debugPrint('Student feedback forms load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = l10n.commLoadFeedbackFormsFailed;
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadFeedbackFormsFailed,
+        );
         _forms.clear();
         _isLoading = false;
       });
@@ -6335,7 +6746,11 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       debugPrint('Student feedback submit failed: $e');
       if (!mounted) return;
       setState(() {
-        _submitError = l10n.commSubmitFeedbackFailed;
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitFeedbackFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -6964,13 +7379,89 @@ class _ProfileData {
   final String? email;
 }
 
-class _StudentProfileScreenState extends State<StudentProfileScreen> {
+class _StudentProfileScreenState extends State<StudentProfileScreen>
+    with WidgetsBindingObserver {
   late Future<_ProfileData> _profileFuture;
+  StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
+  String? _subscribedUserId;
+  bool _profileStreamInitialized = false;
+  bool _active = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _profileFuture = _loadProfile();
+    _subscribeToProfileUpdates();
+  }
+
+  void _subscribeToProfileUpdates() {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    if (_subscribedUserId == userId && _profileSubscription != null) {
+      return;
+    }
+
+    _profileSubscription?.cancel();
+    _subscribedUserId = userId;
+    _profileStreamInitialized = false;
+
+    _profileSubscription = client
+        .from('profiles')
+        .stream(primaryKey: ['id'])
+        .eq('id', userId)
+        .listen((_) {
+          if (!_profileStreamInitialized) {
+            _profileStreamInitialized = true;
+            return;
+          }
+
+          if (!mounted || !_active) return;
+          setState(() {
+            _profileFuture = _loadProfile();
+          });
+        });
+  }
+
+  @override
+  void deactivate() {
+    _active = false;
+    _profileSubscription?.cancel();
+    _profileSubscription = null;
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _active = true;
+    _subscribeToProfileUpdates();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
+    if (!_active) return;
+
+    _subscribeToProfileUpdates();
+
+    if (!mounted) return;
+    setState(() {
+      _profileFuture = _loadProfile();
+    });
+  }
+
+  @override
+  void dispose() {
+    _active = false;
+    WidgetsBinding.instance.removeObserver(this);
+    _profileSubscription?.cancel();
+    super.dispose();
   }
 
   Future<_ProfileData> _loadProfile() async {
@@ -7034,6 +7525,20 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    String friendlyAcademicId(String value) {
+      final v = value.trim();
+      if (v.isEmpty) return l10n.commonNa;
+      final looksLikeUuid = RegExp(
+        r'^[0-9a-fA-F]{8}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{12}$',
+      ).hasMatch(v);
+      if (looksLikeUuid) return l10n.commonNa;
+      return v;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -7089,6 +7594,24 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     }
 
                     if (snapshot.hasError) {
+                      final error = snapshot.error;
+                      String errorText;
+                      if (error is StateError) {
+                        final msg = error.message.toLowerCase().trim();
+                        if (msg == 'not signed in' || msg == 'not_signed_in') {
+                          errorText = l10n.profileErrorNotSignedIn;
+                        } else if (msg == 'profile not found' ||
+                            msg == 'profile_not_found') {
+                          errorText = l10n.profileErrorNotFound;
+                        } else {
+                          errorText = presentErrorMessage(l10n, error);
+                        }
+                      } else if (error != null) {
+                        errorText = presentErrorMessage(l10n, error);
+                      } else {
+                        errorText = l10n.errorSomethingWentWrong;
+                      }
+
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -7114,7 +7637,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              snapshot.error.toString(),
+                              errorText,
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 13,
@@ -7166,6 +7689,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     final accountStatusLabel = switch (data.accountStatus
                         .toLowerCase()) {
                       'active' => l10n.accountStatusActive,
+                      'inactive_pending_admin' => l10n.accountStatusInactive,
                       'inactive' => l10n.accountStatusInactive,
                       'suspended' => l10n.accountStatusSuspended,
                       'disabled' => l10n.accountStatusDisabled,
@@ -7242,7 +7766,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   color: accent,
                                 ),
                                 title: Text(l10n.profileAcademicIdLabel),
-                                subtitle: Text(data.academicId),
+                                subtitle: Text(
+                                  friendlyAcademicId(data.academicId),
+                                ),
                               ),
                               const Divider(height: 1),
                               ListTile(

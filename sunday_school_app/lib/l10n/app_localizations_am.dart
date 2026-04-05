@@ -136,6 +136,23 @@ class AppLocalizationsAm extends AppLocalizations {
   String get commonSignOut => 'ውጣ';
 
   @override
+  String get errorSomethingWentWrong => 'ችግኝ ተፈጥሯል። እባክዎ በድጋሚ ይሞክሩ።';
+
+  @override
+  String get errorNetwork =>
+      'የኔትወርክ ችግኝ አለ። የኢንተርኔት ግንኙነትዎን ያረጋግጡ እና በድጋሚ ይሞክሩ።';
+
+  @override
+  String get errorAuthRequired => 'ለመቀጠል እባክዎ ይግቡ።';
+
+  @override
+  String get errorMissingActiveAcademicYear =>
+      'ንቁ የትምህርት ዓመት አልተመዘገበም። እባክዎ አስተዳዳሪን ያነጋግሩ።';
+
+  @override
+  String get errorMissingGradeAssignment => 'ለክፍል አልተመደቡም። እባክዎ አስተዳዳሪን ያነጋግሩ።';
+
+  @override
   String get profileAccountDetailsSubtitle => 'የመለያ ዝርዝሮች';
 
   @override
@@ -602,6 +619,21 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantCommSubtitle => 'ማስታወቂያዎች፣ ጥያቄዎች፣ ቅሬታዎች እና አስተያየት።';
 
   @override
+  String get pushChannelCommunicationsName => 'ግንኙነት';
+
+  @override
+  String get pushChannelCommunicationsDescription => 'ማስታወቂያዎችና የግንኙነት ዝማኔዎች';
+
+  @override
+  String get pushNotificationNewUpdateTitle => 'አዲስ ዝማኔ';
+
+  @override
+  String get pushNotificationQuestionAnsweredTitle => 'ጥያቄዎ ተመልሷል';
+
+  @override
+  String get pushNotificationComplaintRespondedTitle => 'ቅሬታዎ ተመልሷል';
+
+  @override
   String get commNoAnnouncements => 'ማስታወቂያ የለም';
 
   @override
@@ -863,7 +895,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantRegisterStudentFullNameLabel => 'የተማሪው ሙሉ ስም';
 
   @override
-  String get servantRegisterStudentFullNameHint => 'ለምሳሌ፡ ዮሐንስ ዶ';
+  String get servantRegisterStudentFullNameHint => '';
 
   @override
   String get servantRegisterStudentGradeLabel => 'የሚመዘገብበት ክፍል';
@@ -1102,31 +1134,49 @@ class AppLocalizationsAm extends AppLocalizations {
   }
 
   @override
+  String get studentGradesSemester1ModeMessage =>
+      'የ1ኛ ሴሚስተር በሂደት ላይ ነው። እነዚህ ውጤቶች እስካሁን የተሰጡ የ1ኛ ሴሚስተር ምዘናዎችን ይወክላሉ።';
+
+  @override
+  String get studentGradesSemester2ModeMessage =>
+      'የ2ኛ ሴሚስተር በሂደት ላይ ነው። እነዚህ ውጤቶች እስካሁን የተሰጡ የ2ኛ ሴሚስተር ምዘናዎችን ይወክላሉ።';
+
+  @override
+  String get studentGradesBreakModeMessage => 'የእረፍት ጊዜ ነው፤ ውጤቶች ለጊዜው አይዘመኑም።';
+
+  @override
+  String get studentGradesAccountInactiveTitle => 'መዳረሻ ተከልክሏል';
+
+  @override
+  String get studentGradesAccountInactiveMessage =>
+      'መለያዎ የማይሠራ ሁኔታ ላይ ነው። እባክዎ የተከታታይ ትምህርት ክፍል ኃላፊን ያነጋግሩ።';
+
+  @override
   String get studentFinalResultsFinalGradeLabel => 'የመጨረሻ ውጤት';
 
   @override
-  String get studentFinalResultsPromotionStatusLabel => 'የማዕረግ ሁኔታ';
+  String get studentFinalResultsPromotionStatusLabel => 'የመጨረሻ ውጤት';
 
   @override
-  String get studentFinalResultsPromotionPromotedTitle => 'ተሻሽሏል';
+  String get studentFinalResultsPromotionPromotedTitle => 'ተዘዋውሯል';
 
   @override
   String get studentFinalResultsPromotionPromotedMessage =>
-      'እንኳን ደስ አለዎት! ወደ ቀጣዩ ክፍል ተሻሽለዋል።';
+      'እንኳን ደስ አለዎት! ወደ ቀጣዩ ክፍል ተዘዋውረዋል';
 
   @override
   String get studentFinalResultsPromotionAtRiskTitle => 'በአደጋ ላይ';
 
   @override
   String get studentFinalResultsPromotionAtRiskMessage =>
-      'ወደ ቀጣይ ክፍል ላይ ላትሻሽሉ ይችላሉ። እባክዎ ከመምህርዎ ጋር ያማክሩ።';
+      'ወደ ቀጣይ ክፍል ላይ ላይዘዋወሩ ይችላሉ። እባክዎ ከተከታታይ ትምህርት ክፍል አገልጋዮች ጋር ይነጋገሩ።';
 
   @override
-  String get studentFinalResultsPromotionNotPromotedTitle => 'አልተሻሽለም';
+  String get studentFinalResultsPromotionNotPromotedTitle => 'አልተዘዋወሩም';
 
   @override
   String get studentFinalResultsPromotionNotPromotedMessage =>
-      'የማሻሻያ መስፈርቶችን አላሟሉም። እባክዎ ከመምህርዎ ጋር ያማክሩ።';
+      'የመዘዋወርያ መስፈርቶችን አላሟሉም። እባክዎ ከተከታታይ ትምህርት ክፍል ኃላፊ ጋር ይነጋገሩ።';
 
   @override
   String get studentFinalResultsFinalSubjectGradesTitle => 'የትምህርት መጨረሻ ውጤቶች';
@@ -1141,17 +1191,17 @@ class AppLocalizationsAm extends AppLocalizations {
   String get studentGradesLowestGradeLabel => 'ዝቅተኛ ውጤት';
 
   @override
-  String get studentGradesSemester1AverageLabel => 'የ1ኛ ሴሚስተር አማካኝ';
+  String get studentGradesSemester1AverageLabel => 'የ1ኛ መንፈቀ ዓመት አማካኝ';
 
   @override
-  String get studentGradesSemester2AverageLabel => 'የ2ኛ ሴሚስተር አማካኝ';
+  String get studentGradesSemester2AverageLabel => 'የ2ኛ መንፈቀ ዓመት አማካኝ';
 
   @override
   String get studentGradesOverallAverageLabel => 'አጠቃላይ አማካኝ';
 
   @override
   String studentFinalResultsAcademicYearEndedMessage(Object yearName) {
-    return 'የትምህርት ዘመኑ ተጠናቋል። እነዚህ ለ$yearName የመጨረሻ ውጤቶችዎ ናቸው። እረፍትዎን ይደሰቱ እና በቀጣዩ የትምህርት ዘመን እንገናኛለን!';
+    return 'የትምህርት ዘመኑ ተጠናቋል። እነዚህ ለ $yearName የመጨረሻ ውጤቶችዎ ናቸው። በሰላም ያስጨረሰን ቅዱስ አማኑኤል የተመሰገነ ይሁን!';
   }
 
   @override
@@ -1189,7 +1239,7 @@ class AppLocalizationsAm extends AppLocalizations {
   }
 
   @override
-  String get studentGradesPerformanceSummaryTitle => 'የአፈጻጸም ማጠቃለያ';
+  String get studentGradesPerformanceSummaryTitle => 'የውጤት አፈጻጸም ማጠቃለያ';
 
   @override
   String get studentGradesTotalSubjectsLabel => 'ጠቅላላ ትምህርቶች';
@@ -1207,8 +1257,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantGradesLoadGradeEntriesFailed => 'የውጤት ምዝገባዎችን መጫን አልተሳካም።';
 
   @override
-  String get servantGradesLockedByAdminSettings =>
-      'የውጤት አስተዳደር በአስተዳዳሪ ቅንብሮች ታግዷል።';
+  String get servantGradesLockedByAdminSettings => 'የውጤት አስተዳደር በአስተዳዳሪ ታግዷል።';
 
   @override
   String get servantGradesThisAcademicYear => 'ይህ የትምህርት ዓመት';
@@ -1268,7 +1317,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantAnnouncementsMessageHint => 'ማስታወቂያዎን ይጻፉ...';
 
   @override
-  String get servantAnnouncementsPostButton => 'አሳትም';
+  String get servantAnnouncementsPostButton => 'ላክ';
 
   @override
   String get servantAnnouncementsEmptyTitle => 'እስካሁን ማስታወቂያ የለም';
@@ -1284,7 +1333,7 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String servantAnnouncementsTarget(Object audience) {
-    return 'ዒላማ: $audience';
+    return 'ለ: $audience';
   }
 
   @override
@@ -1308,7 +1357,7 @@ class AppLocalizationsAm extends AppLocalizations {
   String get servantAnnouncementsDeleteFailed => 'ማስታወቂያውን መሰረዝ አልተሳካም።';
 
   @override
-  String get profileErrorNotSignedIn => 'ገብተው አይገኙም።';
+  String get profileErrorNotSignedIn => 'አልተገኙም።';
 
   @override
   String get profileErrorNotFound => 'መገለጫ አልተገኘም።';

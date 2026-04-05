@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../../core/errors/app_error_message.dart';
 import '../../../../core/supabase/supabase_client.dart';
 
 class ServantAttendanceSessionScreen extends StatefulWidget {
@@ -150,8 +151,13 @@ class _ServantAttendanceSessionScreenState
     } catch (e) {
       debugPrint('Servant attendance session load failed: $e');
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = 'load_failed';
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantAttendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -248,10 +254,7 @@ class _ServantAttendanceSessionScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      l10n.servantAttendanceLoadFailed,
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _load,

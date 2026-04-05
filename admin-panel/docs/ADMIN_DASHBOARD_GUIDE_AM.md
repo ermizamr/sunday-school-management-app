@@ -335,7 +335,7 @@
 - ተማሪዎችን በቀድሞው ዓመት የመጨረሻ የፕሮሞሽን ውጤት መሠረት ያዘምናል፦
   - `eligible` + ቀጣይ ደረጃ ካለ → ወደ ቀጣይ ደረጃ ያስተላልፋል እና `active` ይቆያል
   - `eligible` + ቀጣይ ደረጃ ካልተገኘ → `graduated` ይሆናል
-  - ሌላ ሁሉ → `inactive_pending_admin` ይሆናል (admin መገምገም/መንቃት ይጠይቃል)
+  - ሌላ ሁሉ → ያለው `account_status` እንደነበር ይቀጥላል (active ከሆነ እንደ active ይቀጥላል)
 
 **ንቁ ዓመት መጨረስ (RPC: `end_academic_year`)**
 - ዓመቱን `ended` ያደርጋል እና `current_period = 'break'` ይሆናል።

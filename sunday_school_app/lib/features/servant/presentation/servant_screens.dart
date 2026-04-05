@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_providers.dart';
 import '../../../core/config/supabase_config.dart';
+import '../../../core/errors/app_error_message.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
@@ -593,18 +594,24 @@ class ServantDashboardScreen extends StatefulWidget {
   }
 
   void _scheduleAuthResetAndRedirectToServantLogin(BuildContext rootContext) {
+    final l10n = AppLocalizations.of(rootContext);
+    final messenger = ScaffoldMessenger.maybeOf(rootContext);
+    final router = GoRouter.of(rootContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final client = SupabaseClientManager.instance.client;
+
+      try {
+        await PushNotificationsService.instance.unregisterBeforeSignOut();
+      } catch (_) {}
       try {
         await client.auth.signOut();
       } catch (_) {}
 
-      if (!rootContext.mounted) return;
-      final l10n = AppLocalizations.of(rootContext);
-      ScaffoldMessenger.of(
-        rootContext,
-      ).showSnackBar(SnackBar(content: Text(l10n.authLoginFailedGeneric)));
-      GoRouter.of(rootContext).go('/servant/login');
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.authLoginFailedGeneric)),
+      );
+      router.go('/servant/login');
     });
   }
 
@@ -848,14 +855,16 @@ class ServantDashboardScreen extends StatefulWidget {
         : null;
     bool submitting = false;
     String? error;
+    var dialogActive = true;
 
     Future<void> submit(
       BuildContext dialogContext,
       StateSetter setState,
     ) async {
+      if (!dialogActive) return;
       final name = nameController.text.trim();
       if (name.isEmpty) {
-        if (!dialogContext.mounted) return;
+        if (!dialogActive) return;
         setState(() {
           error = l10n.servantRegisterStudentNameRequired;
         });
@@ -863,14 +872,14 @@ class ServantDashboardScreen extends StatefulWidget {
       }
       final grade = selectedGrade;
       if (grade == null) {
-        if (!dialogContext.mounted) return;
+        if (!dialogActive) return;
         setState(() {
           error = l10n.servantRegisterStudentGradeRequired;
         });
         return;
       }
 
-      if (!dialogContext.mounted) return;
+      if (!dialogActive) return;
       setState(() {
         submitting = true;
         error = null;
@@ -881,9 +890,10 @@ class ServantDashboardScreen extends StatefulWidget {
           name: name,
           gradeId: grade.id,
         );
-        if (!dialogContext.mounted) return;
+        if (!dialogActive) return;
 
         final academicId = (result['academic_id'] ?? '').toString();
+        dialogActive = false;
         Navigator.of(dialogContext).pop();
 
         if (!context.mounted) return;
@@ -904,7 +914,8 @@ class ServantDashboardScreen extends StatefulWidget {
         );
       } catch (e) {
         if (e is _AuthRequiredException) {
-          if (dialogContext.mounted) {
+          if (dialogActive && dialogContext.mounted) {
+            dialogActive = false;
             Navigator.of(dialogContext).pop();
           }
           if (!context.mounted) return;
@@ -912,7 +923,7 @@ class ServantDashboardScreen extends StatefulWidget {
           return;
         }
 
-        if (!dialogContext.mounted) return;
+        if (!dialogActive) return;
         setState(() {
           submitting = false;
           error = _formatRegisterStudentError(e);
@@ -920,95 +931,110 @@ class ServantDashboardScreen extends StatefulWidget {
       }
     }
 
-    await showDialog<void>(
+    final dialogFuture = showDialog<void>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text(l10n.servantRegisterStudentTitle),
-              content: SizedBox(
-                width: 420,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 360),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          controller: nameController,
-                          textCapitalization: TextCapitalization.words,
-                          decoration: InputDecoration(
-                            labelText: l10n.servantRegisterStudentFullNameLabel,
-                            hintText: l10n.servantRegisterStudentFullNameHint,
+            return PopScope(
+              onPopInvoked: (didPop) {
+                if (didPop) dialogActive = false;
+              },
+              child: AlertDialog(
+                title: Text(l10n.servantRegisterStudentTitle),
+                content: SizedBox(
+                  width: 420,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 360),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: nameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              labelText:
+                                  l10n.servantRegisterStudentFullNameLabel,
+                              hintText: l10n.servantRegisterStudentFullNameHint,
+                            ),
+                            enabled: !submitting,
                           ),
-                          enabled: !submitting,
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<_RegisterStudentGrade>(
-                          initialValue: selectedGrade,
-                          items: [
-                            for (final g in grades)
-                              DropdownMenuItem(value: g, child: Text(g.name)),
-                          ],
-                          onChanged: (submitting || grades.isEmpty)
-                              ? null
-                              : (value) {
-                                  setState(() {
-                                    selectedGrade = value;
-                                  });
-                                },
-                          decoration: InputDecoration(
-                            labelText: l10n.servantRegisterStudentGradeLabel,
-                          ),
-                        ),
-                        if (grades.isEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.servantRegisterStudentNoGradesMessage,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ],
-                        if (error != null) ...[
                           const SizedBox(height: 12),
-                          Text(
-                            error!,
-                            maxLines: 6,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.red),
+                          DropdownButtonFormField<_RegisterStudentGrade>(
+                            initialValue: selectedGrade,
+                            items: [
+                              for (final g in grades)
+                                DropdownMenuItem(value: g, child: Text(g.name)),
+                            ],
+                            onChanged: (submitting || grades.isEmpty)
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      selectedGrade = value;
+                                    });
+                                  },
+                            decoration: InputDecoration(
+                              labelText: l10n.servantRegisterStudentGradeLabel,
+                            ),
                           ),
+                          if (grades.isEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.servantRegisterStudentNoGradesMessage,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
+                          if (error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              error!,
+                              maxLines: 6,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed: submitting
+                        ? null
+                        : () {
+                            dialogActive = false;
+                            Navigator.of(context).pop();
+                          },
+                    child: Text(l10n.commonCancel),
+                  ),
+                  FilledButton(
+                    onPressed: submitting
+                        ? null
+                        : () => submit(context, setState),
+                    child: submitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.servantRegisterStudentSubmit),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: submitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  child: Text(l10n.commonCancel),
-                ),
-                FilledButton(
-                  onPressed: submitting
-                      ? null
-                      : () => submit(context, setState),
-                  child: submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(l10n.servantRegisterStudentSubmit),
-                ),
-              ],
             );
           },
         );
       },
     );
+
+    dialogFuture.whenComplete(() {
+      dialogActive = false;
+    });
+
+    await dialogFuture;
 
     nameController.dispose();
   }
@@ -1313,6 +1339,18 @@ class ServantDashboardScreen extends StatefulWidget {
                                 fontSize: 12,
                               ),
                             ),
+                            if (error != l10n.servantDashboardLoadFailed) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                error,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF991B1B),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 10),
                             Align(
                               alignment: Alignment.centerRight,
@@ -1438,6 +1476,22 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
+      final activeId = (row as Map?)?['id']?.toString();
+      if (activeId != null && activeId.isNotEmpty) return activeId;
+    } catch (_) {
+      // Continue to fallback below.
+    }
+
+    // Fallback: if there is no active year (e.g., year ended), use the most
+    // recently ended year so servants can still see/respond to open items.
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'ended')
+          .order('end_date', ascending: false)
+          .limit(1)
+          .maybeSingle();
       return (row as Map?)?['id']?.toString();
     } catch (_) {
       return null;
@@ -1553,8 +1607,13 @@ class _ServantDashboardScreenState extends State<ServantDashboardScreen> {
     } catch (e) {
       debugPrint('Servant dashboard load failed: $e');
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = 'load_failed';
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantDashboardLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -2376,6 +2435,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       lastDate: DateTime(2100),
       initialDate: initial,
     );
+    if (!mounted) return;
     if (picked == null) return;
     setState(() {
       _assessmentDate = picked;
@@ -4275,6 +4335,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   bool _showFeedbackSuccessToast = false;
 
   String? _activeAcademicYearId;
+  String? _latestEndedAcademicYearId;
   String? _myGradeId;
   final Map<String, int> _feedbackSubmissionCounts = {};
 
@@ -4389,17 +4450,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       return (userId: null, academicYearId: null, gradeId: null);
     }
 
-    if (_activeAcademicYearId != null &&
-        _myGradeId != null &&
-        _totalStudentsInGrade != null) {
-      return (
-        userId: userId,
-        academicYearId: _activeAcademicYearId,
-        gradeId: _myGradeId,
-      );
-    }
-
+    // Refresh context on each call so we don't get stuck on a stale academic
+    // year or grade after admin actions (end/start year, promotions, etc.).
     String? activeAcademicYearId = _activeAcademicYearId;
+    final previousGradeId = _myGradeId;
     String? myGradeId = _myGradeId;
     int? totalStudentsInGrade = _totalStudentsInGrade;
 
@@ -4411,7 +4465,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
-      activeAcademicYearId ??= academicYear?['id'] as String?;
+      activeAcademicYearId = academicYear?['id'] as String?;
     } catch (_) {}
 
     try {
@@ -4420,8 +4474,12 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           .select('grade_id')
           .eq('id', userId)
           .maybeSingle();
-      myGradeId ??= profile?['grade_id'] as String?;
+      myGradeId = profile?['grade_id'] as String?;
     } catch (_) {}
+
+    if (previousGradeId != null && myGradeId != previousGradeId) {
+      totalStudentsInGrade = null;
+    }
 
     if (totalStudentsInGrade == null && myGradeId != null) {
       try {
@@ -4451,6 +4509,40 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       academicYearId: activeAcademicYearId,
       gradeId: myGradeId,
     );
+  }
+
+  Future<String?> _resolveYearIdForYearScopedItems({
+    required SupabaseClient client,
+  }) async {
+    final active = _activeAcademicYearId;
+    if (active != null && active.isNotEmpty) return active;
+
+    final cachedEnded = _latestEndedAcademicYearId;
+    if (cachedEnded != null && cachedEnded.isNotEmpty) return cachedEnded;
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'ended')
+          .order('end_date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final endedId = (row as Map?)?['id']?.toString();
+      if (endedId == null || endedId.isEmpty) return null;
+
+      if (mounted) {
+        setState(() {
+          _latestEndedAcademicYearId = endedId;
+        });
+      } else {
+        _latestEndedAcademicYearId = endedId;
+      }
+
+      return endedId;
+    } catch (_) {
+      return null;
+    }
   }
 
   static String _dateOnly(String value) {
@@ -4487,9 +4579,13 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final academicYearId = ctx.academicYearId;
     if (userId == null || gradeId == null) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _announcements.clear();
         _expandedAnnouncementId = null;
+        _announcementsError = userId == null
+            ? l10n.errorAuthRequired
+            : l10n.errorMissingGradeAssignment;
         _loadingAnnouncements = false;
       });
       return;
@@ -4538,10 +4634,15 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _announcements.clear();
         _expandedAnnouncementId = null;
-        _announcementsError = e.toString();
+        _announcementsError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commAnnouncementsLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -4640,12 +4741,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final ctx = await _ensureContextLoaded();
     final userId = ctx.userId;
     final gradeId = ctx.gradeId;
-    final academicYearId = ctx.academicYearId;
+    var academicYearId = ctx.academicYearId;
+    academicYearId ??= await _resolveYearIdForYearScopedItems(client: client);
     if (userId == null || gradeId == null || academicYearId == null) {
       if (!mounted) return;
       setState(() {
         _questions.clear();
         _respondingQuestionId = null;
+        _questionsError = userId == null
+            ? l10n.errorAuthRequired
+            : (gradeId == null
+                  ? l10n.errorMissingGradeAssignment
+                  : l10n.errorMissingActiveAcademicYear);
         _loadingQuestions = false;
       });
       return;
@@ -4750,7 +4857,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       setState(() {
         _questions.clear();
         _respondingQuestionId = null;
-        _questionsError = e.toString();
+        _questionsError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantCommLoadQuestionsFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -4820,13 +4931,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final ctx = await _ensureContextLoaded();
     final userId = ctx.userId;
     final gradeId = ctx.gradeId;
-    final academicYearId = ctx.academicYearId;
+    var academicYearId = ctx.academicYearId;
+    academicYearId ??= await _resolveYearIdForYearScopedItems(client: client);
     if (userId == null || gradeId == null || academicYearId == null) {
       if (!mounted) return;
       setState(() {
         _complaints.clear();
         _respondingComplaintId = null;
         _complaintNextStatus.clear();
+        _complaintsError = userId == null
+            ? l10n.errorAuthRequired
+            : (gradeId == null
+                  ? l10n.errorMissingGradeAssignment
+                  : l10n.errorMissingActiveAcademicYear);
         _loadingComplaints = false;
       });
       return;
@@ -4907,7 +5024,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         _complaints.clear();
         _respondingComplaintId = null;
         _complaintNextStatus.clear();
-        _complaintsError = e.toString();
+        _complaintsError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantCommLoadComplaintsFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5001,9 +5122,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final academicYearId = ctx.academicYearId;
     if (userId == null) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _feedbackForms.clear();
         _feedbackSubmissionCounts.clear();
+        _feedbackError = l10n.errorAuthRequired;
         _loadingFeedback = false;
       });
       return;
@@ -5098,10 +5221,15 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _feedbackForms.clear();
         _feedbackSubmissionCounts.clear();
-        _feedbackError = e.toString();
+        _feedbackError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantFeedbackLoadFormsFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5124,6 +5252,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     } else {
       _loadingFeedbackResponses = true;
       _feedbackResponsesError = null;
+    }
+
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) {
+      if (!mounted) return;
+      setState(() {
+        _feedbackResponses.removeWhere((r) => r.formId == formId);
+        _feedbackSubmissionCounts.remove(formId);
+        _feedbackResponsesError = l10n.errorAuthRequired;
+        _loadingFeedbackResponses = false;
+      });
+      return;
     }
 
     try {
@@ -5191,7 +5331,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       setState(() {
         _feedbackResponses.removeWhere((r) => r.formId == formId);
         _feedbackSubmissionCounts.remove(formId);
-        _feedbackResponsesError = e.toString();
+        _feedbackResponsesError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantFeedbackLoadResponsesFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -5907,6 +6051,17 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       color: Color(0xFF0F172A),
                     ),
                   ),
+                  if (_announcementsError !=
+                      l10n.commAnnouncementsLoadFailed) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _announcementsError!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
@@ -6242,6 +6397,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     color: Color(0xFF0F172A),
                   ),
                 ),
+                if (_questionsError != l10n.servantCommLoadQuestionsFailed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _questionsError!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
@@ -6719,6 +6884,17 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     color: Color(0xFF0F172A),
                   ),
                 ),
+                if (_complaintsError !=
+                    l10n.servantCommLoadComplaintsFailed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _complaintsError!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
@@ -7261,6 +7437,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       },
     );
 
+    if (!mounted) return;
     if (selected == null) return;
     setState(() {
       _feedbackType = selected;
@@ -7280,6 +7457,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       lastDate: DateTime(2035, 12, 31),
     );
 
+    if (!mounted) return;
     if (picked == null) return;
     setState(() {
       final iso = _isoFromDate(picked);
@@ -7335,6 +7513,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     color: Color(0xFF0F172A),
                   ),
                 ),
+                if (_feedbackError != l10n.servantFeedbackLoadFormsFailed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _feedbackError!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
@@ -8606,6 +8794,17 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                     color: Color(0xFF0F172A),
                   ),
                 ),
+                if (_feedbackResponsesError !=
+                    l10n.servantFeedbackLoadResponsesFailed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _feedbackResponsesError!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
@@ -9680,6 +9879,20 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
     const accent = Color(0xFFD97706); // amber-600
     final l10n = AppLocalizations.of(context);
 
+    String friendlyAcademicId(String value) {
+      final v = value.trim();
+      if (v.isEmpty) return l10n.commonNa;
+      final looksLikeUuid = RegExp(
+        r'^[0-9a-fA-F]{8}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{12}$',
+      ).hasMatch(v);
+      if (looksLikeUuid) return l10n.commonNa;
+      return v;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -9741,14 +9954,26 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
 
                     if (snapshot.hasError) {
                       final error = snapshot.error;
-                      var errorText = error.toString();
+                      String errorText;
                       if (error is StateError) {
                         final msg = error.message;
                         if (msg == 'not_signed_in') {
                           errorText = l10n.profileErrorNotSignedIn;
                         } else if (msg == 'profile_not_found') {
                           errorText = l10n.profileErrorNotFound;
+                        } else {
+                          errorText = presentErrorMessage(
+                            l10n,
+                            error,
+                            fallback: l10n.errorSomethingWentWrong,
+                          );
                         }
+                      } else {
+                        errorText = presentErrorMessage(
+                          l10n,
+                          error ?? '',
+                          fallback: l10n.errorSomethingWentWrong,
+                        );
                       }
                       return Container(
                         decoration: BoxDecoration(
@@ -9888,7 +10113,9 @@ class _ServantProfileScreenState extends State<ServantProfileScreen> {
                                   color: accent,
                                 ),
                                 title: Text(l10n.profileAcademicIdLabel),
-                                subtitle: Text(data.academicId),
+                                subtitle: Text(
+                                  friendlyAcademicId(data.academicId),
+                                ),
                               ),
                               const Divider(height: 1),
                               ListTile(

@@ -62,6 +62,12 @@
 
   "commonSignOut": "Sign out",
 
+  "errorSomethingWentWrong": "Something went wrong. Please try again.",
+  "errorNetwork": "Network error. Check your internet connection and try again.",
+  "errorAuthRequired": "Please sign in to continue.",
+  "errorMissingActiveAcademicYear": "No active academic year is set. Please contact your administrator.",
+  "errorMissingGradeAssignment": "You are not assigned to a grade yet. Please contact your administrator.",
+
   "profileAccountDetailsSubtitle": "Account details",
   "profileLoadFailedTitle": "Could not load profile",
   "profileNotAssigned": "Not assigned",
@@ -342,6 +348,12 @@
 
   "servantCommSubtitle": "Announcements, questions, complaints, and feedback.",
 
+  "pushChannelCommunicationsName": "Communications",
+  "pushChannelCommunicationsDescription": "Announcements and communication updates",
+  "pushNotificationNewUpdateTitle": "New update",
+  "pushNotificationQuestionAnsweredTitle": "Answer to your question",
+  "pushNotificationComplaintRespondedTitle": "Response to your complaint",
+
   "commNoAnnouncements": "No announcements",
   "commAnnouncementsEmptySubtitle": "Check back later for updates",
   "commAnnouncementsLoadFailed": "Failed to load announcements.",
@@ -580,6 +592,11 @@
       "yearName": { "type": "String" }
     }
   },
+  "studentGradesSemester1ModeMessage": "Semester 1 is in progress. These grades reflect your Semester 1 assessments so far.",
+  "studentGradesSemester2ModeMessage": "Semester 2 is in progress. These grades reflect your Semester 2 assessments so far.",
+  "studentGradesBreakModeMessage": "Break period. Grade updates are currently paused.",
+  "studentGradesAccountInactiveTitle": "Access denied",
+  "studentGradesAccountInactiveMessage": "Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.",
   "studentFinalResultsFinalGradeLabel": "Final Grade",
 
   "studentFinalResultsPromotionStatusLabel": "Promotion Status",

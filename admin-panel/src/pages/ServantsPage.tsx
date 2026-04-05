@@ -6,6 +6,8 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import {
   Table,
   TableBody,
@@ -35,7 +37,15 @@ export function ServantsPage() {
   const [grades, setGrades] = React.useState<GradeRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [actionId, setActionId] = React.useState<string | null>(null);
+  const [togglingId, setTogglingId] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+  const [createEmail, setCreateEmail] = React.useState("");
+  const [createPassword, setCreatePassword] = React.useState("");
+  const [createAcademicId, setCreateAcademicId] = React.useState("");
+  const [createName, setCreateName] = React.useState("");
+  const [createGradeId, setCreateGradeId] = React.useState<string | null>(null);
+  const [isCreating, setIsCreating] = React.useState(false);
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
@@ -90,9 +100,60 @@ export function ServantsPage() {
     }
   }
 
+  async function createServant() {
+    setError(null);
+
+    const academicId = createAcademicId.trim();
+    const name = createName.trim();
+    const password = createPassword.trim();
+    const email = createEmail.trim();
+
+    if (!academicId || !name || !createGradeId) {
+      setError(t("servantsValidationRequired"));
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const body: Record<string, unknown> = {
+        email: email || undefined,
+        password: password || undefined,
+        role: "servant",
+        academic_id: academicId,
+        name,
+        grade_id: createGradeId,
+      };
+
+      const { data, error: invokeError } = await invokeEdgeFunction(
+        "admin-create-user",
+        body,
+      );
+
+      if (invokeError) {
+        setError(invokeError);
+        return;
+      }
+
+      if ((data as { error?: string } | null)?.error) {
+        setError((data as { error: string }).error);
+        return;
+      }
+
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreateAcademicId("");
+      setCreateName("");
+      setCreateGradeId(null);
+
+      await load();
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
   async function toggleAccountStatus(p: ProfileRow) {
     setError(null);
-    setActionId(p.id);
+    setTogglingId(p.id);
 
     try {
       const current = (p.account_status ?? "active").toLowerCase();
@@ -117,7 +178,38 @@ export function ServantsPage() {
         prev.map((x) => (x.id === p.id ? { ...x, account_status: next } : x)),
       );
     } finally {
-      setActionId(null);
+      setTogglingId(null);
+    }
+  }
+
+  async function deleteServant(p: ProfileRow) {
+    const name = p.name ?? p.academic_id ?? p.id;
+    if (!window.confirm(t("servantsConfirmDelete", { name }))) {
+      return;
+    }
+
+    setError(null);
+    setDeletingId(p.id);
+
+    try {
+      const { data, error: invokeError } = await invokeEdgeFunction(
+        "admin-delete-user",
+        { user_id: p.id },
+      );
+
+      if (invokeError) {
+        setError(invokeError);
+        return;
+      }
+
+      if ((data as { error?: string } | null)?.error) {
+        setError((data as { error: string }).error);
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -131,6 +223,77 @@ export function ServantsPage() {
       </div>
 
       {error ? <ErrorBanner title={t("commonRequestFailed")} message={error} /> : null}
+
+      <Card>
+        <CardHeader className="border-b">
+          <CardTitle>{t("servantsCreateServantTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-2">
+            <Label htmlFor="create-servant-academic">{t("servantsAcademicIdLabel")}</Label>
+            <Input
+              id="create-servant-academic"
+              value={createAcademicId}
+              onChange={(e) => setCreateAcademicId(e.target.value)}
+              placeholder={t("servantsAcademicIdPlaceholder")}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="create-servant-name">{t("usersNameLabel")}</Label>
+            <Input
+              id="create-servant-name"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder={t("usersNamePlaceholder")}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="create-servant-password">{t("usersPasswordLabel")}</Label>
+            <Input
+              id="create-servant-password"
+              type="password"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="create-servant-email">{t("usersEmailOptionalLabel")}</Label>
+            <Input
+              id="create-servant-email"
+              type="email"
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              placeholder={t("usersEmailPlaceholder")}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="create-servant-grade">{t("usersGradeLabel")}</Label>
+            <select
+              id="create-servant-grade"
+              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              value={createGradeId ?? ""}
+              onChange={(e) => setCreateGradeId(e.target.value ? e.target.value : null)}
+            >
+              <option value="">—</option>
+              {grades.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name ?? g.code ?? g.id}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-3">
+            <Button disabled={isCreating} onClick={() => void createServant()}>
+              {isCreating ? t("commonCreating") : t("servantsCreateServantButton")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="border-b">
@@ -178,18 +341,29 @@ export function ServantsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant={isInactive ? "default" : "destructive"}
-                            size="sm"
-                            disabled={actionId === p.id}
-                            onClick={() => void toggleAccountStatus(p)}
-                          >
-                            {actionId === p.id
-                              ? t("commonWorking")
-                              : isInactive
-                                ? t("servantsActivate")
-                                : t("servantsDeactivate")}
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant={isInactive ? "default" : "destructive"}
+                              size="sm"
+                              disabled={togglingId === p.id || deletingId === p.id}
+                              onClick={() => void toggleAccountStatus(p)}
+                            >
+                              {togglingId === p.id
+                                ? t("commonWorking")
+                                : isInactive
+                                  ? t("servantsActivate")
+                                  : t("servantsDeactivate")}
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={togglingId === p.id || deletingId === p.id}
+                              onClick={() => void deleteServant(p)}
+                            >
+                              {deletingId === p.id ? t("commonDeleting") : t("commonDelete")}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

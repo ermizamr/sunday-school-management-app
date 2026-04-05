@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../../core/errors/app_error_message.dart';
 import '../../../../core/refresh/app_refresh_configurator.dart';
 import '../../../../core/supabase/supabase_client.dart';
 import 'servant_attendance_session_screen.dart';
@@ -79,6 +80,7 @@ class _ServantAttendanceHomeScreenState
   }
 
   Future<void> _loadInitial() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -88,7 +90,7 @@ class _ServantAttendanceHomeScreenState
       final client = SupabaseClientManager.instance.client;
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('Not signed in');
+        throw StateError('not_signed_in');
       }
 
       final academicYear = await client
@@ -108,8 +110,12 @@ class _ServantAttendanceHomeScreenState
       final academicYearId = academicYear?['id'] as String?;
       final gradeId = profile?['grade_id'] as String?;
 
-      if (academicYearId == null || gradeId == null) {
-        throw Exception('Missing active academic year or grade assignment');
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('missing_academic_year');
+      }
+
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('missing_grade_assignment');
       }
 
       final subjectRows = await client
@@ -146,7 +152,11 @@ class _ServantAttendanceHomeScreenState
       debugPrint('Servant attendance home load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = 'load_failed';
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantAttendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -438,10 +448,7 @@ class _ServantAttendanceHomeScreenState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                Text(
-                  l10n.servantAttendanceLoadFailed,
-                  style: const TextStyle(color: Colors.red),
-                ),
+                Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadInitial,

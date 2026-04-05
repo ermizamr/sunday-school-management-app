@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
+import '../../../../core/errors/app_error_message.dart';
 import '../../../../core/refresh/app_refresh_configurator.dart';
 import 'servant_analytics_calculations.dart';
 import 'servant_analytics_repository.dart';
@@ -83,6 +84,14 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
 
           if (snapshot.hasError) {
             debugPrint('Servant analytics load failed: ${snapshot.error}');
+            final err = snapshot.error;
+            final message = err == null
+                ? l10n.servantAnalyticsLoadFailed
+                : presentErrorMessage(
+                    l10n,
+                    err,
+                    fallback: l10n.servantAnalyticsLoadFailed,
+                  );
             return Scaffold(
               appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
               body: ListView(
@@ -91,7 +100,7 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
                 children: [
                   const SizedBox(height: 120),
                   Text(
-                    l10n.servantAnalyticsLoadFailed,
+                    message,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Color(0xFF64748B)),
                   ),

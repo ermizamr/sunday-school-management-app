@@ -23,84 +23,103 @@ class RoleSelectionScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo + title
-                    Container(
-                      width: 64,
-                      height: 64,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Icon(
-                        Icons.menu_book_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    Text(
-                      l10n.roleSelectionTitle,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            color: const Color(0xFF020617), // slate-900
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.roleSelectionSubtitle,
-                      style: const TextStyle(
-                        color: Color(0xFF64748B), // slate-500
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Logo + title
+                            Container(
+                              width: 64,
+                              height: 64,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Icon(
+                                Icons.menu_book_rounded,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                            Text(
+                              l10n.roleSelectionTitle,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF020617), // slate-900
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.roleSelectionSubtitle,
+                              style: const TextStyle(
+                                color: Color(0xFF64748B), // slate-500
+                              ),
+                            ),
+                            const SizedBox(height: 32),
 
-                    // Role cards
-                    Column(
-                      children: [
-                        _RoleCard(
-                          onTap: () => context.go('/student/login'),
-                          iconBackground: const Color(0xFFE0F2FE), // sky-100
-                          iconColor: const Color(0xFF0284C7), // sky-600
-                          icon: Icons.school_rounded,
-                          title: l10n.roleStudent,
-                          subtitle: l10n.roleStudentSubtitle,
-                          borderHighlight: const Color(0xFF7DD3FC), // sky-300
-                        ),
-                        const SizedBox(height: 16),
-                        _RoleCard(
-                          onTap: () => context.go('/servant/login'),
-                          iconBackground: const Color(0xFFFEF3C7), // amber-100
-                          iconColor: const Color(0xFFD97706), // amber-600
-                          icon: Icons.groups_rounded,
-                          title: l10n.roleServant,
-                          subtitle: l10n.roleServantSubtitle,
-                          borderHighlight: const Color(0xFFFCD34D), // amber-300
-                        ),
-                      ],
-                    ),
+                            // Role cards
+                            Column(
+                              children: [
+                                _RoleCard(
+                                  onTap: () => context.go('/student/login'),
+                                  iconBackground: const Color(
+                                    0xFFE0F2FE,
+                                  ), // sky-100
+                                  iconColor: const Color(0xFF0284C7), // sky-600
+                                  icon: Icons.school_rounded,
+                                  title: l10n.roleStudent,
+                                  subtitle: l10n.roleStudentSubtitle,
+                                  borderHighlight: const Color(
+                                    0xFF7DD3FC,
+                                  ), // sky-300
+                                ),
+                                const SizedBox(height: 16),
+                                _RoleCard(
+                                  onTap: () => context.go('/servant/login'),
+                                  iconBackground: const Color(
+                                    0xFFFEF3C7,
+                                  ), // amber-100
+                                  iconColor: const Color(
+                                    0xFFD97706,
+                                  ), // amber-600
+                                  icon: Icons.groups_rounded,
+                                  title: l10n.roleServant,
+                                  subtitle: l10n.roleServantSubtitle,
+                                  borderHighlight: const Color(
+                                    0xFFFCD34D,
+                                  ), // amber-300
+                                ),
+                              ],
+                            ),
 
-                    const SizedBox(height: 24),
-                    Text(
-                      l10n.roleSelectPrompt,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF94A3B8), // slate-400
+                            const SizedBox(height: 24),
+                            Text(
+                              l10n.roleSelectPrompt,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF94A3B8), // slate-400
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

@@ -344,6 +344,36 @@ abstract class AppLocalizations {
   /// **'Sign out'**
   String get commonSignOut;
 
+  /// No description provided for @errorSomethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errorSomethingWentWrong;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your internet connection and try again.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorAuthRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in to continue.'**
+  String get errorAuthRequired;
+
+  /// No description provided for @errorMissingActiveAcademicYear.
+  ///
+  /// In en, this message translates to:
+  /// **'No active academic year is set. Please contact your administrator.'**
+  String get errorMissingActiveAcademicYear;
+
+  /// No description provided for @errorMissingGradeAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not assigned to a grade yet. Please contact your administrator.'**
+  String get errorMissingGradeAssignment;
+
   /// No description provided for @profileAccountDetailsSubtitle.
   ///
   /// In en, this message translates to:
@@ -1183,6 +1213,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Announcements, questions, complaints, and feedback.'**
   String get servantCommSubtitle;
+
+  /// No description provided for @pushChannelCommunicationsName.
+  ///
+  /// In en, this message translates to:
+  /// **'Communications'**
+  String get pushChannelCommunicationsName;
+
+  /// No description provided for @pushChannelCommunicationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcements and communication updates'**
+  String get pushChannelCommunicationsDescription;
+
+  /// No description provided for @pushNotificationNewUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New update'**
+  String get pushNotificationNewUpdateTitle;
+
+  /// No description provided for @pushNotificationQuestionAnsweredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer to your question'**
+  String get pushNotificationQuestionAnsweredTitle;
+
+  /// No description provided for @pushNotificationComplaintRespondedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Response to your complaint'**
+  String get pushNotificationComplaintRespondedTitle;
 
   /// No description provided for @commNoAnnouncements.
   ///
@@ -2041,6 +2101,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Academic Year {yearName}'**
   String studentGradesAcademicYearLabel(Object yearName);
+
+  /// No description provided for @studentGradesSemester1ModeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Semester 1 is in progress. These grades reflect your Semester 1 assessments so far.'**
+  String get studentGradesSemester1ModeMessage;
+
+  /// No description provided for @studentGradesSemester2ModeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Semester 2 is in progress. These grades reflect your Semester 2 assessments so far.'**
+  String get studentGradesSemester2ModeMessage;
+
+  /// No description provided for @studentGradesBreakModeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Break period. Grade updates are currently paused.'**
+  String get studentGradesBreakModeMessage;
+
+  /// No description provided for @studentGradesAccountInactiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied'**
+  String get studentGradesAccountInactiveTitle;
+
+  /// No description provided for @studentGradesAccountInactiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.'**
+  String get studentGradesAccountInactiveMessage;
 
   /// No description provided for @studentFinalResultsFinalGradeLabel.
   ///

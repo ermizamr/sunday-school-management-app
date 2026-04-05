@@ -197,7 +197,12 @@ export function UsersPage() {
 
       const assignedAcademicId = (data as { academic_id?: string } | null)?.academic_id;
       if (assignedAcademicId) {
-        window.alert(`${t("usersAcademicIdLabel")}: ${assignedAcademicId}`);
+        const lines = [`${t("usersAcademicIdLabel")}: ${assignedAcademicId}`];
+        if (!password) {
+          lines.push(`${t("usersPasswordLabel")}: ${assignedAcademicId}`);
+        }
+
+        window.alert(lines.join("\n"));
       }
 
       setCreateEmail("");

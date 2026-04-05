@@ -95,6 +95,19 @@ export function AnnouncementsPage() {
     }
   }
 
+  function priorityLabel(priority: string) {
+    switch (priority) {
+      case "high":
+        return t("commonHigh");
+      case "medium":
+        return t("commonMedium");
+      case "low":
+        return t("commonLow");
+      default:
+        return priority;
+    }
+  }
+
   const gradeNameById = React.useMemo(() => {
     return new Map(
       grades.map((g) => [g.id, g.name ?? g.code ?? g.id] as const),
@@ -250,21 +263,37 @@ export function AnnouncementsPage() {
           setNotice(
             t("announcementsNoticePushFailed"),
           );
-        }
-        const sentCount =
-          typeof response.sent === "number"
-            ? response.sent
-            : typeof response.success === "number"
-              ? response.success
-              : null;
-        if (sentCount === 0) {
-          console.error("Push notify sent=0", {
-            announcementId: insertedAnnouncement?.id,
-            response,
-          });
-          setNotice(
-            t("announcementsNoticeNoPushSent"),
-          );
+        } else {
+          const sentCount =
+            typeof response.sent === "number"
+              ? response.sent
+              : typeof response.success === "number"
+                ? response.success
+                : null;
+          if (sentCount === 0) {
+            console.error("Push notify sent=0", {
+              announcementId: insertedAnnouncement?.id,
+              response,
+            });
+
+            const reason = (response.reason ?? "").toString();
+            if (reason === "no_recipients") {
+              setNotice(t("announcementsNoticeNoRecipients"));
+            } else if (reason === "no_tokens") {
+              setNotice(
+                t("announcementsNoticeNoTokens", {
+                  recipients:
+                    typeof response.recipients === "number"
+                      ? response.recipients
+                      : 0,
+                }),
+              );
+            } else if (reason === "fcm_rejected") {
+              setNotice(t("announcementsNoticeFcmRejected"));
+            } else {
+              setNotice(t("announcementsNoticeNoPushSent"));
+            }
+          }
         }
       }
 
@@ -379,14 +408,26 @@ export function AnnouncementsPage() {
 
           <div className="grid gap-2">
             <Label htmlFor="priority">{t("announcementsPriorityLabel")}</Label>
-            <Input id="priority" value={createPriority} onChange={(e) => setCreatePriority(e.target.value)} />
+            <select
+              id="priority"
+              className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              value={createPriority}
+              onChange={(e) => setCreatePriority(e.target.value)}
+              disabled={isLoading || isCreating}
+            >
+              {(["high", "medium", "low"] as const).map((priority) => (
+                <option key={priority} value={priority}>
+                  {priorityLabel(priority)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="expires">{t("announcementsExpiresOptionalLabel")}</Label>
             <Input
               id="expires"
-              placeholder="YYYY-MM-DD"
+              placeholder={t("announcementsExpiresPlaceholder")}
               value={createExpiresOn}
               onChange={(e) => setCreateExpiresOn(e.target.value)}
             />
@@ -455,7 +496,7 @@ export function AnnouncementsPage() {
                       {a.grade_id ? gradeNameById.get(a.grade_id) ?? a.grade_id : t("announcementsGlobalLabel")}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {a.priority ?? "—"}
+                      {a.priority ? priorityLabel(a.priority) : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {a.active ? t("commonYes") : t("commonNo")}

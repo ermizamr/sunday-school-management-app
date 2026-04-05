@@ -136,6 +136,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonSignOut => 'Sign out';
 
   @override
+  String get errorSomethingWentWrong =>
+      'Something went wrong. Please try again.';
+
+  @override
+  String get errorNetwork =>
+      'Network error. Check your internet connection and try again.';
+
+  @override
+  String get errorAuthRequired => 'Please sign in to continue.';
+
+  @override
+  String get errorMissingActiveAcademicYear =>
+      'No active academic year is set. Please contact your administrator.';
+
+  @override
+  String get errorMissingGradeAssignment =>
+      'You are not assigned to a grade yet. Please contact your administrator.';
+
+  @override
   String get profileAccountDetailsSubtitle => 'Account details';
 
   @override
@@ -610,6 +629,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get servantCommSubtitle =>
       'Announcements, questions, complaints, and feedback.';
+
+  @override
+  String get pushChannelCommunicationsName => 'Communications';
+
+  @override
+  String get pushChannelCommunicationsDescription =>
+      'Announcements and communication updates';
+
+  @override
+  String get pushNotificationNewUpdateTitle => 'New update';
+
+  @override
+  String get pushNotificationQuestionAnsweredTitle => 'Answer to your question';
+
+  @override
+  String get pushNotificationComplaintRespondedTitle =>
+      'Response to your complaint';
 
   @override
   String get commNoAnnouncements => 'No announcements';
@@ -1128,6 +1164,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String studentGradesAcademicYearLabel(Object yearName) {
     return 'Academic Year $yearName';
   }
+
+  @override
+  String get studentGradesSemester1ModeMessage =>
+      'Semester 1 is in progress. These grades reflect your Semester 1 assessments so far.';
+
+  @override
+  String get studentGradesSemester2ModeMessage =>
+      'Semester 2 is in progress. These grades reflect your Semester 2 assessments so far.';
+
+  @override
+  String get studentGradesBreakModeMessage =>
+      'Break period. Grade updates are currently paused.';
+
+  @override
+  String get studentGradesAccountInactiveTitle => 'Access denied';
+
+  @override
+  String get studentGradesAccountInactiveMessage =>
+      'Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.';
 
   @override
   String get studentFinalResultsFinalGradeLabel => 'Final Grade';

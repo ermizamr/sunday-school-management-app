@@ -34,8 +34,33 @@ class PushNotificationsService {
   String? _currentToken;
   String? _pendingNavigationLocation;
   bool _initialized = false;
+  _LifecycleObserver? _lifecycleObserver;
 
   final Map<String, int> _recentOnlineNoticeIds = {};
+
+  bool _catchupRunning = false;
+  DateTime? _lastCatchupAttemptAt;
+  int _notificationIdCounter = 0;
+
+  String? _dedupeKey(String? type, String? id) {
+    final rawId = id?.trim();
+    if (rawId == null || rawId.isEmpty) return null;
+    final rawType = type?.trim().toLowerCase();
+    if (rawType == null || rawType.isEmpty) return rawId;
+    return '$rawType:$rawId';
+  }
+
+  void _pruneRecentNoticeIds() {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    _recentOnlineNoticeIds.removeWhere((_, ts) => nowMs - ts > 10 * 60 * 1000);
+  }
+
+  int _nextNotificationId() {
+    // Keep ids small (32-bit) for Android.
+    final base = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final offset = _notificationIdCounter++ % 1000;
+    return base + offset;
+  }
 
   AppLocalizations _resolveL10n() {
     final ctx = rootNavigatorKey.currentContext;
@@ -88,9 +113,26 @@ class PushNotificationsService {
     }
   }
 
+  AndroidNotificationDetails _androidNotificationDetails(
+    AppLocalizations l10n,
+  ) {
+    return AndroidNotificationDetails(
+      'communications',
+      l10n.pushChannelCommunicationsName,
+      channelDescription: l10n.pushChannelCommunicationsDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    );
+  }
+
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
+
+    _lifecycleObserver ??= _LifecycleObserver(this);
+    WidgetsBinding.instance.addObserver(_lifecycleObserver!);
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
@@ -149,8 +191,7 @@ class PushNotificationsService {
       }
 
       if (state.session != null) {
-        unawaited(_registerCurrentToken());
-        unawaited(_startOnlineAnnouncementFallbackIfNeeded());
+        unawaited(_handleSignedIn());
       }
     });
 
@@ -173,7 +214,12 @@ class PushNotificationsService {
         'PushNotificationsService: initial token ${token == null ? 'null' : 'len=${token.length}'}',
       );
     }
+    await _handleSignedIn();
+  }
+
+  Future<void> _handleSignedIn() async {
     await _registerCurrentToken();
+    await _catchUpMissedNotificationsIfNeeded();
     await _startOnlineAnnouncementFallbackIfNeeded();
   }
 
@@ -208,12 +254,13 @@ class PushNotificationsService {
           final announcementId = record['id']?.toString();
           if (announcementId == null || announcementId.isEmpty) return;
 
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          _recentOnlineNoticeIds.removeWhere(
-            (_, ts) => nowMs - ts > 10 * 60 * 1000,
-          );
-          if (_recentOnlineNoticeIds.containsKey(announcementId)) return;
-          _recentOnlineNoticeIds[announcementId] = nowMs;
+          final dedupeKey = _dedupeKey('announcement', announcementId);
+          if (dedupeKey != null) {
+            _pruneRecentNoticeIds();
+            if (_recentOnlineNoticeIds.containsKey(dedupeKey)) return;
+            _recentOnlineNoticeIds[dedupeKey] =
+                DateTime.now().millisecondsSinceEpoch;
+          }
 
           final active = record['active'];
           if (active is bool && active == false) return;
@@ -255,18 +302,19 @@ class PushNotificationsService {
             'id': announcementId,
           });
 
-          const androidDetails = AndroidNotificationDetails(
-            'communications',
-            'Communications',
-            channelDescription: 'Announcements and communication updates',
-            importance: Importance.high,
-            priority: Priority.high,
+          final androidDetails = _androidNotificationDetails(l10n);
+          const iosDetails = DarwinNotificationDetails(
+            presentAlert: true,
+            presentSound: true,
           );
-          const details = NotificationDetails(android: androidDetails);
+          final details = NotificationDetails(
+            android: androidDetails,
+            iOS: iosDetails,
+          );
 
           try {
             await _localNotifications.show(
-              id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+              id: _nextNotificationId(),
               title: title,
               body: body,
               notificationDetails: details,
@@ -302,7 +350,15 @@ class PushNotificationsService {
 
   Future<void> _initLocalNotifications() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
 
     await _localNotifications.initialize(
       settings: initSettings,
@@ -311,10 +367,11 @@ class PushNotificationsService {
       },
     );
 
-    const channel = AndroidNotificationChannel(
+    final l10n = _resolveL10n();
+    final channel = AndroidNotificationChannel(
       'communications',
-      'Communications',
-      description: 'Announcements and communication updates',
+      l10n.pushChannelCommunicationsName,
+      description: l10n.pushChannelCommunicationsDescription,
       importance: Importance.high,
     );
 
@@ -339,30 +396,33 @@ class PushNotificationsService {
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
     final notification = message.notification;
-    final title = notification?.title ?? 'New update';
+    final l10n = _resolveL10n();
+    final title = notification?.title ?? l10n.pushNotificationNewUpdateTitle;
     final body = notification?.body ?? '';
 
-    final idFromData = message.data['id']?.toString();
-    if (idFromData != null && idFromData.trim().isNotEmpty) {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      _recentOnlineNoticeIds.removeWhere(
-        (_, ts) => nowMs - ts > 10 * 60 * 1000,
-      );
-      if (_recentOnlineNoticeIds.containsKey(idFromData)) {
+    final dedupeKey = _dedupeKey(
+      message.data['type']?.toString(),
+      message.data['id']?.toString(),
+    );
+    if (dedupeKey != null) {
+      _pruneRecentNoticeIds();
+      if (_recentOnlineNoticeIds.containsKey(dedupeKey)) {
         return;
       }
-      _recentOnlineNoticeIds[idFromData] = nowMs;
+      _recentOnlineNoticeIds[dedupeKey] = DateTime.now().millisecondsSinceEpoch;
     }
 
-    const androidDetails = AndroidNotificationDetails(
-      'communications',
-      'Communications',
-      channelDescription: 'Announcements and communication updates',
-      importance: Importance.high,
-      priority: Priority.high,
+    final androidDetails = _androidNotificationDetails(l10n);
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
     );
 
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
     final payload = jsonEncode({
       'type': message.data['type']?.toString(),
@@ -370,7 +430,333 @@ class PushNotificationsService {
     });
 
     await _localNotifications.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      id: _nextNotificationId(),
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: payload,
+    );
+  }
+
+  Future<DateTime?> _loadLastSeenAt() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final token = _currentToken;
+    if (userId == null || token == null || token.isEmpty) return null;
+
+    final client = Supabase.instance.client;
+    try {
+      final row = await client
+          .from('device_push_tokens')
+          .select('last_seen_at')
+          .eq('user_id', userId)
+          .eq('fcm_token', token)
+          .maybeSingle();
+
+      final raw = (row as Map?)?['last_seen_at']?.toString();
+      if (raw == null || raw.trim().isEmpty) return null;
+      return DateTime.tryParse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _touchLastSeenAt([DateTime? ts]) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final token = _currentToken;
+    if (userId == null || token == null || token.isEmpty) return;
+
+    final client = Supabase.instance.client;
+    try {
+      await client
+          .from('device_push_tokens')
+          .update({'last_seen_at': (ts ?? DateTime.now()).toIso8601String()})
+          .eq('user_id', userId)
+          .eq('fcm_token', token);
+    } catch (_) {}
+  }
+
+  Future<void> _catchUpMissedNotificationsIfNeeded() async {
+    final now = DateTime.now();
+    if (_catchupRunning) return;
+
+    final lastAttempt = _lastCatchupAttemptAt;
+    if (lastAttempt != null &&
+        now.difference(lastAttempt) < const Duration(seconds: 10)) {
+      return;
+    }
+    _lastCatchupAttemptAt = now;
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final token = _currentToken;
+    if (token == null || token.isEmpty) return;
+
+    _catchupRunning = true;
+    try {
+      final since = await _loadLastSeenAt();
+
+      // First install / first login on this device: establish baseline but
+      // don't spam old notifications.
+      if (since == null) {
+        await _touchLastSeenAt(now);
+        return;
+      }
+
+      final client = Supabase.instance.client;
+      final profile = await client
+          .from('profiles')
+          .select('role, grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final role = (profile as Map?)?['role']?.toString().trim().toLowerCase();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (role != 'student' && role != 'servant') {
+        await _touchLastSeenAt(now);
+        return;
+      }
+
+      await _catchUpAnnouncements(
+        client: client,
+        userId: userId,
+        gradeId: gradeId,
+        since: since,
+      );
+
+      if (role == 'student') {
+        await _catchUpFeedbackForms(
+          client: client,
+          gradeId: gradeId,
+          since: since,
+        );
+        await _catchUpAnsweredQuestions(
+          client: client,
+          userId: userId,
+          since: since,
+        );
+        await _catchUpRespondedComplaints(
+          client: client,
+          userId: userId,
+          since: since,
+        );
+      }
+
+      await _touchLastSeenAt(now);
+    } catch (_) {
+      // If any step fails (offline/RLS/etc), do not advance last_seen_at.
+    } finally {
+      _catchupRunning = false;
+    }
+  }
+
+  Future<void> _catchUpAnnouncements({
+    required SupabaseClient client,
+    required String userId,
+    required String? gradeId,
+    required DateTime since,
+  }) async {
+    try {
+      var q = client
+          .from('announcements')
+          .select(
+            'id,title,message,category,created_by,created_at,expires_on,active,grade_id',
+          )
+          .eq('active', true)
+          .gt('created_at', since.toIso8601String())
+          .neq('created_by', userId);
+
+      if (gradeId != null && gradeId.trim().isNotEmpty) {
+        q = q.or('grade_id.is.null,grade_id.eq.$gradeId');
+      }
+
+      final rows = await q.order('created_at', ascending: true);
+      final l10n = _resolveL10n();
+
+      for (final r in rows as List) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+
+        final expiresOn = map['expires_on']?.toString();
+        if (expiresOn != null && expiresOn.trim().isNotEmpty) {
+          final exp = DateTime.tryParse(expiresOn);
+          if (exp != null && exp.isBefore(DateTime.now())) continue;
+        }
+
+        final key = _dedupeKey('announcement', id);
+        if (key != null) {
+          _pruneRecentNoticeIds();
+          if (_recentOnlineNoticeIds.containsKey(key)) continue;
+          _recentOnlineNoticeIds[key] = DateTime.now().millisecondsSinceEpoch;
+        }
+
+        final categoryRaw = map['category']?.toString() ?? 'general';
+        final categoryLabel = _announcementCategoryLabel(categoryRaw, l10n);
+        final title =
+            '${l10n.commAnnouncements} • ${categoryLabel.isEmpty ? l10n.commAnnouncementCategoryGeneral : categoryLabel}';
+
+        final annTitle = map['title']?.toString() ?? '';
+        final message = map['message']?.toString() ?? '';
+        final body = [
+          if (annTitle.trim().isNotEmpty) _truncateText(annTitle, 80),
+          if (message.trim().isNotEmpty) _truncateText(message, 120),
+        ].join(' — ');
+
+        final payload = jsonEncode({'type': 'announcement', 'id': id});
+        await _showLocalNotification(
+          title: title,
+          body: body,
+          payload: payload,
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _catchUpFeedbackForms({
+    required SupabaseClient client,
+    required String? gradeId,
+    required DateTime since,
+  }) async {
+    if (gradeId == null || gradeId.trim().isEmpty) return;
+    try {
+      final rows = await client
+          .from('feedback_forms')
+          .select('id,title,description,type_label,created_at')
+          .eq('grade_id', gradeId)
+          .gt('created_at', since.toIso8601String())
+          .order('created_at', ascending: true);
+
+      final l10n = _resolveL10n();
+      for (final r in rows as List) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+
+        final key = _dedupeKey('feedback_form_created', id);
+        if (key != null) {
+          _pruneRecentNoticeIds();
+          if (_recentOnlineNoticeIds.containsKey(key)) continue;
+          _recentOnlineNoticeIds[key] = DateTime.now().millisecondsSinceEpoch;
+        }
+
+        final typeLabel = _formatLabel(map['type_label']?.toString() ?? '');
+        final title =
+            '${l10n.commFeedback} • ${typeLabel.isEmpty ? l10n.commFeedback : typeLabel}';
+        final formTitle = map['title']?.toString() ?? '';
+        final description = map['description']?.toString() ?? '';
+        final body = [
+          if (formTitle.trim().isNotEmpty) _truncateText(formTitle, 90),
+          if (description.trim().isNotEmpty) _truncateText(description, 120),
+        ].join(' — ');
+
+        final payload = jsonEncode({'type': 'feedback_form_created', 'id': id});
+        await _showLocalNotification(
+          title: title,
+          body: body,
+          payload: payload,
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _catchUpAnsweredQuestions({
+    required SupabaseClient client,
+    required String userId,
+    required DateTime since,
+  }) async {
+    try {
+      final rows = await client
+          .from('questions')
+          .select('id,answer,answered_at')
+          .eq('student_id', userId)
+          .eq('answered', true)
+          .gt('answered_at', since.toIso8601String())
+          .order('answered_at', ascending: true);
+
+      final l10n = _resolveL10n();
+      final title = l10n.pushNotificationQuestionAnsweredTitle;
+
+      for (final r in rows as List) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+
+        final key = _dedupeKey('question_answered', id);
+        if (key != null) {
+          _pruneRecentNoticeIds();
+          if (_recentOnlineNoticeIds.containsKey(key)) continue;
+          _recentOnlineNoticeIds[key] = DateTime.now().millisecondsSinceEpoch;
+        }
+        final answer = map['answer']?.toString() ?? '';
+        final body = _truncateText(answer, 120);
+        final payload = jsonEncode({'type': 'question_answered', 'id': id});
+        await _showLocalNotification(
+          title: title,
+          body: body,
+          payload: payload,
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _catchUpRespondedComplaints({
+    required SupabaseClient client,
+    required String userId,
+    required DateTime since,
+  }) async {
+    try {
+      final rows = await client
+          .from('complaints')
+          .select('id,response,responded_at')
+          .eq('student_id', userId)
+          .gt('responded_at', since.toIso8601String())
+          .order('responded_at', ascending: true);
+
+      final l10n = _resolveL10n();
+      final title = l10n.pushNotificationComplaintRespondedTitle;
+
+      for (final r in rows as List) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+
+        final key = _dedupeKey('complaint_responded', id);
+        if (key != null) {
+          _pruneRecentNoticeIds();
+          if (_recentOnlineNoticeIds.containsKey(key)) continue;
+          _recentOnlineNoticeIds[key] = DateTime.now().millisecondsSinceEpoch;
+        }
+        final response = map['response']?.toString() ?? '';
+        final body = _truncateText(response, 120);
+        final payload = jsonEncode({'type': 'complaint_responded', 'id': id});
+        await _showLocalNotification(
+          title: title,
+          body: body,
+          payload: payload,
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    final l10n = _resolveL10n();
+    final androidDetails = _androidNotificationDetails(l10n);
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
+    );
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      id: _nextNotificationId(),
       title: title,
       body: body,
       notificationDetails: details,
@@ -382,6 +768,20 @@ class PushNotificationsService {
     Map<String, dynamic>? data,
     String? payload,
   }) async {
+    Session? session;
+    try {
+      session = Supabase.instance.client.auth.currentSession;
+    } catch (_) {
+      session = null;
+    }
+
+    // If signed out, do not deep-link into role areas (which would otherwise
+    // bounce into login and feel like the app "opened the account").
+    if (session == null) {
+      _navigateTo('/');
+      return;
+    }
+
     String? type;
     String? id;
 
@@ -426,7 +826,7 @@ class PushNotificationsService {
   }
 
   Future<String?> _resolveCommunicationBasePath() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = Supabase.instance.client.auth.currentSession?.user.id;
     if (userId == null) return null;
 
     try {
@@ -485,7 +885,6 @@ class PushNotificationsService {
         'fcm_token': token,
         'platform': platform,
         'enabled': true,
-        'last_seen_at': DateTime.now().toIso8601String(),
       }, onConflict: 'fcm_token');
       if (kDebugMode) {
         debugPrint('PushNotificationsService: token upsert OK');
@@ -522,8 +921,35 @@ class PushNotificationsService {
   }
 
   Future<void> dispose() async {
+    final observer = _lifecycleObserver;
+    if (observer != null) {
+      WidgetsBinding.instance.removeObserver(observer);
+      _lifecycleObserver = null;
+    }
     await _authSub?.cancel();
     await _tokenRefreshSub?.cancel();
     await _stopOnlineAnnouncementFallback();
+  }
+}
+
+class _LifecycleObserver with WidgetsBindingObserver {
+  _LifecycleObserver(this._service);
+
+  final PushNotificationsService _service;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(_service._catchUpMissedNotificationsIfNeeded());
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        unawaited(_service._touchLastSeenAt());
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        break;
+    }
   }
 }

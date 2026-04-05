@@ -347,7 +347,7 @@ Use this as a quick “where do I go?” map:
 - Uses the most recently `ended` year (if any) and applies the latest promotion run per grade to student records:
   - `eligible` + next grade exists → student is moved to next grade and set `active`
   - `eligible` + no next grade → student is marked `graduated`
-  - otherwise → student becomes `inactive_pending_admin` (admin must review/activate)
+  - otherwise → student keeps their existing `account_status` (so active stays active)
 
 **End active year (RPC: `end_academic_year`)**
 - Sets academic year status to `ended` and current period to `break`.

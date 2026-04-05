@@ -24,6 +24,9 @@ export const am = {
   commonArchiving: "በአርካይቭ ላይ…",
   commonUpdate: "አዘምን",
   commonUpdating: "በማዘመን ላይ…",
+  commonHigh: "ከፍተኛ",
+  commonMedium: "መካከለኛ",
+  commonLow: "ዝቅተኛ",
   commonNetworkError: "ግንኙነት ችግኝ አለ። እባክዎ ደግመው ይሞክሩ።",
   commonSystemMisconfigured: "የስርዓቱ ቅንብሮች ተሟልተው አልተዘጋጁም።",
 
@@ -269,6 +272,7 @@ export const am = {
   announcementsCategoryUrgent: "አስቸኳይ",
   announcementsPriorityLabel: "ቅድሚያ",
   announcementsExpiresOptionalLabel: "የሚያበቃበት ቀን (አማራጭ)",
+  announcementsExpiresPlaceholder: "YYYY-MM-DD",
   announcementsAcademicYearLabel: "የትምህርት ዘመን",
   announcementsActiveLabel: "ንቁ",
   announcementsAllTitle: "ሁሉም ማስታወቂያዎች",
@@ -286,10 +290,21 @@ export const am = {
     "ማስታወቂያው ተፈጥሯል፣ ነገር ግን ወደ ስልክ ማሳወቂያ መላክ አልተቻለም። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
   announcementsNoticeNoPushSent:
     "ማስታወቂያው ተፈጥሯል፣ ነገር ግን ወደ ስልክ ማሳወቂያ አልተላከም። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
+  announcementsNoticeNoRecipients:
+    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን ለመቀበል የሚችሉ ተጠቃሚዎች አልተገኙም። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
+  announcementsNoticeNoTokens:
+    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን የስልክ ማሳወቂያ ለመላክ የመሣሪያ ቶክኖች አልተገኙም (ተቀባዮች፦ {recipients})። ተጠቃሚዎች መተግበሪያውን ሲከፍቱ ያዩታል።",
+  announcementsNoticeFcmRejected:
+    "ማስታወቂያው ተፈጥሯል፣ ነገር ግን የስልክ ማሳወቂያ አልተላከም (FCM ቶክኖቹን አልተቀበለም)። እባክዎ የFirebase/FCM ማቀናበሪያን ያረጋግጡ።",
 
   // Servants
   servantsTitle: "አገልጋዮች",
   servantsSubtitle: "የአገልጋዮች መለያዎችን ይመልከቱ እና መዳረሻን ያንቁ/ያስቁሙ።",
+  servantsCreateServantTitle: "አገልጋይ ለመመዝገብ",
+  servantsAcademicIdLabel: "አካዳሚክ መለያ",
+  servantsAcademicIdPlaceholder: "ለምሳሌ፡ 22424",
+  servantsValidationRequired: "አካዳሚክ መለያ፣ ስም እና ክፍል ያስፈልጋሉ።",
+  servantsCreateServantButton: "አገልጋይ መዝግብ",
   servantsAccountsTitle: "የአገልጋዮች መለያዎች",
   servantsNoneFound: "ምንም አገልጋይ አልተገኘም።",
   servantsTableName: "ስም",
@@ -299,6 +314,7 @@ export const am = {
   servantsTableAction: "እርምጃ",
   servantsActivate: "በማገልገል ላይ አድርግ",
   servantsDeactivate: "በማገልገል ላይ አታድርግ",
+  servantsConfirmDelete: "አገልጋይ \"{name}\" ይሰረዝ?",
   servantsConfirmToggleStatus: "እርግጠኛ ነዎት የሚፈልጉት እርምጃ ({action}) በ{name} ላይ እንዲፈጸም?",
   servantsStatusActive: "ንቁ",
   servantsStatusInactive: "ያልነቃ",

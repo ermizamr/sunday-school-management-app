@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/auth/presentation/access_denied_screen.dart';
 import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/student/presentation/student_screens.dart';
 import '../../features/servant/presentation/analytics/servant_analytics_screen.dart';
@@ -9,19 +10,30 @@ import '../../features/servant/presentation/servant_screens.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-String? _cachedRoleUserId;
-String? _cachedRole;
-bool _cachedRoleLoaded = false;
-Future<void>? _roleFetchInProgress;
+class _CachedUserProfile {
+  const _CachedUserProfile({this.role, this.accountStatus});
 
-void _clearRoleCache() {
-  _cachedRoleUserId = null;
-  _cachedRole = null;
-  _cachedRoleLoaded = false;
-  _roleFetchInProgress = null;
+  final String? role;
+  final String? accountStatus;
 }
 
-Future<String?> _resolveCurrentUserRole() async {
+String? _cachedProfileUserId;
+_CachedUserProfile _cachedProfile = const _CachedUserProfile();
+bool _cachedProfileLoaded = false;
+Future<void>? _profileFetchInProgress;
+
+void clearCachedUserProfile() {
+  _clearProfileCache();
+}
+
+void _clearProfileCache() {
+  _cachedProfileUserId = null;
+  _cachedProfile = const _CachedUserProfile();
+  _cachedProfileLoaded = false;
+  _profileFetchInProgress = null;
+}
+
+Future<_CachedUserProfile?> _resolveCurrentUserProfile() async {
   String? userId;
   try {
     userId = Supabase.instance.client.auth.currentUser?.id;
@@ -30,44 +42,50 @@ Future<String?> _resolveCurrentUserRole() async {
   }
 
   if (userId == null) {
-    _clearRoleCache();
+    _clearProfileCache();
     return null;
   }
 
   final resolvedUserId = userId;
 
-  if (_cachedRoleUserId != resolvedUserId) {
-    _clearRoleCache();
-    _cachedRoleUserId = resolvedUserId;
+  if (_cachedProfileUserId != resolvedUserId) {
+    _clearProfileCache();
+    _cachedProfileUserId = resolvedUserId;
   }
 
-  if (_cachedRoleLoaded) return _cachedRole;
+  if (_cachedProfileLoaded) return _cachedProfile;
 
-  final inProgress = _roleFetchInProgress;
+  final inProgress = _profileFetchInProgress;
   if (inProgress != null) {
     await inProgress;
-    return _cachedRole;
+    return _cachedProfile;
   }
 
-  final fetch = _roleFetchInProgress = () async {
+  final fetch = _profileFetchInProgress = () async {
     try {
       final profile = await Supabase.instance.client
           .from('profiles')
-          .select('role')
+          .select('role, account_status')
           .eq('id', resolvedUserId)
           .maybeSingle();
 
-      _cachedRole = profile?['role']?.toString().trim().toLowerCase();
+      _cachedProfile = _CachedUserProfile(
+        role: profile?['role']?.toString().trim().toLowerCase(),
+        accountStatus: profile?['account_status']
+            ?.toString()
+            .trim()
+            .toLowerCase(),
+      );
     } catch (_) {
-      _cachedRole = null;
+      _cachedProfile = const _CachedUserProfile();
     } finally {
-      _cachedRoleLoaded = true;
-      _roleFetchInProgress = null;
+      _cachedProfileLoaded = true;
+      _profileFetchInProgress = null;
     }
   }();
 
   await fetch;
-  return _cachedRole;
+  return _cachedProfile;
 }
 
 final GoRouter appRouter = GoRouter(
@@ -86,6 +104,7 @@ final GoRouter appRouter = GoRouter(
 
     // Prevent accessing authenticated areas with anon token (causes invalid JWT).
     if (!signedIn) {
+      clearCachedUserProfile();
       if (path.startsWith('/servant/') && path != '/servant/login') {
         return '/servant/login';
       }
@@ -96,15 +115,27 @@ final GoRouter appRouter = GoRouter(
       return null;
     }
 
+    final profile = await _resolveCurrentUserProfile();
+    final role = profile?.role;
+    final accountStatus = profile?.accountStatus;
+    final isAdmin = role == 'admin';
+
+    // Inactive accounts should not access any content.
+    if (!isAdmin && accountStatus != null && accountStatus != 'active') {
+      if (path != '/access-denied') return '/access-denied';
+    } else if (path == '/access-denied') {
+      if (role == 'student') return '/student/dashboard';
+      if (role == 'servant' || role == 'admin') return '/servant/dashboard';
+      return '/';
+    }
+
     // Enforce role separation even when authenticated.
     if (path.startsWith('/student/') && path != '/student/login') {
-      final role = await _resolveCurrentUserRole();
       if (role == null) return '/';
       if (role != 'student') return '/servant/dashboard';
     }
 
     if (path.startsWith('/servant/') && path != '/servant/login') {
-      final role = await _resolveCurrentUserRole();
       if (role == null) return '/';
       final allowed = role == 'servant' || role == 'admin';
       if (!allowed) return '/student/dashboard';
@@ -117,6 +148,11 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       name: 'role-selection',
       builder: (context, state) => const RoleSelectionScreen(),
+    ),
+    GoRoute(
+      path: '/access-denied',
+      name: 'access-denied',
+      builder: (context, state) => const AccessDeniedScreen(),
     ),
     GoRoute(
       path: '/student/login',

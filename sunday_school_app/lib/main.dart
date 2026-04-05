@@ -45,8 +45,10 @@ class SundaySchoolApp extends StatefulWidget {
 class _SundaySchoolAppState extends State<SundaySchoolApp> {
   late final AppRefreshController _refreshController = AppRefreshController(
     defaultOnRefresh: () async {
+      final client = SupabaseClientManager.instance.client;
+
       try {
-        await SupabaseClientManager.instance.client.auth.refreshSession();
+        await client.auth.refreshSession();
       } catch (e) {
         final msg = e.toString().toLowerCase();
         final looksLikeInvalidJwt =
@@ -54,11 +56,58 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
             (msg.contains('jwt') && msg.contains('invalid'));
         if (looksLikeInvalidJwt) {
           try {
-            await SupabaseClientManager.instance.client.auth.signOut();
+            await PushNotificationsService.instance.unregisterBeforeSignOut();
           } catch (_) {}
+          try {
+            await client.auth.signOut();
+          } catch (_) {}
+          try {
+            clearCachedUserProfile();
+            appRouter.refresh();
+          } catch (_) {}
+          return;
         }
       }
+
       try {
+        final userId = client.auth.currentUser?.id;
+        if (userId != null) {
+          final profile = await client
+              .from('profiles')
+              .select('role, account_status')
+              .eq('id', userId)
+              .maybeSingle();
+
+          final role = profile?['role']?.toString().trim().toLowerCase();
+          final accountStatus = profile?['account_status']
+              ?.toString()
+              .trim()
+              .toLowerCase();
+
+          final shouldSignOut =
+              role != 'admin' &&
+              accountStatus != null &&
+              accountStatus != 'active';
+
+          if (shouldSignOut) {
+            try {
+              await PushNotificationsService.instance.unregisterBeforeSignOut();
+            } catch (_) {}
+            try {
+              await client.auth.signOut();
+            } catch (_) {}
+
+            try {
+              clearCachedUserProfile();
+              appRouter.refresh();
+            } catch (_) {}
+            return;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        clearCachedUserProfile();
         appRouter.refresh();
       } catch (_) {}
     },
