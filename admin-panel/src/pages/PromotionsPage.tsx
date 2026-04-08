@@ -332,16 +332,6 @@ export function PromotionsPage() {
         return;
       }
 
-      const missingSubjectGrades = subjects.filter((subject) => {
-        const raw = (subjectMinimumGrades[subject.id] ?? "").trim();
-        return raw === "";
-      });
-
-      if (missingSubjectGrades.length > 0) {
-        setError(t("promotionsValidationMissingSubjectGrades"));
-        return;
-      }
-
       const payload = {
         academic_year_id: selectedYearId,
         grade_id: selectedGradeId,
@@ -394,12 +384,20 @@ export function PromotionsPage() {
       const subjectRows = subjects.map((subject) => {
         const existing = existingBySubject.get(subject.id);
         const minimumGradeRaw = (subjectMinimumGrades[subject.id] ?? "").trim();
+        const minimumGradeNum =
+          minimumGradeRaw === ""
+            ? null
+            : toNumberOrDefault(minimumGradeRaw, 0);
+        const minimumGrade =
+          minimumGradeNum !== null && minimumGradeNum > 0
+            ? minimumGradeNum
+            : null;
         const raw = (subjectAttendanceDays[subject.id] ?? "").trim();
         return {
           criteria_set_id: criteriaSetId,
           subject_id: subject.id,
           required: existing?.required ?? true,
-          minimum_grade: toNumberOrDefault(minimumGradeRaw, 0),
+          minimum_grade: minimumGrade,
           weight: existing?.weight ?? null,
           minimum_attendance_days: toNumberOrDefault(raw, 0),
         };
@@ -580,7 +578,6 @@ export function PromotionsPage() {
                             <Input
                               inputMode="decimal"
                               placeholder="e.g. 60"
-                              required
                               value={subjectMinimumGrades[subject.id] ?? ""}
                               onChange={(e) =>
                                 setSubjectMinimumGrades((prev) => ({
@@ -627,7 +624,6 @@ export function PromotionsPage() {
                           <Input
                             inputMode="decimal"
                             placeholder="e.g. 60"
-                            required
                             value={subjectMinimumGrades[subject.id] ?? ""}
                             onChange={(e) =>
                               setSubjectMinimumGrades((prev) => ({
