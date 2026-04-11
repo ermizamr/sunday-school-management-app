@@ -95,8 +95,8 @@ export function PromotionsPage() {
       .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
       .map((item) => ({
         gradeId: typeof item.grade_id === "string" ? item.grade_id : "",
-        gradeName: typeof item.grade_name === "string" ? item.grade_name : "Unknown grade",
-        runId: typeof item.run_id === "string" ? item.run_id : "",
+      gradeName: typeof item.grade_name === "string" ? item.grade_name : "Unknown grade",
+      runId: typeof item.run_id === "string" ? item.run_id : "Preview",
         totalStudents: typeof item.total_students === "number" ? item.total_students : 0,
         eligible: typeof item.eligible === "number" ? item.eligible : 0,
         atRisk: typeof item.at_risk === "number" ? item.at_risk : 0,
@@ -286,16 +286,6 @@ export function PromotionsPage() {
         return;
       }
 
-      const missingSubjectGrades = subjects.filter((subject) => {
-        const raw = (subjectMinimumGrades[subject.id] ?? "").trim();
-        return raw === "";
-      });
-
-      if (missingSubjectGrades.length > 0) {
-        setError("Enter minimum grade for every subject before saving criteria.");
-        return;
-      }
-
       const payload = {
         academic_year_id: selectedYearId,
         grade_id: selectedGradeId,
@@ -350,12 +340,20 @@ export function PromotionsPage() {
       const subjectRows = subjects.map((subject) => {
         const existing = existingBySubject.get(subject.id);
         const minimumGradeRaw = (subjectMinimumGrades[subject.id] ?? "").trim();
+        const minimumGradeNum =
+          minimumGradeRaw === ""
+            ? null
+            : toNumberOrDefault(minimumGradeRaw, 0);
+        const minimumGrade =
+          minimumGradeNum !== null && minimumGradeNum > 0
+            ? minimumGradeNum
+            : null;
         const raw = (subjectAttendanceDays[subject.id] ?? "").trim();
         return {
           criteria_set_id: criteriaSetId,
           subject_id: subject.id,
           required: existing?.required ?? true,
-          minimum_grade: toNumberOrDefault(minimumGradeRaw, 0),
+          minimum_grade: minimumGrade,
           weight: existing?.weight ?? null,
           minimum_attendance_days: toNumberOrDefault(raw, 0),
         };
@@ -440,6 +438,32 @@ export function PromotionsPage() {
     }
   }
 
+  async function previewPromotion() {
+    setError(null);
+    setResult(null);
+
+    if (!selectedYearId) {
+      setError("Choose an academic year.");
+      return;
+    }
+
+    setIsRunning(true);
+    try {
+      const { data, error: rpcError } = await supabase.rpc("preview_promotion_for_all_grades_with_summary", {
+        p_academic_year_id: selectedYearId,
+      });
+
+      if (rpcError) {
+        setError(rpcError.message);
+        return;
+      }
+
+      setResult(data);
+    } finally {
+      setIsRunning(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -457,7 +481,7 @@ export function PromotionsPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages. Per-subject attendance days are weighted as present=1.0 day, permission=1.0 day, late=0.5 day, absent=0 day.
+            Semester progression is not blocked by averages. Grade promotion uses the average of both semester averages. Per-subject minimum grade is optional (leave it blank to promote by overall average only). Per-subject attendance days are weighted as present=1.0 day, permission=1.0 day, late=0.5 day, absent=0 day.
           </div>
 
           <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -518,7 +542,7 @@ export function PromotionsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Subject</TableHead>
-                        <TableHead>Minimum Grade</TableHead>
+                        <TableHead>Minimum grade (optional)</TableHead>
                         <TableHead>Minimum Present Days</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -535,7 +559,6 @@ export function PromotionsPage() {
                             <Input
                               inputMode="decimal"
                               placeholder="e.g. 60"
-                              required
                               value={subjectMinimumGrades[subject.id] ?? ""}
                               onChange={(e) =>
                                 setSubjectMinimumGrades((prev) => ({
@@ -578,11 +601,10 @@ export function PromotionsPage() {
                       </div>
                       <div className="grid gap-2">
                         <div className="grid gap-1">
-                          <Label className="text-xs">Minimum grade</Label>
+                          <Label className="text-xs">Minimum grade (optional)</Label>
                           <Input
                             inputMode="decimal"
                             placeholder="e.g. 60"
-                            required
                             value={subjectMinimumGrades[subject.id] ?? ""}
                             onChange={(e) =>
                               setSubjectMinimumGrades((prev) => ({
@@ -635,7 +657,7 @@ export function PromotionsPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            Runs promotion for all grades in the active academic year.
+            Calculates promotion results for all grades in the active academic year (Eligible/At Risk/Not Eligible). To actually move eligible students to the next grade, start a new academic year from the Academic Year page.
           </div>
 
           <div className="grid gap-2 md:col-span-3">
@@ -649,9 +671,18 @@ export function PromotionsPage() {
           </div>
 
           <div className="md:col-span-3">
-            <Button disabled={isLoading || isRunning} onClick={() => void runPromotion()}>
-              {isRunning ? "Running…" : "Run promotion"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled={isLoading || isRunning} onClick={() => void runPromotion()}>
+                {isRunning ? "Running…" : "Run promotion"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={isLoading || isRunning || !selectedYearId}
+                onClick={() => void previewPromotion()}
+              >
+                {isRunning ? "Running…" : "Preview"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
