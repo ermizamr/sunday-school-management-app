@@ -103,7 +103,7 @@ export function PromotionsPage() {
       .map((item) => ({
         gradeId: typeof item.grade_id === "string" ? item.grade_id : "",
         gradeName: typeof item.grade_name === "string" ? item.grade_name : t("promotionsUnknownGrade"),
-        runId: typeof item.run_id === "string" ? item.run_id : "",
+        runId: typeof item.run_id === "string" ? item.run_id : t("promotionsPreviewLabel"),
         totalStudents: typeof item.total_students === "number" ? item.total_students : 0,
         eligible: typeof item.eligible === "number" ? item.eligible : 0,
         atRisk: typeof item.at_risk === "number" ? item.at_risk : 0,
@@ -483,6 +483,32 @@ export function PromotionsPage() {
     }
   }
 
+  async function previewPromotion() {
+    setError(null);
+    setResult(null);
+
+    if (!selectedYearId) {
+      setError(t("promotionsValidationChooseYear"));
+      return;
+    }
+
+    setIsRunning(true);
+    try {
+      const { data, error: rpcError } = await supabase.rpc("preview_promotion_for_all_grades_with_summary", {
+        p_academic_year_id: selectedYearId,
+      });
+
+      if (rpcError) {
+        setError(rpcError.message);
+        return;
+      }
+
+      setResult(data);
+    } finally {
+      setIsRunning(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -696,9 +722,18 @@ export function PromotionsPage() {
           </div>
 
           <div className="md:col-span-3">
-            <Button disabled={isLoading || isRunning || promotionLocked} onClick={() => void runPromotion()}>
-              {isRunning ? t("promotionsRunning") : t("promotionsRunButton")}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled={isLoading || isRunning || promotionLocked} onClick={() => void runPromotion()}>
+                {isRunning ? t("promotionsRunning") : t("promotionsRunButton")}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={isLoading || isRunning || !selectedYearId}
+                onClick={() => void previewPromotion()}
+              >
+                {isRunning ? t("promotionsRunning") : t("promotionsPreviewButton")}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
