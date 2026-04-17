@@ -35,6 +35,11 @@ type SubjectRow = {
   name?: string | null;
   grade_id?: string | null;
   active?: boolean | null;
+  passing_grade?: number | null;
+};
+
+type SubjectPrerequisiteLookupRow = {
+  prerequisite_subject_id?: string | null;
 };
 
 type GradeSummaryRow = {
@@ -67,6 +72,7 @@ export function PromotionsPage() {
   const [notes, setNotes] = React.useState("");
   const [subjects, setSubjects] = React.useState<SubjectRow[]>([]);
   const [isSubjectsFallback, setIsSubjectsFallback] = React.useState(false);
+  const [prerequisiteSubjectIds, setPrerequisiteSubjectIds] = React.useState<Set<string>>(new Set());
   const [subjectMinimumGrades, setSubjectMinimumGrades] = React.useState<Record<string, string>>({});
   const [subjectAttendanceDays, setSubjectAttendanceDays] = React.useState<Record<string, string>>({});
 
@@ -126,6 +132,25 @@ export function PromotionsPage() {
   function toNumberOrDefault(v: string, fallback: number): number {
     const n = Number(v);
     return Number.isFinite(n) ? n : fallback;
+  }
+
+  function isPrerequisiteSubject(subjectId: string): boolean {
+    return prerequisiteSubjectIds.has(subjectId);
+  }
+
+  function toPromotionErrorMessage(message: string): string {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("already executed for this academic year")) {
+      setPromotionLocked(true);
+      return t("promotionsAlreadyDoneThisYear");
+    }
+
+    if (normalized.includes("promotion criteria missing for grades")) {
+      return t("promotionsErrorMissingCriteriaForAllGradesDetails", { details: message });
+    }
+
+    return message;
   }
 
   const load = React.useCallback(async () => {
@@ -207,27 +232,45 @@ export function PromotionsPage() {
       if (!selectedGradeId) {
         setSubjects([]);
         setIsSubjectsFallback(false);
+        setPrerequisiteSubjectIds(new Set());
         setSubjectMinimumGrades({});
         setSubjectAttendanceDays({});
         return;
       }
 
-      const { data, error: subjectsError } = await supabase
-        .from("subjects")
-        .select("id,name,grade_id,active")
-        .order("active", { ascending: false })
-        .order("name", { ascending: true });
+      const [
+        { data: subjectsData, error: subjectsError },
+        { data: prerequisiteRows },
+      ] = await Promise.all([
+        supabase
+          .from("subjects")
+          .select("id,name,grade_id,active,passing_grade")
+          .order("active", { ascending: false })
+          .order("name", { ascending: true }),
+        supabase
+          .from("subject_prerequisites")
+          .select("prerequisite_subject_id"),
+      ]);
 
       if (subjectsError) {
         setError(subjectsError.message);
         setSubjects([]);
         setIsSubjectsFallback(false);
+        setPrerequisiteSubjectIds(new Set());
         setSubjectMinimumGrades({});
         setSubjectAttendanceDays({});
         return;
       }
 
-      const rows = (data ?? []) as SubjectRow[];
+      const rows = (subjectsData ?? []) as SubjectRow[];
+      const prerequisiteIds = new Set(
+        ((prerequisiteRows ?? []) as SubjectPrerequisiteLookupRow[])
+          .map((row) => row.prerequisite_subject_id)
+          .filter((id): id is string => typeof id === "string"),
+      );
+
+      setPrerequisiteSubjectIds(prerequisiteIds);
+
       const forSelectedGrade = rows.filter((row) => row.grade_id === selectedGradeId);
 
       if (forSelectedGrade.length > 0) {
@@ -472,7 +515,7 @@ export function PromotionsPage() {
       });
 
       if (rpcError) {
-        setError(rpcError.message);
+        setError(toPromotionErrorMessage(rpcError.message ?? t("commonUnknownError")));
         return;
       }
 
@@ -499,7 +542,7 @@ export function PromotionsPage() {
       });
 
       if (rpcError) {
-        setError(rpcError.message);
+        setError(toPromotionErrorMessage(rpcError.message ?? t("commonUnknownError")));
         return;
       }
 
@@ -596,23 +639,37 @@ export function PromotionsPage() {
                         <TableRow key={`table-${subject.id}`}>
                           <TableCell>
                             <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span>{subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}</span>
+                              <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                                {isPrerequisiteSubject(subject.id)
+                                  ? t("promotionsSubjectRulePrerequisite")
+                                  : t("promotionsSubjectRuleOptional")}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Input
-                              inputMode="decimal"
-                              placeholder="e.g. 60"
-                              value={subjectMinimumGrades[subject.id] ?? ""}
-                              onChange={(e) =>
-                                setSubjectMinimumGrades((prev) => ({
-                                  ...prev,
-                                  [subject.id]: e.target.value,
-                                }))
-                              }
-                              disabled={isLoading}
-                            />
+                            <div>
+                              <Input
+                                inputMode="decimal"
+                                placeholder="e.g. 60"
+                                value={subjectMinimumGrades[subject.id] ?? ""}
+                                onChange={(e) =>
+                                  setSubjectMinimumGrades((prev) => ({
+                                    ...prev,
+                                    [subject.id]: e.target.value,
+                                  }))
+                                }
+                                disabled={isLoading}
+                              />
+                              <div className="mt-1 text-[11px] text-muted-foreground">
+                                {isPrerequisiteSubject(subject.id)
+                                  ? t("promotionsMinGradeHintPrerequisite", {
+                                      passingGrade: subject.passing_grade ?? 70,
+                                    })
+                                  : t("promotionsMinGradeHintOptional")}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Input
@@ -640,8 +697,13 @@ export function PromotionsPage() {
                     <div key={`card-${subject.id}`} className="rounded-lg border bg-card p-3">
                       <div className="mb-3">
                         <div className="text-sm font-medium">{subject.name ?? subject.id}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>{subject.active === false ? t("promotionsSubjectInactive") : t("promotionsSubjectActive")}</span>
+                          <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                            {isPrerequisiteSubject(subject.id)
+                              ? t("promotionsSubjectRulePrerequisite")
+                              : t("promotionsSubjectRuleOptional")}
+                          </span>
                         </div>
                       </div>
                       <div className="grid gap-2">
@@ -659,6 +721,13 @@ export function PromotionsPage() {
                             }
                             disabled={isLoading}
                           />
+                          <div className="text-[11px] text-muted-foreground">
+                            {isPrerequisiteSubject(subject.id)
+                              ? t("promotionsMinGradeHintPrerequisite", {
+                                  passingGrade: subject.passing_grade ?? 70,
+                                })
+                              : t("promotionsMinGradeHintOptional")}
+                          </div>
                         </div>
                         <div className="grid gap-1">
                           <Label className="text-xs">{t("promotionsMobileMinPresentDays")}</Label>
