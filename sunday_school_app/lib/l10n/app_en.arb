@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
 
-  "appTitle": "DEAS EMSS",
+  "appTitle": "ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ",
 
   "roleSelectionTitle": "Sunday School",
   "roleSelectionSubtitle": "Digital Management System",
@@ -596,7 +596,7 @@
   "studentGradesSemester2ModeMessage": "Semester 2 is in progress. These grades reflect your Semester 2 assessments so far.",
   "studentGradesBreakModeMessage": "Break period. Grade updates are currently paused.",
   "studentGradesAccountInactiveTitle": "Access denied",
-  "studentGradesAccountInactiveMessage": "Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.",
+  "studentGradesAccountInactiveMessage": "Your account is inactive. Please contact የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ.",
   "studentFinalResultsFinalGradeLabel": "Final Grade",
 
   "studentFinalResultsPromotionStatusLabel": "Promotion Status",

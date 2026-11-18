@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'DEAS EMSS';
+  String get appTitle => 'ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ';
 
   @override
   String get roleSelectionTitle => 'Sunday School';
@@ -1182,7 +1182,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get studentGradesAccountInactiveMessage =>
-      'Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.';
+      'Your account is inactive. Please contact የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ.';
 
   @override
   String get studentFinalResultsFinalGradeLabel => 'Final Grade';

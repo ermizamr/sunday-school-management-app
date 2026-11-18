@@ -1,10 +1,10 @@
 {
   "@@locale": "am",
 
-  "appTitle": "DEAS EMSS",
+  "appTitle": "ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ",
 
   "roleSelectionTitle": "እግዚአብሔር ምስሌነ",
-  "roleSelectionSubtitle": "የተከታታይ ትምህርት ዲጂታል አስተዳደር ሥርዓት",
+  "roleSelectionSubtitle": "የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ዲጂታል አስተዳደር ሥርዓት",
   "roleStudent": "ተማሪ",
   "roleStudentSubtitle": "ውጤት፣ መገኘት እና ግንኙነት ይመልከቱ",
   "roleServant": "አገልጋይ",
@@ -242,7 +242,7 @@
   "authLoginButton": "ግባ",
   "authForgotPassword": "የይለፍ ቃል ረስተዋል?",
   "authForgotPasswordDialogTitle": "የይለፍ ቃል መቀየር",
-  "authForgotPasswordDialogBody": "የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ክፍል ኃላፊ\"ን ያነጋግሩ።",
+  "authForgotPasswordDialogBody": "የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ\"ን ያነጋግሩ።",
   "authDemoMode": "ሙከራ ሁኔታ፡ ጀርባ ስርዓቱ እስከሚጠናቀቅ ድረስ ማንኛውንም ትክክለኛ ኢሜይል እና የይለፍ ቃል መጠቀም ይችላሉ።",
   "authInvalidCredentialsError": "ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም።",
   "authLoginFailedGeneric": "መግባት አልተሳካም። እባክዎ በድጋሚ ይሞክሩ።",
@@ -596,16 +596,16 @@
   "studentGradesSemester2ModeMessage": "የ2ኛ ሴሚስተር በሂደት ላይ ነው። እነዚህ ውጤቶች እስካሁን የተሰጡ የ2ኛ ሴሚስተር ምዘናዎችን ይወክላሉ።",
   "studentGradesBreakModeMessage": "የእረፍት ጊዜ ነው፤ ውጤቶች ለጊዜው አይዘመኑም።",
   "studentGradesAccountInactiveTitle": "መዳረሻ ተከልክሏል",
-  "studentGradesAccountInactiveMessage": "መለያዎ የማይሠራ ሁኔታ ላይ ነው። እባክዎ የተከታታይ ትምህርት ክፍል ኃላፊን ያነጋግሩ።",
+  "studentGradesAccountInactiveMessage": "መለያዎ የማይሠራ ሁኔታ ላይ ነው። እባክዎ የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊን ያነጋግሩ።",
   "studentFinalResultsFinalGradeLabel": "የመጨረሻ ውጤት",
 
   "studentFinalResultsPromotionStatusLabel": "የመጨረሻ ውጤት",
   "studentFinalResultsPromotionPromotedTitle": "ተዘዋውሯል",
   "studentFinalResultsPromotionPromotedMessage": "እንኳን ደስ አለዎት! ወደ ቀጣዩ ክፍል ተዘዋውረዋል",
   "studentFinalResultsPromotionAtRiskTitle": "በአደጋ ላይ",
-  "studentFinalResultsPromotionAtRiskMessage": "ወደ ቀጣይ ክፍል ላይ ላይዘዋወሩ ይችላሉ። እባክዎ ከተከታታይ ትምህርት ክፍል አገልጋዮች ጋር ይነጋገሩ።",
+  "studentFinalResultsPromotionAtRiskMessage": "ወደ ቀጣይ ክፍል ላይ ላይዘዋወሩ ይችላሉ። እባክዎ ከተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል አገልጋዮች ጋር ይነጋገሩ።",
   "studentFinalResultsPromotionNotPromotedTitle": "አልተዘዋወሩም",
-  "studentFinalResultsPromotionNotPromotedMessage": "የመዘዋወርያ መስፈርቶችን አላሟሉም። እባክዎ ከተከታታይ ትምህርት ክፍል ኃላፊ ጋር ይነጋገሩ።",
+  "studentFinalResultsPromotionNotPromotedMessage": "የመዘዋወርያ መስፈርቶችን አላሟሉም። እባክዎ ከተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ ጋር ይነጋገሩ።",
 
   "studentFinalResultsFinalSubjectGradesTitle": "የትምህርት መጨረሻ ውጤቶች",
   "studentFinalResultsFinalSummaryTitle": "የመጨረሻ ማጠቃለያ",

@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'DEAS EMSS'**
+  /// **'ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ'**
   String get appTitle;
 
   /// No description provided for @roleSelectionTitle.
@@ -2129,7 +2129,7 @@ abstract class AppLocalizations {
   /// No description provided for @studentGradesAccountInactiveMessage.
   ///
   /// In en, this message translates to:
-  /// **'Your account is inactive. Please contact የተከታታይ ትምህርት ክፍል ኃላፊ.'**
+  /// **'Your account is inactive. Please contact የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ.'**
   String get studentGradesAccountInactiveMessage;
 
   /// No description provided for @studentFinalResultsFinalGradeLabel.

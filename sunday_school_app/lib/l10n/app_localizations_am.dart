@@ -9,13 +9,14 @@ class AppLocalizationsAm extends AppLocalizations {
   AppLocalizationsAm([String locale = 'am']) : super(locale);
 
   @override
-  String get appTitle => 'DEAS EMSS';
+  String get appTitle => 'ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ';
 
   @override
   String get roleSelectionTitle => 'እግዚአብሔር ምስሌነ';
 
   @override
-  String get roleSelectionSubtitle => 'የተከታታይ ትምህርት ዲጂታል አስተዳደር ሥርዓት';
+  String get roleSelectionSubtitle =>
+      'የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ዲጂታል አስተዳደር ሥርዓት';
 
   @override
   String get roleStudent => 'ተማሪ';
@@ -436,7 +437,7 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get authForgotPasswordDialogBody =>
-      'የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ክፍል ኃላፊ\"ን ያነጋግሩ።';
+      'የይለፍ ቃል ለመቀየር እባክዎ \"የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ\"ን ያነጋግሩ።';
 
   @override
   String get authDemoMode =>
@@ -1149,7 +1150,7 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get studentGradesAccountInactiveMessage =>
-      'መለያዎ የማይሠራ ሁኔታ ላይ ነው። እባክዎ የተከታታይ ትምህርት ክፍል ኃላፊን ያነጋግሩ።';
+      'መለያዎ የማይሠራ ሁኔታ ላይ ነው። እባክዎ የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊን ያነጋግሩ።';
 
   @override
   String get studentFinalResultsFinalGradeLabel => 'የመጨረሻ ውጤት';
@@ -1169,14 +1170,14 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get studentFinalResultsPromotionAtRiskMessage =>
-      'ወደ ቀጣይ ክፍል ላይ ላይዘዋወሩ ይችላሉ። እባክዎ ከተከታታይ ትምህርት ክፍል አገልጋዮች ጋር ይነጋገሩ።';
+      'ወደ ቀጣይ ክፍል ላይ ላይዘዋወሩ ይችላሉ። እባክዎ ከተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል አገልጋዮች ጋር ይነጋገሩ።';
 
   @override
   String get studentFinalResultsPromotionNotPromotedTitle => 'አልተዘዋወሩም';
 
   @override
   String get studentFinalResultsPromotionNotPromotedMessage =>
-      'የመዘዋወርያ መስፈርቶችን አላሟሉም። እባክዎ ከተከታታይ ትምህርት ክፍል ኃላፊ ጋር ይነጋገሩ።';
+      'የመዘዋወርያ መስፈርቶችን አላሟሉም። እባክዎ ከተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ ጋር ይነጋገሩ።';
 
   @override
   String get studentFinalResultsFinalSubjectGradesTitle => 'የትምህርት መጨረሻ ውጤቶች';
