@@ -1,0 +1,3 @@
+# Supabase CLI local state (project ref, service versions, stored DB password)
+.temp/
+.env
