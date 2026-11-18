@@ -7,6 +7,9 @@ import '../../features/auth/presentation/role_selection_screen.dart';
 import '../../features/student/presentation/student_screens.dart';
 import '../../features/servant/presentation/analytics/servant_analytics_screen.dart';
 import '../../features/servant/presentation/servant_screens.dart';
+import '../bootstrap/app_bootstrap.dart';
+import '../bootstrap/bootstrap_error_screen.dart';
+import '../splash/splash_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -93,6 +96,18 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
     final path = state.uri.path;
+
+    // Hold users on the splash screen until bootstrap finishes (the profile
+    // fetch below then runs while the splash is still mounted), and surface
+    // fatal bootstrap failures on the error screen.
+    final bootstrap = AppBootstrap.instance;
+    if (bootstrap.status == AppBootstrapStatus.initializing) {
+      return path == '/splash' ? null : '/splash';
+    }
+    if (bootstrap.status == AppBootstrapStatus.failed) {
+      return path == '/bootstrap-error' ? null : '/bootstrap-error';
+    }
+
     Session? session;
     try {
       session = Supabase.instance.client.auth.currentSession;
@@ -112,6 +127,8 @@ final GoRouter appRouter = GoRouter(
         return '/student/login';
       }
 
+      // Bootstrap is done: release the splash screen to the role selection.
+      if (path == '/splash') return '/';
       return null;
     }
 
@@ -141,6 +158,9 @@ final GoRouter appRouter = GoRouter(
       if (!allowed) return '/student/dashboard';
     }
 
+    // Bootstrap is done: release the splash screen (the profile above was
+    // already fetched while it was mounted, so content appears immediately).
+    if (path == '/splash') return '/';
     return null;
   },
   routes: [
@@ -148,6 +168,18 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       name: 'role-selection',
       builder: (context, state) => const RoleSelectionScreen(),
+    ),
+    GoRoute(
+      path: '/splash',
+      name: 'splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/bootstrap-error',
+      name: 'bootstrap-error',
+      builder: (context, state) => BootstrapErrorScreen(
+        message: AppBootstrap.instance.errorMessage ?? 'Bootstrap failed',
+      ),
     ),
     GoRoute(
       path: '/access-denied',

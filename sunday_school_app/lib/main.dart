@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
-import 'core/bootstrap/bootstrap_error_screen.dart';
+import 'core/bootstrap/app_bootstrap.dart';
 import 'core/refresh/app_refresh_controller.dart';
 import 'core/refresh/app_refresh_scope.dart';
 import 'core/refresh/global_refresh_indicator.dart';
@@ -10,33 +10,62 @@ import 'core/push/push_notifications_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/supabase/supabase_client.dart';
 
+/// Minimum time the splash screen stays visible so its entrance animation can
+/// play even when bootstrap finishes quickly.
+const _minSplashDuration = Duration(milliseconds: 800);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Render the splash screen immediately and bootstrap in the background, so
+  // users never stare at a black screen while Supabase authenticates.
+  AppBootstrap.instance.markInitializing();
+  runApp(const ProviderScope(child: SundaySchoolApp()));
+
   Object? bootstrapError;
+  await Future.wait<void>([
+    _initializeApp().then<void>((error) {
+      bootstrapError = error;
+    }),
+    Future<void>.delayed(_minSplashDuration),
+  ]);
+
+  final error = bootstrapError;
+  if (error != null) {
+    AppBootstrap.instance.markFailed(error);
+  } else {
+    AppBootstrap.instance.markReady();
+  }
+  appRouter.refresh();
+}
+
+/// Initializes Supabase and push notifications.
+///
+/// Returns the fatal bootstrap error (Supabase) instead of throwing so the
+/// splash screen can keep its minimum duration before the error is surfaced.
+/// Push notification failures are reported but not fatal.
+Future<Object?> _initializeApp() async {
   try {
     await SupabaseClientManager.instance.init();
-    try {
-      await PushNotificationsService.instance.init();
-    } catch (e, st) {
-      FlutterError.reportError(
-        FlutterErrorDetails(exception: e, stack: st, library: 'push bootstrap'),
-      );
-    }
   } catch (e, st) {
-    bootstrapError = e;
     FlutterError.reportError(
       FlutterErrorDetails(exception: e, stack: st, library: 'app bootstrap'),
     );
+    return e;
   }
 
-  runApp(ProviderScope(child: SundaySchoolApp(bootstrapError: bootstrapError)));
+  try {
+    await PushNotificationsService.instance.init();
+  } catch (e, st) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: e, stack: st, library: 'push bootstrap'),
+    );
+  }
+  return null;
 }
 
 class SundaySchoolApp extends StatefulWidget {
-  const SundaySchoolApp({super.key, this.bootstrapError});
-
-  final Object? bootstrapError;
+  const SundaySchoolApp({super.key});
 
   @override
   State<SundaySchoolApp> createState() => _SundaySchoolAppState();
@@ -121,18 +150,6 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
     );
 
     const locale = Locale('am');
-
-    if (widget.bootstrapError != null) {
-      return MaterialApp(
-        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-        theme: theme,
-        locale: locale,
-        localeResolutionCallback: (deviceLocale, supportedLocales) => locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: const [locale],
-        home: BootstrapErrorScreen(message: widget.bootstrapError.toString()),
-      );
-    }
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
