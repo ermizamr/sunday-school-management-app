@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ';
+  String get appTitle => 'ተከታታይ ትምህርት\nዘእግዚአብሔር ምስሌነ';
 
   @override
   String get roleSelectionTitle => 'Sunday School';

@@ -9,7 +9,7 @@ class AppLocalizationsAm extends AppLocalizations {
   AppLocalizationsAm([String locale = 'am']) : super(locale);
 
   @override
-  String get appTitle => 'ተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ';
+  String get appTitle => 'ተከታታይ ትምህርት\nዘእግዚአብሔር ምስሌነ';
 
   @override
   String get roleSelectionTitle => 'እግዚአብሔር ምስሌነ';
