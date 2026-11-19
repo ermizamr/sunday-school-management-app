@@ -3388,7 +3388,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     final displayAvg = _displayPeriod == _AcademicYearPeriod.semester2
         ? _semester2Average
         : _semester1Average;
-    final displayAvgText = displayAvg == null ? '—' : '${displayAvg}%';
+    final displayAvgText = displayAvg == null ? '—' : '$displayAvg%';
     final displayAvgLabel = _displayPeriod == _AcademicYearPeriod.semester2
         ? l10n.studentGradesSemester2AverageLabel
         : l10n.studentGradesSemester1AverageLabel;

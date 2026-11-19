@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -894,6 +893,7 @@ class ServantDashboardScreen extends StatefulWidget {
 
         final academicId = (result['academic_id'] ?? '').toString();
         dialogActive = false;
+        if (!dialogContext.mounted) return;
         Navigator.of(dialogContext).pop();
 
         if (!context.mounted) return;
@@ -937,7 +937,7 @@ class ServantDashboardScreen extends StatefulWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return PopScope(
-              onPopInvoked: (didPop) {
+              onPopInvokedWithResult: (didPop, result) {
                 if (didPop) dialogActive = false;
               },
               child: AlertDialog(
