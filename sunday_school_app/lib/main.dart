@@ -1,3 +1,7 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
@@ -45,6 +49,8 @@ Future<void> main() async {
 /// splash screen can keep its minimum duration before the error is surfaced.
 /// Push notification failures are reported but not fatal.
 Future<Object?> _initializeApp() async {
+  await _initCrashReporting();
+
   try {
     await SupabaseClientManager.instance.init();
   } catch (e, st) {
@@ -62,6 +68,28 @@ Future<Object?> _initializeApp() async {
     );
   }
   return null;
+}
+
+/// Best-effort crash reporting setup, run first so startup failures are
+/// captured too. Safe if Firebase is initialized again later by the push
+/// service (its init tolerates an already-initialized Firebase).
+Future<void> _initCrashReporting() async {
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    FlutterError.onError = (details) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e, st) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: e, stack: st, library: 'crash reporting'),
+    );
+  }
 }
 
 class SundaySchoolApp extends StatefulWidget {

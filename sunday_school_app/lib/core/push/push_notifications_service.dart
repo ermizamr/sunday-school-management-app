@@ -142,8 +142,11 @@ class PushNotificationsService {
       await Firebase.initializeApp();
       firebaseReady = true;
     } catch (e) {
+      // Already initialized (e.g. by crash reporting) is fine; otherwise the
       // Firebase native config might not be present yet.
-      if (kDebugMode) {
+      if (Firebase.apps.isNotEmpty) {
+        firebaseReady = true;
+      } else if (kDebugMode) {
         debugPrint('PushNotificationsService: Firebase not configured ($e)');
       }
     }
