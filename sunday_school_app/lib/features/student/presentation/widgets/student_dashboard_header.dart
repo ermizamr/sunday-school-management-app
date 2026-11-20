@@ -66,17 +66,18 @@ class StudentDashboardHeader extends StatelessWidget {
               final bool compact = width < 420;
               final double horizontalPadding = compact ? 16 : 20;
 
-              // Large overflowing logo: ~68% of header width
-              final double logoWidth = (width * 0.68).clamp(220.0, 480.0);
+              // Large overflowing logo: keep large size, shifted firmly to the right
+              final double logoWidth = (width * 0.72).clamp(240.0, 500.0);
+              final double logoRightOffset = -(logoWidth * 0.28);
 
               return Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[
-                  // 1. Large overflowing logo on the right
+                  // 1. Large overflowing logo shifted to the right
                   Positioned(
                     top: -24,
                     bottom: -24,
-                    right: -32,
+                    right: logoRightOffset,
                     width: logoWidth,
                     child: IgnorePointer(
                       child: ShaderMask(
@@ -86,10 +87,10 @@ class StudentDashboardHeader extends StatelessWidget {
                             end: Alignment.centerRight,
                             colors: <Color>[
                               Color(0x00FFFFFF), // fully transparent on the left edge
-                              Color(0x4DFFFFFF), // gentle soft fade
+                              Color(0x55FFFFFF), // gentle soft fade
                               Color(0xFFFFFFFF), // full opacity towards the right
                             ],
-                            stops: <double>[0.0, 0.28, 0.65],
+                            stops: <double>[0.0, 0.22, 0.55],
                           ).createShader(bounds);
                         },
                         child: Image.asset(
