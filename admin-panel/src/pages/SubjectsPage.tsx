@@ -85,7 +85,10 @@ export function SubjectsPage() {
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
-      grades.map((g) => [g.id, g.name ?? g.code ?? g.id] as const),
+      grades.map((g) => [
+        g.id,
+        g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id),
+      ] as const),
     );
   }, [grades]);
 
@@ -359,11 +362,12 @@ export function SubjectsPage() {
           <CardTitle>{t("subjectsCreateTitle")}</CardTitle>
           <CardDescription>{t("subjectsSchemaNote")}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="col-span-1 sm:col-span-2 lg:col-span-2">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-4">
             <Label htmlFor="create-name">{t("subjectsNameLabel")}</Label>
             <Input
               id="create-name"
+              className="mt-1.5 w-full text-base"
               placeholder={t("subjectsNamePlaceholder")}
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
@@ -374,14 +378,14 @@ export function SubjectsPage() {
             <Label htmlFor="create-grade">{t("subjectsGradeLabel")}</Label>
             <select
               id="create-grade"
-              className="mt-2 h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              className="mt-1.5 h-11 w-full rounded-xl border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
               value={createGradeId ?? ""}
               onChange={(e) => setCreateGradeId(e.target.value ? e.target.value : null)}
             >
-              <option value="">—</option>
+              <option value="">— {t("subjectsNoGrade")} —</option>
               {grades.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.name ?? g.code ?? g.id}
+                  {g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id)}
                 </option>
               ))}
             </select>
@@ -391,6 +395,8 @@ export function SubjectsPage() {
             <Label htmlFor="create-passing">{t("subjectsPassingLabel")}</Label>
             <Input
               id="create-passing"
+              inputMode="decimal"
+              className="mt-1.5"
               placeholder="50"
               value={createPassing}
               onChange={(e) => setCreatePassing(e.target.value)}
@@ -401,15 +407,17 @@ export function SubjectsPage() {
             <Label htmlFor="create-weight">{t("subjectsWeightLabel")}</Label>
             <Input
               id="create-weight"
+              inputMode="decimal"
+              className="mt-1.5"
               placeholder="1"
               value={createWeight}
               onChange={(e) => setCreateWeight(e.target.value)}
             />
           </div>
 
-          <div className="col-span-1 sm:col-span-2 lg:col-span-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm font-medium">
                 <input
                   type="checkbox"
                   checked={createIsPrerequisite}
@@ -451,36 +459,35 @@ export function SubjectsPage() {
                   <option value="">{t("subjectsAllGradesOption")}</option>
                   {grades.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.name ?? g.code ?? g.id}
+                      {g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <Table>
+              <Table className="min-w-[1100px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("subjectsTableName")}</TableHead>
-                  <TableHead>{t("subjectsTableGrade")}</TableHead>
-                  <TableHead>{t("subjectsTablePrerequisite")}</TableHead>
-                  <TableHead>{t("subjectsTablePrereqMin")}</TableHead>
-                  <TableHead>{t("subjectsTablePassing")}</TableHead>
-                  <TableHead>{t("subjectsTableWeight")}</TableHead>
-                  <TableHead>{t("subjectsTableActive")}</TableHead>
-                  <TableHead />
+                  <TableHead className="min-w-[280px]">{t("subjectsTableName")}</TableHead>
+                  <TableHead className="min-w-[200px]">{t("subjectsTableGrade")}</TableHead>
+                  <TableHead className="min-w-[260px]">{t("subjectsTablePrerequisite")}</TableHead>
+                  <TableHead className="min-w-[170px]">{t("subjectsTablePrereqMin")}</TableHead>
+                  <TableHead className="min-w-[150px]">{t("subjectsTablePassing")}</TableHead>
+                  <TableHead className="min-w-[110px]">{t("subjectsTableWeight")}</TableHead>
+                  <TableHead className="min-w-[110px]">{t("subjectsTableActive")}</TableHead>
+                  <TableHead className="min-w-[160px] text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visibleSubjects.map((s) => {
                   const d = draftFor(s);
                   const p = prerequisiteDraftFor(s.id);
-                  const subjectsInSameGrade = subjects.filter(
-                    (opt) => opt.id !== s.id && opt.grade_id === (d.grade_id ?? s.grade_id ?? null),
-                  );
+                  const candidatePrerequisites = subjects.filter((opt) => opt.id !== s.id);
                   return (
                     <TableRow key={s.id}>
-                      <TableCell>
+                      <TableCell className="min-w-[280px]">
                         <Input
+                          className="w-full min-w-[260px] font-medium"
                           value={d.name}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -493,9 +500,9 @@ export function SubjectsPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[200px]">
                         <select
-                          className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                          className="h-10 w-full min-w-[180px] rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                           value={d.grade_id ?? ""}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -510,7 +517,7 @@ export function SubjectsPage() {
                           <option value="">—</option>
                           {grades.map((g) => (
                             <option key={g.id} value={g.id}>
-                              {g.name ?? g.code ?? g.id}
+                              {g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id)}
                             </option>
                           ))}
                         </select>
@@ -518,11 +525,11 @@ export function SubjectsPage() {
                           {d.grade_id ? gradeNameById.get(d.grade_id) : t("subjectsNoGrade")}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[260px]">
                         <select
-                          className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                          className="h-10 w-full min-w-[240px] rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                           value={p.prerequisite_subject_id ?? ""}
-                          disabled={subjectsInSameGrade.length === 0}
+                          disabled={candidatePrerequisites.length === 0}
                           onChange={(e) =>
                             setPrerequisiteDrafts((prev) => ({
                               ...prev,
@@ -534,16 +541,19 @@ export function SubjectsPage() {
                           }
                         >
                           <option value="">{t("subjectsNoneOption")}</option>
-                          {subjectsInSameGrade.map((opt) => (
+                          {candidatePrerequisites.map((opt) => (
                             <option key={opt.id} value={opt.id}>
-                              {opt.name ?? opt.id}
+                              {opt.name
+                                ? `${opt.name}${opt.grade_id && gradeNameById.get(opt.grade_id) ? ` (${gradeNameById.get(opt.grade_id)})` : ""}`
+                                : opt.id}
                             </option>
                           ))}
                         </select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[170px]">
                         <Input
                           inputMode="decimal"
+                          className="w-full min-w-[130px]"
                           placeholder={t("subjectsPrereqMinPlaceholder")}
                           value={p.minimum_score}
                           onChange={(e) =>
@@ -557,9 +567,10 @@ export function SubjectsPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[150px]">
                         <Input
                           inputMode="decimal"
+                          className="w-full min-w-[100px]"
                           value={d.passing_grade}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -572,9 +583,10 @@ export function SubjectsPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[110px]">
                         <Input
                           inputMode="decimal"
+                          className="w-full min-w-[80px]"
                           value={d.weight}
                           onChange={(e) =>
                             setDrafts((prev) => ({
@@ -587,7 +599,7 @@ export function SubjectsPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[110px]">
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -600,7 +612,7 @@ export function SubjectsPage() {
                           </span>
                         </label>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="min-w-[160px] text-right">
                         <div className="flex flex-wrap sm:flex-nowrap justify-end gap-1.5 sm:gap-2">
                           <Button
                             size="sm"
