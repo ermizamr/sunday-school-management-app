@@ -5076,6 +5076,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       final studentIds = <String>{};
       for (final r in rows) {
         final map = r as Map;
+        final rawComplaint = map['complaint']?.toString() ?? '';
+        final isAnonymous = (map['is_anonymous'] == true) ||
+            rawComplaint.startsWith('[Anonymous]');
+        if (isAnonymous) continue;
         final sid = map['student_id']?.toString();
         if (sid != null && sid.isNotEmpty) studentIds.add(sid);
       }
@@ -5106,14 +5110,27 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         final respondedById = map['responded_by']?.toString();
         final statusDb = (map['status'] as String?) ?? 'pending';
 
+        final rawComplaint = (map['complaint'] as String?) ?? '';
+        final isAnonymous = (map['is_anonymous'] == true) ||
+            rawComplaint.startsWith('[Anonymous]');
+        final cleanComplaint = rawComplaint.startsWith('[Anonymous]\n')
+            ? rawComplaint.substring('[Anonymous]\n'.length)
+            : (rawComplaint.startsWith('[Anonymous]')
+                ? rawComplaint.substring('[Anonymous]'.length).trimLeft()
+                : rawComplaint);
+
+        final studentDisplayName = isAnonymous
+            ? l10n.commAnonymousStudent
+            : maybeFixMojibake(
+                studentNames[studentId] ?? l10n.roleStudent,
+              );
+
         return _ServantComplaint(
           id: map['id'] as String,
           studentId: studentId,
-          studentName: maybeFixMojibake(
-            studentNames[studentId] ?? l10n.roleStudent,
-          ),
+          studentName: studentDisplayName,
           category: (map['category'] as String?) ?? 'other',
-          complaint: maybeFixMojibake((map['complaint'] as String?) ?? ''),
+          complaint: maybeFixMojibake(cleanComplaint),
           date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
           status: _complaintStatusFromDb(statusDb),
           response: maybeFixMojibakeNullable(map['response'] as String?),

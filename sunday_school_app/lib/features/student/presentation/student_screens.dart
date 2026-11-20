@@ -6442,14 +6442,32 @@ class _ComplaintFormState extends State<_ComplaintForm> {
           ? description
           : '$title\n\n$description';
 
-      await client.from('complaints').insert({
+      final payload = <String, dynamic>{
         'student_id': userId,
         'grade_id': gradeId,
         'academic_year_id': academicYearId,
         'category': _category.isEmpty ? null : _category,
         'complaint': complaintText,
         'status': 'pending',
-      });
+        'is_anonymous': _anonymous,
+      };
+
+      try {
+        await client.from('complaints').insert(payload);
+      } catch (_) {
+        // Fallback if is_anonymous column does not yet exist on remote db:
+        final fallbackText = _anonymous
+            ? '[Anonymous]\n$complaintText'
+            : complaintText;
+        await client.from('complaints').insert({
+          'student_id': userId,
+          'grade_id': gradeId,
+          'academic_year_id': academicYearId,
+          'category': _category.isEmpty ? null : _category,
+          'complaint': fallbackText,
+          'status': 'pending',
+        });
+      }
 
       if (!mounted) return;
       setState(() {

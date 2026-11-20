@@ -441,6 +441,7 @@
   "commComplaintDescriptionHint": "ቅሬታዎን በዝርዝር ይጻፉ...",
   "commEnterDescriptionError": "እባክዎ መግለጫ ያስገቡ",
   "commSubmitAnonymously": "ስም ሳይጠቀስ አቅርብ",
+  "commAnonymousStudent": "ስም ያልተጠቀሰ ተማሪ",
   "commComplaintSubmitted": "ቅሬታው ተላክ!",
 
     "commNoActiveFeedbackForms": "ንቁ የግብረመልስ ቅጾች የሉም",

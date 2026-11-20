@@ -840,6 +840,9 @@ class AppLocalizationsAm extends AppLocalizations {
   String get commSubmitAnonymously => 'ስም ሳይጠቀስ አቅርብ';
 
   @override
+  String get commAnonymousStudent => 'ስም ያልተጠቀሰ ተማሪ';
+
+  @override
   String get commComplaintSubmitted => 'ቅሬታው ተላክ!';
 
   @override

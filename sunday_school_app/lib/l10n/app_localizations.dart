@@ -1646,6 +1646,12 @@ abstract class AppLocalizations {
   /// **'Submit anonymously'**
   String get commSubmitAnonymously;
 
+  /// No description provided for @commAnonymousStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous Student'**
+  String get commAnonymousStudent;
+
   /// No description provided for @commComplaintSubmitted.
   ///
   /// In en, this message translates to:

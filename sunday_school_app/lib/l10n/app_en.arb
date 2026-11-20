@@ -441,6 +441,7 @@
   "commComplaintDescriptionHint": "Describe your complaint in detail...",
   "commEnterDescriptionError": "Please enter a description",
   "commSubmitAnonymously": "Submit anonymously",
+  "commAnonymousStudent": "Anonymous Student",
   "commComplaintSubmitted": "Complaint submitted!",
 
   "commNoActiveFeedbackForms": "No active feedback forms",
