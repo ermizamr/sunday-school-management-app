@@ -66,9 +66,9 @@ class StudentDashboardHeader extends StatelessWidget {
               final bool compact = width < 420;
               final double horizontalPadding = compact ? 16 : 20;
 
-              // Large overflowing logo: keep large size, shifted firmly to the right
-              final double logoWidth = (width * 0.72).clamp(240.0, 500.0);
-              final double logoRightOffset = -(logoWidth * 0.28);
+              // Large overflowing logo: reduced ~10% for ideal proportion, shifted rightward
+              final double logoWidth = (width * 0.65).clamp(215.0, 450.0);
+              final double logoRightOffset = -(logoWidth * 0.22);
 
               return Stack(
                 clipBehavior: Clip.none,
