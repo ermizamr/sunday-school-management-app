@@ -44,6 +44,57 @@ class EthiopianCalendar {
     return fromGregorianDate(year: date.year, month: date.month, day: date.day);
   }
 
+  static DateTime toGregorianDateTime({
+    required int year,
+    required int month,
+    required int day,
+  }) {
+    final jdn = _ethiopicToJdn(year: year, month: month, day: day);
+    return _jdnToGregorian(jdn);
+  }
+
+  static DateTime toGregorianDate(EthiopianDate date) {
+    return toGregorianDateTime(
+      year: date.year,
+      month: date.month,
+      day: date.day,
+    );
+  }
+
+  static bool isLeapYear(int year) => year % 4 == 3;
+
+  static int daysInMonth(int year, int month) {
+    if (month < 1 || month > 13) return 30;
+    if (month == 13) return isLeapYear(year) ? 6 : 5;
+    return 30;
+  }
+
+  static int _ethiopicToJdn({
+    required int year,
+    required int month,
+    required int day,
+  }) {
+    return _ethiopicEpochJdn +
+        (365 * year) +
+        (year ~/ 4) +
+        ((month - 1) * 30) +
+        (day - 1);
+  }
+
+  static DateTime _jdnToGregorian(int jdn) {
+    final l = jdn + 68569;
+    final n = (4 * l) ~/ 146097;
+    final l1 = l - ((146097 * n + 3) ~/ 4);
+    final i = (4000 * (l1 + 1)) ~/ 1461001;
+    final l2 = l1 - ((1461 * i) ~/ 4) + 31;
+    final j = (80 * l2) ~/ 2447;
+    final day = l2 - ((2447 * j) ~/ 80);
+    final l3 = j ~/ 11;
+    final month = j + 2 - (12 * l3);
+    final year = 100 * (n - 49) + i + l3;
+    return DateTime(year, month, day);
+  }
+
   static int _gregorianToJdn({
     required int year,
     required int month,

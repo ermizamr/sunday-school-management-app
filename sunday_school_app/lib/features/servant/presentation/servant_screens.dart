@@ -13,6 +13,7 @@ import '../../../core/errors/app_error_message.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../core/dates/ethiopian_date_picker.dart';
 import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/push/push_notifications_service.dart';
@@ -2444,7 +2445,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   Future<void> _pickAssessmentDate() async {
     if (_isLocked) return;
     final initial = _assessmentDate ?? DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await showEthiopianDatePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
@@ -7569,7 +7570,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final now = DateTime.now();
     final initial = parsed ?? DateTime(now.year, now.month, now.day);
 
-    final picked = await showDatePicker(
+    final picked = await showEthiopianDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020, 1, 1),

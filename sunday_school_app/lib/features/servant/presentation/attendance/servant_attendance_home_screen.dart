@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../../core/dates/ethiopian_date_picker.dart';
 import '../../../../core/errors/app_error_message.dart';
 import '../../../../core/refresh/app_refresh_configurator.dart';
 import '../../../../core/supabase/supabase_client.dart';
@@ -338,7 +339,7 @@ class _ServantAttendanceHomeScreenState
       return;
     }
 
-    final picked = await showDatePicker(
+    final picked = await showEthiopianDatePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),

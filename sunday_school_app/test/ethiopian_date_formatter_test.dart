@@ -52,9 +52,31 @@ void main() {
               (theirs.year, theirs.month, theirs.day),
               reason: 'Mismatch for Gregorian ${dt.toIso8601String()}',
             );
+
+            final back = EthiopianCalendar.toGregorianDateTime(
+              year: ours.year,
+              month: ours.month,
+              day: ours.day,
+            );
+            expect(
+              (back.year, back.month, back.day),
+              (dt.year, dt.month, dt.day),
+              reason: 'Roundtrip mismatch for ${dt.toIso8601String()}',
+            );
           }
         }
       }
+    });
+
+    test('daysInMonth handles regular months and Pagume leap years', () {
+      expect(EthiopianCalendar.daysInMonth(2016, 1), 30);
+      expect(EthiopianCalendar.daysInMonth(2016, 12), 30);
+      // 2015 % 4 == 3 -> leap year (6 days)
+      expect(EthiopianCalendar.daysInMonth(2015, 13), 6);
+      // 2016 % 4 == 0 -> non-leap year (5 days)
+      expect(EthiopianCalendar.daysInMonth(2016, 13), 5);
+      // 2019 % 4 == 3 -> leap year (6 days)
+      expect(EthiopianCalendar.daysInMonth(2019, 13), 6);
     });
   });
 
