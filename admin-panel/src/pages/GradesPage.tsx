@@ -128,8 +128,8 @@ export function GradesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("gradesTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("gradesTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("gradesSubtitle")}
         </p>
       </div>
@@ -143,7 +143,7 @@ export function GradesPage() {
           <CardTitle>{t("gradesAddGradeTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 md:grid-cols-3" onSubmit={createGrade}>
+          <form className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3" onSubmit={createGrade}>
             <div className="grid gap-2">
               <Label htmlFor="gradeName">{t("gradesNameLabel")}</Label>
               <Input
@@ -170,8 +170,8 @@ export function GradesPage() {
                 onChange={(e) => setNewSortOrder(e.target.value)}
               />
             </div>
-            <div className="md:col-span-3">
-              <Button type="submit" disabled={isCreating}>
+            <div className="col-span-1 sm:col-span-2 md:col-span-3">
+              <Button className="w-full sm:w-auto" type="submit" disabled={isCreating}>
                 {isCreating ? t("commonCreating") : t("commonCreate")}
               </Button>
             </div>
@@ -190,10 +190,10 @@ export function GradesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("gradesNameLabel")}</TableHead>
-                  <TableHead>{t("gradesCodeLabel")}</TableHead>
-                  <TableHead>{t("gradesTableSort")}</TableHead>
-                  <TableHead />
+                  <TableHead className="min-w-[140px]">{t("gradesNameLabel")}</TableHead>
+                  <TableHead className="min-w-[120px]">{t("gradesCodeLabel")}</TableHead>
+                  <TableHead className="min-w-[100px]">{t("gradesTableSort")}</TableHead>
+                  <TableHead className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -201,7 +201,7 @@ export function GradesPage() {
                   const d = draftFor(g);
                   return (
                     <TableRow key={g.id}>
-                      <TableCell>
+                      <TableCell className="min-w-[140px]">
                         <Input
                           value={d.name ?? ""}
                           onChange={(e) =>
@@ -212,7 +212,7 @@ export function GradesPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[120px]">
                         <Input
                           value={d.code ?? ""}
                           onChange={(e) =>
@@ -223,7 +223,7 @@ export function GradesPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[100px]">
                         <Input
                           type="number"
                           value={d.sort_order ?? ""}

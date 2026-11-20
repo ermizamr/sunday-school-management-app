@@ -29,6 +29,8 @@ export const am = {
   commonLow: "ዝቅተኛ",
   commonNetworkError: "ግንኙነት ችግኝ አለ። እባክዎ ደግመው ይሞክሩ።",
   commonSystemMisconfigured: "የስርዓቱ ቅንብሮች ተሟልተው አልተዘጋጁም።",
+  commonMenu: "ሜኑ",
+  commonClose: "ዝጋ",
 
   // Navigation
   navDashboard: "ዳሽቦርድ",

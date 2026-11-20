@@ -51,8 +51,8 @@ export function SignInPage() {
   }
 
   return (
-    <div className="min-h-svh bg-background text-foreground flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-svh bg-background text-foreground flex items-center justify-center p-4 sm:p-6">
+      <Card className="w-full max-w-md mx-auto shadow-md">
         <CardHeader>
           <CardTitle>{t("authAdminSignInTitle")}</CardTitle>
           <CardDescription>

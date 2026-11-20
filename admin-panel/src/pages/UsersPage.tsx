@@ -283,8 +283,8 @@ export function UsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("usersTitleStudents")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("usersTitleStudents")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("usersSubtitle")}
         </p>
       </div>
@@ -297,7 +297,7 @@ export function UsersPage() {
         <CardHeader className="border-b">
           <CardTitle>{t("usersCreateUserTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <div className="grid gap-2">
             <Label htmlFor="create-academic">{t("usersAcademicIdLabel")}</Label>
             <Input
@@ -354,8 +354,8 @@ export function UsersPage() {
             </select>
           </div>
 
-          <div className="md:col-span-3">
-            <Button disabled={isCreating} onClick={() => void createUser()}>
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+            <Button className="w-full sm:w-auto" disabled={isCreating} onClick={() => void createUser()}>
               {isCreating ? t("commonCreating") : t("usersCreateUserButton")}
             </Button>
           </div>
@@ -363,7 +363,7 @@ export function UsersPage() {
       </Card>
 
       <Card>
-        <CardHeader className="border-b flex flex-col gap-4 items-start sm:flex-row sm:items-center sm:justify-between py-5">
+        <CardHeader className="border-b flex flex-col gap-4 items-stretch sm:flex-row sm:items-center sm:justify-between py-4 sm:py-5">
           <CardTitle>{t("usersAllUsersTitle")}</CardTitle>
           <div className="w-full sm:w-auto flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="w-full sm:w-52">
@@ -460,7 +460,7 @@ export function UsersPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap sm:flex-nowrap justify-end gap-1.5 sm:gap-2">
                           <Button
                             size="sm"
                             disabled={!drafts[p.id] || savingId === p.id}

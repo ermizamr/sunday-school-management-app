@@ -339,8 +339,8 @@ export function AnnouncementsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("announcementsTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("announcementsTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("announcementsSubtitle")}
         </p>
       </div>
@@ -360,7 +360,7 @@ export function AnnouncementsPage() {
         <CardHeader className="border-b">
           <CardTitle>{t("announcementsCreateTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="title">{t("announcementsTitleLabel")}</Label>
             <Input id="title" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} />
@@ -384,7 +384,7 @@ export function AnnouncementsPage() {
             </select>
           </div>
 
-          <div className="grid gap-2 md:col-span-2">
+          <div className="grid gap-2 col-span-1 sm:col-span-2">
             <Label htmlFor="message">{t("announcementsMessageLabel")}</Label>
             <Input id="message" value={createMessage} onChange={(e) => setCreateMessage(e.target.value)} />
           </div>
@@ -451,13 +451,13 @@ export function AnnouncementsPage() {
             </select>
           </div>
 
-          <div className="md:col-span-2 flex items-center justify-between gap-3">
+          <div className="col-span-1 sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={createActive} onChange={(e) => setCreateActive(e.target.checked)} />
               {t("announcementsActiveLabel")}
             </label>
 
-            <Button disabled={isLoading || isCreating} onClick={() => void createAnnouncement()}>
+            <Button className="w-full sm:w-auto" disabled={isLoading || isCreating} onClick={() => void createAnnouncement()}>
               {isCreating ? t("commonCreating") : t("commonCreate")}
             </Button>
           </div>

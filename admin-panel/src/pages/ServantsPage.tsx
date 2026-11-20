@@ -216,8 +216,8 @@ export function ServantsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("servantsTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("servantsTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("servantsSubtitle")}
         </p>
       </div>
@@ -228,7 +228,7 @@ export function ServantsPage() {
         <CardHeader className="border-b">
           <CardTitle>{t("servantsCreateServantTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <div className="grid gap-2">
             <Label htmlFor="create-servant-academic">{t("servantsAcademicIdLabel")}</Label>
             <Input
@@ -287,8 +287,8 @@ export function ServantsPage() {
             </select>
           </div>
 
-          <div className="md:col-span-3">
-            <Button disabled={isCreating} onClick={() => void createServant()}>
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+            <Button className="w-full sm:w-auto" disabled={isCreating} onClick={() => void createServant()}>
               {isCreating ? t("commonCreating") : t("servantsCreateServantButton")}
             </Button>
           </div>
@@ -341,7 +341,7 @@ export function ServantsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-wrap sm:flex-nowrap justify-end gap-1.5 sm:gap-2">
                             <Button
                               variant={isInactive ? "default" : "destructive"}
                               size="sm"

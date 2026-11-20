@@ -344,8 +344,8 @@ export function SubjectsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("subjectsTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("subjectsTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("subjectsSubtitle")}
         </p>
       </div>
@@ -359,8 +359,8 @@ export function SubjectsPage() {
           <CardTitle>{t("subjectsCreateTitle")}</CardTitle>
           <CardDescription>{t("subjectsSchemaNote")}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-5">
-          <div className="md:col-span-2">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-2">
             <Label htmlFor="create-name">{t("subjectsNameLabel")}</Label>
             <Input
               id="create-name"
@@ -407,7 +407,7 @@ export function SubjectsPage() {
             />
           </div>
 
-          <div className="md:col-span-5 flex items-center justify-between gap-3">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -424,7 +424,7 @@ export function SubjectsPage() {
               ) : null}
             </div>
 
-            <Button disabled={isCreating} onClick={() => void createSubject()}>
+            <Button className="w-full sm:w-auto" disabled={isCreating} onClick={() => void createSubject()}>
               {isCreating ? t("commonCreating") : t("commonCreate")}
             </Button>
           </div>
@@ -440,7 +440,7 @@ export function SubjectsPage() {
             <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <div className="grid gap-3">
-              <div className="grid gap-2 sm:max-w-sm">
+              <div className="grid gap-2 w-full sm:max-w-sm">
                 <Label htmlFor="filter-grade">{t("subjectsFilterByGrade")}</Label>
                 <select
                   id="filter-grade"
@@ -601,7 +601,7 @@ export function SubjectsPage() {
                         </label>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap sm:flex-nowrap justify-end gap-1.5 sm:gap-2">
                           <Button
                             size="sm"
                             disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}

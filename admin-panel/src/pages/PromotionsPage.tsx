@@ -555,8 +555,8 @@ export function PromotionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("promotionsTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("promotionsTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("promotionsSubtitle")}
         </p>
       </div>
@@ -567,12 +567,12 @@ export function PromotionsPage() {
         <CardHeader className="border-b">
           <CardTitle>{t("promotionsCriteriaTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             {t("promotionsCriteriaNote")}
           </div>
 
-          <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             {t("promotionsActiveYearLabel")} <span className="font-medium text-foreground">{promotionYear?.name ?? t("promotionsNotSet")}</span>
           </div>
 
@@ -609,7 +609,7 @@ export function PromotionsPage() {
             </div>
           </div>
 
-          <div className="md:col-span-3 grid gap-3">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 grid gap-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">{t("promotionsPerSubjectTitle")}</div>
               <div className="text-xs text-muted-foreground">{t("promotionsSubjectsCount", { count: subjects.length })}</div>
@@ -753,9 +753,10 @@ export function PromotionsPage() {
             )}
           </div>
 
-          <div className="md:col-span-3 flex items-center gap-2">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 flex items-center gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               disabled={isLoading || criteriaSaving || !selectedYearId || !selectedGradeId}
               onClick={() => void saveCriteria()}
             >
@@ -769,18 +770,18 @@ export function PromotionsPage() {
         <CardHeader className="border-b">
           <CardTitle>{t("promotionsRunTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        <CardContent className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          <div className="col-span-1 md:col-span-3 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             {t("promotionsRunNote")}
           </div>
 
           {promotionLocked ? (
-            <div className="md:col-span-3 text-xs text-amber-700 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+            <div className="col-span-1 md:col-span-3 text-xs text-amber-700 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
               {t("promotionsAlreadyDoneThisYear")}
             </div>
           ) : null}
 
-          <div className="grid gap-2 md:col-span-3">
+          <div className="grid gap-2 col-span-1 md:col-span-3">
             <Label htmlFor="notes">{t("promotionsNotesLabel")}</Label>
             <Input
               id="notes"
@@ -790,13 +791,14 @@ export function PromotionsPage() {
             />
           </div>
 
-          <div className="md:col-span-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button disabled={isLoading || isRunning || promotionLocked} onClick={() => void runPromotion()}>
+          <div className="col-span-1 md:col-span-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button className="w-full sm:w-auto" disabled={isLoading || isRunning || promotionLocked} onClick={() => void runPromotion()}>
                 {isRunning ? t("promotionsRunning") : t("promotionsRunButton")}
               </Button>
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 disabled={isLoading || isRunning || !selectedYearId}
                 onClick={() => void previewPromotion()}
               >
@@ -822,7 +824,7 @@ export function PromotionsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="mt-4 grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                   <div className="rounded-md border bg-background p-3">
                     <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("promotionsSummaryTotal")}</div>
                     <div className="mt-1 text-lg font-semibold text-foreground">{promotionSummary?.totalStudents ?? "—"}</div>
