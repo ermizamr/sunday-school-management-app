@@ -2365,6 +2365,17 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
   void _goToAdd() {
     if (_isLocked) return;
+    final subjectId = _selectedSubject?.id;
+    if (subjectId != null && _totalWeightForSubject(subjectId) >= 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).servantGradesTotalWeightExceeds,
+          ),
+        ),
+      );
+      return;
+    }
     _resetAssessmentForm();
     setState(() {
       _view = _ServantGradesView.add;
@@ -2470,6 +2481,25 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       return;
     }
 
+    final subject = _selectedSubject;
+    if (subject == null) return;
+
+    final currentOtherWeight = _gradeEntries
+        .where((e) =>
+            e.subjectId == subject.id &&
+            (!editing || e.id != _selectedEntry?.id))
+        .fold<int>(0, (sum, e) => sum + (e.weight ?? 0));
+    final newTotalWeight = currentOtherWeight + (weight ?? 0);
+
+    if (newTotalWeight > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.servantGradesTotalWeightExceeds),
+        ),
+      );
+      return;
+    }
+
     final scores = <String, double?>{};
     for (final student in _students) {
       final raw = _studentScoreControllers[student.id]?.text.trim() ?? '';
@@ -2490,9 +2520,6 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       }
       scores[student.id] = v;
     }
-
-    final subject = _selectedSubject;
-    if (subject == null) return;
 
     // Synchronous double-tap guard: set before the first await so a second
     // tap that lands while the save is in flight returns immediately.
@@ -2705,9 +2732,15 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     );
   }
 
-  InputDecoration _inputDecoration({required String hint, IconData? icon}) {
+  InputDecoration _inputDecoration({
+    required String hint,
+    IconData? icon,
+    String? helper,
+  }) {
     return InputDecoration(
       hintText: hint,
+      helperText: helper,
+      helperStyle: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       prefixIcon: icon == null
@@ -2919,10 +2952,26 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         SizedBox(
           height: 52,
           child: FilledButton.icon(
-            onPressed: _isLocked ? null : _goToAdd,
+            onPressed: _isLocked
+                ? null
+                : () {
+                    if (totalWeight >= 100) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.servantGradesTotalWeightExceeds),
+                        ),
+                      );
+                      return;
+                    }
+                    _goToAdd();
+                  },
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFF59E0B), // amber-500
-              foregroundColor: Colors.white,
+              backgroundColor: totalWeight >= 100
+                  ? const Color(0xFFCBD5E1) // slate-300
+                  : const Color(0xFFF59E0B), // amber-500
+              foregroundColor: totalWeight >= 100
+                  ? const Color(0xFF64748B) // slate-500
+                  : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -3739,6 +3788,15 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         : l10n.servantGradesAddAssessmentTitle;
     final entry = editing ? _selectedEntry : null;
     final classAvg = entry == null ? null : _classAverageForEntry(entry);
+    final subject = _selectedSubject;
+    final currentOtherWeight = subject == null
+        ? 0
+        : _gradeEntries
+            .where((e) =>
+                e.subjectId == subject.id &&
+                (!editing || e.id != _selectedEntry?.id))
+            .fold<int>(0, (sum, e) => sum + (e.weight ?? 0));
+    final remainingWeight = (100 - currentOtherWeight).clamp(0, 100);
 
     final filteredStudents = _students
         .where(
@@ -3833,6 +3891,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                       decoration: _inputDecoration(
                         hint: l10n.servantGradesWeightPercentOptionalHint,
                         icon: Icons.percent_rounded,
+                        helper: l10n.servantGradesRemainingToReach100(
+                          remainingWeight,
+                        ),
                       ),
                     ),
                   ),
