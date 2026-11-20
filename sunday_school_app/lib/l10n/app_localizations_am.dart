@@ -94,6 +94,9 @@ class AppLocalizationsAm extends AppLocalizations {
   String get commonUpdate => 'አዘምን';
 
   @override
+  String get commonEdit => 'አርትዕ';
+
+  @override
   String get commonTryChangingFilters => 'ማጣሪያዎቹን በመቀየር ይሞክሩ።';
 
   @override

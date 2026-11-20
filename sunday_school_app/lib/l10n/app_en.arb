@@ -32,6 +32,7 @@
   "commonAll": "All",
   "commonStatus": "Status",
   "commonUpdate": "Update",
+  "commonEdit": "Edit",
   "commonTryChangingFilters": "Try changing the filters.",
   "commonBack": "Back",
   "commonPrev": "Prev",

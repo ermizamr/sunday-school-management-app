@@ -6611,6 +6611,7 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
   String? _error;
 
   final List<_StudentFeedbackForm> _forms = [];
+  final Map<String, _StudentSubmissionData> _mySubmissions = {};
   _StudentFeedbackForm? _activeForm;
 
   final _formKey = GlobalKey<FormState>();
@@ -6765,31 +6766,41 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
         );
       }
 
-      final submittedFormIds = <String>{};
+      _mySubmissions.clear();
       if (formIds.isNotEmpty) {
         try {
           final subs = await client
               .from('feedback_submissions')
-              .select('form_id')
+              .select('id, form_id, answers, submitted_at')
               .eq('student_id', userId)
               .inFilter('form_id', formIds);
 
           for (final s in (subs as List)) {
-            final fid = (s as Map)['form_id']?.toString();
-            if (fid != null && fid.isNotEmpty) submittedFormIds.add(fid);
+            final sMap = s as Map;
+            final subId = sMap['id']?.toString();
+            final fid = sMap['form_id']?.toString();
+            final ansRaw = sMap['answers'];
+            final answers = ansRaw is Map
+                ? Map<String, dynamic>.from(ansRaw)
+                : <String, dynamic>{};
+            final submittedAt = sMap['submitted_at']?.toString();
+            if (fid != null && fid.isNotEmpty && subId != null) {
+              _mySubmissions[fid] = _StudentSubmissionData(
+                id: subId,
+                formId: fid,
+                answers: answers,
+                submittedAt: submittedAt,
+              );
+            }
           }
         } catch (_) {}
       }
-
-      final pendingForms = forms
-          .where((f) => !submittedFormIds.contains(f.id))
-          .toList();
 
       if (!mounted) return;
       setState(() {
         _forms
           ..clear()
-          ..addAll(pendingForms);
+          ..addAll(forms);
         _isLoading = false;
       });
     } catch (e) {
@@ -6812,6 +6823,16 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
     setState(() {
       _activeForm = form;
       _resetAnswerState();
+      final existing = _mySubmissions[form.id];
+      if (existing != null) {
+        for (final entry in existing.answers.entries) {
+          final qId = entry.key;
+          final val = entry.value;
+          _answers[qId] = val;
+          _textControllers[qId] =
+              TextEditingController(text: val?.toString() ?? '');
+        }
+      }
     });
   }
 
@@ -6868,11 +6889,30 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
         }
       }
 
-      await client.from('feedback_submissions').insert({
-        'form_id': form.id,
-        'student_id': userId,
-        'answers': answers,
-      });
+      final existingSubmission = _mySubmissions[form.id];
+      bool savedViaRpc = false;
+      try {
+        await client.rpc('submit_feedback_response', params: {
+          'p_form_id': form.id,
+          'p_answers': answers,
+        });
+        savedViaRpc = true;
+      } catch (_) {}
+
+      if (!savedViaRpc) {
+        if (existingSubmission != null) {
+          await client.from('feedback_submissions').update({
+            'answers': answers,
+            'submitted_at': DateTime.now().toIso8601String(),
+          }).eq('id', existingSubmission.id);
+        } else {
+          await client.from('feedback_submissions').insert({
+            'form_id': form.id,
+            'student_id': userId,
+            'answers': answers,
+          });
+        }
+      }
 
       if (!mounted) return;
       _closeForm();
@@ -6934,6 +6974,7 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
 
     final activeForm = _activeForm;
     if (activeForm != null) {
+      final isEditing = _mySubmissions.containsKey(activeForm.id);
       return Form(
         key: _formKey,
         child: Column(
@@ -6992,8 +7033,14 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                     Widget field;
                     if (q.type == 'rating') {
                       final current = _answers[q.id];
+                      final ratingVal = current is int
+                          ? current
+                          : (current != null
+                              ? int.tryParse(current.toString())
+                              : null);
                       field = DropdownButtonFormField<int>(
-                        initialValue: current is int ? current : null,
+                        key: ValueKey('rating_${q.id}_$ratingVal'),
+                        initialValue: ratingVal,
                         decoration: _dropdownDecoration,
                         items: List.generate(
                           5,
@@ -7018,10 +7065,15 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                         },
                       );
                     } else if (q.type == 'multiple_choice') {
-                      final current = _answers[q.id];
+                      final current = _answers[q.id]?.toString();
                       final options = q.options;
+                      final mcVal =
+                          (current != null && options.contains(current))
+                              ? current
+                              : null;
                       field = DropdownButtonFormField<String>(
-                        initialValue: current is String ? current : null,
+                        key: ValueKey('mc_${q.id}_$mcVal'),
+                        initialValue: mcVal,
                         decoration: _dropdownDecoration,
                         items: options
                             .map(
@@ -7096,8 +7148,15 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          icon: const Icon(Icons.send_rounded, size: 18),
-                          label: Text(l10n.commonSubmit),
+                          icon: Icon(
+                            isEditing
+                                ? Icons.check_rounded
+                                : Icons.send_rounded,
+                            size: 18,
+                          ),
+                          label: Text(
+                            isEditing ? l10n.commonSave : l10n.commonSubmit,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -7180,6 +7239,7 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: _forms.map((form) {
+        final isSubmitted = _mySubmissions.containsKey(form.id);
         final due = EthiopianDateFormatter.formatFlexible(form.endDate);
         final subtitle = l10n.servantFeedbackQuestionsAndDueLine(
           form.questions.length,
@@ -7221,6 +7281,36 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                       ),
                     ),
                   ),
+                  if (isSubmitted)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD1FAE5),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 13,
+                            color: Color(0xFF047857),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            l10n.commAnswered,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF047857),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -7240,17 +7330,36 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
               const SizedBox(height: 12),
               SizedBox(
                 height: 44,
-                child: ElevatedButton(
-                  onPressed: () => _openForm(form),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0EA5E9),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(l10n.commonSubmit),
-                ),
+                child: isSubmitted
+                    ? OutlinedButton.icon(
+                        onPressed: () => _openForm(form),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0EA5E9),
+                          side: const BorderSide(color: Color(0xFF0EA5E9)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.edit_rounded, size: 16),
+                        label: Text(
+                          l10n.commonEdit,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => _openForm(form),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0EA5E9),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          l10n.commonSubmit,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
               ),
             ],
           ),
@@ -7258,6 +7367,20 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       }).toList(),
     );
   }
+}
+
+class _StudentSubmissionData {
+  const _StudentSubmissionData({
+    required this.id,
+    required this.formId,
+    required this.answers,
+    this.submittedAt,
+  });
+
+  final String id;
+  final String formId;
+  final Map<String, dynamic> answers;
+  final String? submittedAt;
 }
 
 class _StudentFeedbackForm {
