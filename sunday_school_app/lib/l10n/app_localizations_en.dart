@@ -819,6 +819,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commCategoryTeacher => 'Teacher';
 
   @override
+  String get commCategoryResults => 'Results';
+
+  @override
+  String get commCategoryAttendance => 'Attendance';
+
+  @override
   String get commCategoryFacility => 'Facility';
 
   @override

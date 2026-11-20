@@ -798,6 +798,12 @@ class AppLocalizationsAm extends AppLocalizations {
   String get commCategoryTeacher => 'አስተማሪ';
 
   @override
+  String get commCategoryResults => 'ውጤት';
+
+  @override
+  String get commCategoryAttendance => 'መገኘት';
+
+  @override
   String get commCategoryFacility => 'መገልገያ';
 
   @override
