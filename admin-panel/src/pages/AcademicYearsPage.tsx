@@ -239,8 +239,8 @@ export function AcademicYearsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("academicYearTitle")}</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("academicYearTitle")}</h1>
+        <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">
           {t("academicYearSubtitle")}
         </p>
       </div>
@@ -260,7 +260,7 @@ export function AcademicYearsPage() {
               {activeYear?.name ?? t("commonNone")}
             </span>
           </div>
-          <div className="grid gap-2 sm:max-w-lg md:grid-cols-2">
+          <div className="grid gap-3 sm:max-w-xl grid-cols-1 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="semester1EndDate">{t("academicYearSemester1EndDate")}</Label>
               <Input
@@ -272,6 +272,7 @@ export function AcademicYearsPage() {
               />
               <Button
                 variant="outline"
+                className="w-full"
                 disabled={!activeYear || !semester1EndDateDraft || isEndingSemester1}
                 onClick={() => void endFirstSemester()}
               >
@@ -290,6 +291,7 @@ export function AcademicYearsPage() {
               />
               <Button
                 variant="outline"
+                className="w-full"
                 disabled={!activeYear || !semester2StartDateDraft || isStartingSemester2}
                 onClick={() => void startSecondSemester()}
               >
@@ -300,7 +302,7 @@ export function AcademicYearsPage() {
           <div className="text-xs text-muted-foreground">
             {t("academicYearTransitionNote")}
           </div>
-          <div className="grid gap-2 sm:max-w-sm">
+          <div className="grid gap-2 w-full sm:max-w-sm">
             <Label htmlFor="currentPeriod">{t("academicYearCurrentPeriod")}</Label>
             <select
               id="currentPeriod"
@@ -319,6 +321,7 @@ export function AcademicYearsPage() {
             <div>
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 disabled={!activeYear || isUpdatingPeriod}
                 onClick={() => void updateActivePeriod()}
               >
@@ -329,6 +332,7 @@ export function AcademicYearsPage() {
           <div>
             <Button
               variant="destructive"
+              className="w-full sm:w-auto"
               disabled={!activeYear || isEnding}
               onClick={() => void endActiveYear()}
             >
@@ -343,7 +347,7 @@ export function AcademicYearsPage() {
           <CardTitle>{t("academicYearStartNew")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 md:grid-cols-[1fr_auto]" onSubmit={createYear}>
+          <form className="grid gap-3 grid-cols-1 md:grid-cols-[1fr_auto]" onSubmit={createYear}>
             <div className="grid gap-2">
               <Label htmlFor="yearName">{t("academicYearYearName")}</Label>
               <Input
@@ -353,7 +357,7 @@ export function AcademicYearsPage() {
                 onChange={(e) => setNewName(e.target.value)}
                 required
               />
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="startDate">{t("academicYearStartDate")}</Label>
                   <Input
@@ -376,8 +380,8 @@ export function AcademicYearsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-end">
-              <Button type="submit" disabled={isCreating}>
+            <div className="flex sm:items-end">
+              <Button className="w-full md:w-auto" type="submit" disabled={isCreating}>
                 {isCreating ? t("commonCreating") : t("commonCreate")}
               </Button>
             </div>

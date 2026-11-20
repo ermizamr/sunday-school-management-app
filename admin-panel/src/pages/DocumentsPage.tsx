@@ -180,15 +180,15 @@ export function DocumentsPage() {
 
   if (!lang) {
     return (
-      <div className="space-y-8 max-w-4xl mx-auto pb-10">
+      <div className="space-y-6 sm:space-y-8 max-w-4xl mx-auto pb-10">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{t("documentsTitle")}</h1>
-          <p className="text-muted-foreground mt-2 text-lg">{t("documentsSubtitle")}</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground">{t("documentsTitle")}</h1>
+          <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base md:text-lg">{t("documentsSubtitle")}</p>
         </div>
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">{t("documentsChooseLanguage")}</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">{t("documentsChooseLanguage")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="w-full sm:w-auto">
@@ -210,19 +210,19 @@ export function DocumentsPage() {
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             {t("documentsTitle")} — {docTitle}
           </h1>
-          <p className="text-muted-foreground mt-2">{t("documentsViewerHint")}</p>
+          <p className="text-muted-foreground mt-1.5 sm:mt-2 text-sm sm:text-base">{t("documentsViewerHint")}</p>
         </div>
 
-        <Button asChild variant="outline" className="shrink-0">
+        <Button asChild variant="outline" className="w-full sm:w-auto shrink-0">
           <Link to="/admin/documents">{t("documentsBack")}</Link>
         </Button>
       </div>
 
       <Card className="shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <article className="space-y-4">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
