@@ -9,6 +9,9 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { cn } from "../components/ui/utils";
+import { Maximize2, Minimize2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -110,12 +113,16 @@ export function AnnouncementsPage() {
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
-      grades.map((g) => [g.id, g.name ?? g.code ?? g.id] as const),
+      grades.map((g) => [
+        g.id,
+        g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id),
+      ] as const),
     );
   }, [grades]);
 
   const [createTitle, setCreateTitle] = React.useState("");
   const [createMessage, setCreateMessage] = React.useState("");
+  const [isMessageExpanded, setIsMessageExpanded] = React.useState(false);
   const [createCategory, setCreateCategory] = React.useState("general");
   const [createPriority, setCreatePriority] = React.useState("medium");
   const [createExpiresOn, setCreateExpiresOn] = React.useState("");
@@ -378,15 +385,52 @@ export function AnnouncementsPage() {
               <option value="">{t("announcementsGlobalAllGrades")}</option>
               {grades.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.name ?? g.code ?? g.id}
+                  {g.name && g.code ? `${g.name} (${g.code})` : (g.name ?? g.code ?? g.id)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="grid gap-2 col-span-1 sm:col-span-2">
-            <Label htmlFor="message">{t("announcementsMessageLabel")}</Label>
-            <Input id="message" value={createMessage} onChange={(e) => setCreateMessage(e.target.value)} />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="message">{t("announcementsMessageLabel")}</Label>
+              <div className="flex items-center gap-3">
+                {createMessage.length > 0 ? (
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {createMessage.length} ፊደላት
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setIsMessageExpanded((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors cursor-pointer py-1 px-2 rounded-md hover:bg-muted border border-border/50 bg-background/50"
+                  title={isMessageExpanded ? t("announcementsCollapse") : t("announcementsExpand")}
+                >
+                  {isMessageExpanded ? (
+                    <>
+                      <Minimize2 className="h-3.5 w-3.5" />
+                      <span>{t("announcementsCollapse")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="h-3.5 w-3.5" />
+                      <span>{t("announcementsExpand")}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <Textarea
+              id="message"
+              rows={isMessageExpanded ? 12 : 5}
+              value={createMessage}
+              onChange={(e) => setCreateMessage(e.target.value)}
+              placeholder={t("announcementsMessagePlaceholder")}
+              className={cn(
+                "w-full transition-[min-height] duration-200 resize-y",
+                isMessageExpanded ? "min-h-[280px]" : "min-h-[140px]"
+              )}
+            />
           </div>
 
           <div className="grid gap-2">
@@ -486,11 +530,13 @@ export function AnnouncementsPage() {
               <TableBody>
                 {announcements.map((a) => (
                   <TableRow key={a.id}>
-                    <TableCell className="font-medium">
-                      <div>{a.title ?? a.id}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {a.message ?? ""}
-                      </div>
+                    <TableCell className="font-medium max-w-xs sm:max-w-md">
+                      <div className="font-semibold text-foreground">{a.title ?? a.id}</div>
+                      {a.message ? (
+                        <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words line-clamp-3">
+                          {a.message}
+                        </div>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {a.grade_id ? gradeNameById.get(a.grade_id) ?? a.grade_id : t("announcementsGlobalLabel")}
