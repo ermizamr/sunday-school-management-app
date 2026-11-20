@@ -1,7 +1,29 @@
 import { cn } from "../components/ui/utils";
+import { t } from "../i18n/t";
+
+function humanizeErrorMessage(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return t("commonUnknownError");
+
+  const lower = trimmed.toLowerCase();
+
+  if (lower.includes("failed to fetch") || lower.includes("fetch failed") || lower.includes("networkerror")) {
+    return t("commonNetworkError");
+  }
+
+  if (trimmed === "Invalid login credentials") {
+    return t("authInvalidLoginCredentials");
+  }
+
+  if (lower.includes("email not confirmed")) {
+    return t("authEmailNotConfirmed");
+  }
+
+  return trimmed;
+}
 
 export function ErrorBanner({
-  title = "Error",
+  title = t("commonError"),
   message,
   className,
 }: {
@@ -9,6 +31,8 @@ export function ErrorBanner({
   message: string;
   className?: string;
 }) {
+  const displayMessage = humanizeErrorMessage(message);
+
   return (
     <div
       className={cn(
@@ -18,7 +42,7 @@ export function ErrorBanner({
       role="alert"
     >
       <div className="font-semibold">{title}</div>
-      <div className="text-muted-foreground">{message}</div>
+      <div className="text-muted-foreground">{displayMessage}</div>
     </div>
   );
 }

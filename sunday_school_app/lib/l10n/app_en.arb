@@ -1,0 +1,871 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "ተከታታይ ትምህርት\nዘእግዚአብሔር ምስሌነ",
+
+  "roleSelectionTitle": "Sunday School",
+  "roleSelectionSubtitle": "Digital Management System",
+  "roleStudent": "Student",
+  "roleStudentSubtitle": "View grades, attendance & communication",
+  "roleServant": "Servant",
+  "roleServantSubtitle": "Manage class, grades & attendance",
+  "roleSelectPrompt": "Select your role to continue",
+
+  "navHome": "Home",
+  "navAttendance": "Attendance",
+  "navGrades": "Grades",
+  "navCommunication": "Communication",
+  "navProfile": "Profile",
+
+  "commonBackToHome": "Back to home",
+  "commonRetry": "Retry",
+  "commonSearch": "Search",
+  "commonSave": "Save",
+  "commonSend": "Send",
+  "commonSubmit": "Submit",
+  "commonOk": "OK",
+  "commonCancel": "Cancel",
+  "commonDelete": "Delete",
+  "commonHigh": "High",
+  "commonMedium": "Medium",
+  "commonLow": "Low",
+  "commonAll": "All",
+  "commonStatus": "Status",
+  "commonUpdate": "Update",
+  "commonTryChangingFilters": "Try changing the filters.",
+  "commonBack": "Back",
+  "commonPrev": "Prev",
+  "commonNext": "Next",
+  "commonPending": "Pending",
+  "commonQuestionShort": "Q{number}",
+  "@@commonQuestionShort": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "commonDate": "Date",
+  "commonYou": "You",
+  "commonAddDate": "Add date",
+  "commonNa": "N/A",
+  "commonNoSubjectsForGrade": "No subjects found for your grade.",
+
+  "commonWarningMessage": "⚠️ {message}",
+  "@@commonWarningMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+
+  "commonSignOut": "Sign out",
+
+  "errorSomethingWentWrong": "Something went wrong. Please try again.",
+  "errorNetwork": "Network error. Check your internet connection and try again.",
+  "errorAuthRequired": "Please sign in to continue.",
+  "errorMissingActiveAcademicYear": "No active academic year is set. Please contact your administrator.",
+  "errorMissingGradeAssignment": "You are not assigned to a grade yet. Please contact your administrator.",
+
+  "profileAccountDetailsSubtitle": "Account details",
+  "profileLoadFailedTitle": "Could not load profile",
+  "profileNotAssigned": "Not assigned",
+  "profileAcademicIdLabel": "Academic ID",
+  "profileGradeLabel": "Grade",
+  "profileAccountStatusLabel": "Account status",
+  "profileRoleLabel": "Role",
+  "profileChangePassword": "Change password",
+  "profileChangePasswordSubtitle": "Set a new password for your account",
+
+  "accountStatusActive": "Active",
+  "accountStatusInactive": "Inactive",
+  "accountStatusSuspended": "Suspended",
+  "accountStatusDisabled": "Disabled",
+
+  "servantGradesDeleteAssessmentTitle": "Delete assessment?",
+  "servantGradesDeleteAssessmentBody": "Delete \"{name}\"? This cannot be undone.",
+  "@@servantGradesDeleteAssessmentBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesDeleteAssessmentFailed": "Failed to delete assessment.",
+  "servantGradesFillRequiredFieldsError": "Please fill all required fields.",
+  "servantGradesWeightRangeError": "Weight must be between 0 and 100.",
+  "servantGradesInvalidScore": "Invalid score for {student}. Must be 0-{maxScore}.",
+  "@@servantGradesInvalidScore": {
+    "placeholders": {
+      "student": {
+        "type": "String"
+      },
+      "maxScore": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesAssessmentUpdated": "Assessment updated.",
+  "servantGradesAssessmentAdded": "Assessment added.",
+  "servantGradesSaveAssessmentFailed": "Failed to save assessment.",
+  "servantGradesSubjectNameRequired": "Subject name is required.",
+  "servantGradesSubjectAdded": "Subject added.",
+  "servantGradesSubjectAddFailed": "Failed to add subject.",
+
+  "servantGradesAddNewAssessment": "Add New Assessment",
+  "servantGradesHideGrades": "Hide Grades",
+  "servantGradesAllGrades": "All Grades",
+  "servantGradesMissing": "Missing",
+  "servantGradesTotalWeightLabel": "Total Weight:",
+  "servantGradesTotalWeightExceeds": "Total weight exceeds 100%",
+  "servantGradesRemainingToReach100": "{remaining}% remaining to reach 100%",
+  "@@servantGradesRemainingToReach100": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+
+  "servantGradesAddAssessmentTitle": "Add Assessment",
+  "servantGradesEditAssessmentTitle": "Edit Assessment",
+  "servantGradesClassAvgLabel": "Class Avg: {percent}%",
+  "@@servantGradesClassAvgLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesStudentScoresOptional": "Student Scores (Optional)",
+  "servantGradesSearchStudentsHint": "Search students...",
+  "servantGradesPageLabel": "Page {current} / {total}",
+  "@@servantGradesPageLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesScoreHint": "Score",
+  "servantGradesAddSubjectTitle": "Add Subject",
+  "servantGradesSubjectNameHint": "Subject name (e.g., Theology)",
+
+  "servantGradesManageTitle": "Manage Grades",
+  "servantGradesNewSubjectChip": "New Subject",
+  "servantGradesWeightedTitle": "Student Weighted Grades - {subjectName}",
+  "@@servantGradesWeightedTitle": {
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesWeightedBasedOn": "{count,plural,=1{Based on 1 assessment with {totalWeight}% total weight} other{Based on {count} assessments with {totalWeight}% total weight}}",
+  "@@servantGradesWeightedBasedOn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "totalWeight": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesWeightedSearchByStudentNameHint": "Search by student name...",
+  "servantGradesWeightedStudentNameHeader": "Student Name",
+  "servantGradesWeightedScoreHeader": "Weighted Score",
+  "servantGradesWeightedGradeHeader": "Grade",
+  "servantGradesWeightedClassAverageLabel": "Class Average",
+  "servantGradesWeightedHighestLabel": "Highest",
+  "servantGradesWeightedLowestLabel": "Lowest",
+  "servantGradesMissingLabel": "Missing:",
+  "servantGradesIncomplete": "Incomplete",
+  "servantGradesMissingCount": "{count} missing",
+  "@@servantGradesMissingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesMaxPoints": "Max: {maxScore} points",
+  "@@servantGradesMaxPoints": {
+    "placeholders": {
+      "maxScore": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesEditGradesTooltip": "Edit grades",
+  "servantGradesDeleteAssessmentTooltip": "Delete assessment",
+  "servantGradesClassAverageLabel": "Class average",
+  "servantGradesHideStudentScores": "Hide Student Scores",
+  "servantGradesViewStudentScores": "View Student Scores",
+  "servantGradesNoAssessmentsYetTitle": "No assessments yet",
+  "servantGradesNoAssessmentsYetBody": "Add an assessment to start tracking student scores for this subject.",
+  "servantGradesAssessmentNameHint": "Assessment name (e.g., Quiz 1)",
+  "servantGradesMaxScoreHint": "Max score",
+  "servantGradesWeightPercentOptionalHint": "Weight % (optional)",
+
+  "authStudentLoginTitle": "Student Login",
+  "authServantLoginTitle": "Servant Login",
+  "authLoginSubtitle": "Enter your credentials to continue",
+
+  "authEmailLabel": "Email",
+  "authPasswordLabel": "Password",
+  "authEmailHint": "Enter your email",
+  "authPasswordHint": "Enter your password",
+  "authNewPasswordLabel": "New password",
+  "authNewPasswordHint": "Enter a new password",
+  "authConfirmPasswordLabel": "Confirm password",
+  "authConfirmPasswordHint": "Re-enter your new password",
+
+  "authEmailRequiredError": "Please enter your email",
+  "authPasswordRequiredError": "Please enter your password",
+  "authConfirmPasswordRequiredError": "Please confirm your password",
+  "authPasswordMismatchError": "Passwords do not match",
+
+  "authPasswordMinLengthError": "Password must be at least {min} characters",
+  "@@authPasswordMinLengthError": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+
+  "authLoginButton": "Login",
+  "authForgotPassword": "Forgot your password?",
+  "authForgotPasswordDialogTitle": "Change password",
+  "authForgotPasswordDialogBody": "To change your password, please contact your class admin.",
+  "authDemoMode": "Demo mode: use any valid email & password\nwhile backend is being wired fully.",
+  "authInvalidCredentialsError": "Incorrect email or password.",
+  "authLoginFailedGeneric": "Login failed. Please try again.",
+  "authRoleMismatchStudent": "This account is not a student account. Please select Servant role to continue.",
+  "authRoleMismatchServant": "This account is not a servant account. Please select Student role to continue.",
+  "authRoleVerificationFailed": "Could not verify your account role. Please try again.",
+  "authPasswordUpdateSuccess": "Password updated.",
+  "authPasswordUpdateFailedGeneric": "Could not update password. Please try again.",
+
+  "dashboardWelcome": "Welcome!",
+  "dashboardAttendanceStat": "Attendance",
+  "dashboardAverageScoreStat": "Average score",
+
+  "dashboardCommunicationTitle": "Communication",
+
+  "dashboardPendingCount": "{count} pending",
+  "@@dashboardPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "dashboardPendingQuestions": "Pending Questions",
+  "dashboardOpenComplaints": "Open Complaints",
+  "dashboardGoToCommunication": "Go to Communication",
+
+  "dashboardQuickActions": "Quick Actions",
+  "dashboardViewGrades": "View Grades",
+  "studentDashboardLoadFailed": "Could not load dashboard data. Please try again.",
+
+  "attendanceTrackSubtitle": "Track your class participation",
+  "attendanceOverallTitle": "Overall Attendance",
+  "attendanceAcrossAllSubjects": "across all subjects",
+  "attendanceLoadFailed": "Failed to load attendance. Please try again.",
+
+  "attendancePercentLabel": "{percent}% attendance",
+  "@@attendancePercentLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+
+  "attendancePresent": "Present",
+  "attendanceLate": "Late",
+  "attendanceAbsent": "Absent",
+  "attendancePermission": "Permission",
+
+  "attendancePerformanceExcellent": "Excellent attendance!",
+  "attendancePerformanceGreat": "Great attendance!",
+  "attendancePerformanceGood": "Good attendance",
+  "attendancePerformanceNeedsImprovement": "Attendance needs improvement",
+
+  "attendanceHistoryTitle": "Attendance History",
+  "attendanceSessionsRecorded": "{count} sessions recorded",
+  "@@attendanceSessionsRecorded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceNoRecordsYet": "No attendance records yet",
+  "attendanceImproveTitle": "Improve Your Attendance",
+  "attendanceImproveBody": "Regular attendance is important for your learning and promotion. Try to attend all classes and arrive on time.",
+
+  "servantAttendanceChooseSubjectAndDate": "Choose a subject and a date",
+  "servantAttendanceMinimumDaysAbsent": "Minimum days absent",
+  "servantAttendanceMinAbsentHint": "Enter minimum absent days",
+
+  "servantAttendanceStudentsAbsentAtLeast": "Students absent for at least {days} day(s):",
+  "@@servantAttendanceStudentsAbsentAtLeast": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+
+  "servantAttendanceNoStudentsMatch": "No students match.",
+  "servantAttendanceAbsentDays": "{days} absent",
+  "@@servantAttendanceAbsentDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAttendancePreviousDates": "Previous dates",
+  "servantAttendanceNoDatesYet": "No attendance dates yet.",
+  "servantAttendanceSearchStudentsHint": "Search students",
+  "servantAttendanceLoadFailed": "Failed to load attendance data. Please try again.",
+  "servantAttendanceSaved": "Attendance saved",
+  "servantAttendanceSaveFailed": "Failed to save attendance",
+
+  "commAnnouncements": "Announcements",
+  "commQuestions": "Questions",
+  "commComplaints": "Complaints",
+  "commFeedback": "Feedback",
+
+  "servantCommSubtitle": "Announcements, questions, complaints, and feedback.",
+
+  "pushChannelCommunicationsName": "Communications",
+  "pushChannelCommunicationsDescription": "Announcements and communication updates",
+  "pushNotificationNewUpdateTitle": "New update",
+  "pushNotificationQuestionAnsweredTitle": "Answer to your question",
+  "pushNotificationComplaintRespondedTitle": "Response to your complaint",
+
+  "commNoAnnouncements": "No announcements",
+  "commAnnouncementsEmptySubtitle": "Check back later for updates",
+  "commAnnouncementsLoadFailed": "Failed to load announcements.",
+
+  "commLoadQuestionsFailed": "Failed to load questions.",
+  "commLoadComplaintsFailed": "Failed to load complaints.",
+  "commLoadFeedbackFormsFailed": "Failed to load feedback forms.",
+  "commLoadContextFailed": "Failed to load required information. Please try again.",
+  "commSubmitQuestionFailed": "Failed to submit question. Please try again.",
+  "commSubmitComplaintFailed": "Failed to submit complaint. Please try again.",
+  "commSubmitFeedbackFailed": "Failed to submit feedback. Please try again.",
+
+  "servantCommLoadQuestionsFailed": "Failed to load questions.",
+  "servantCommLoadComplaintsFailed": "Failed to load complaints.",
+  "servantCommSendResponseFailed": "Failed to send response. Please try again.",
+  "servantCommUpdateComplaintFailed": "Failed to update complaint. Please try again.",
+
+  "commAnnouncementCategoryUrgent": "Urgent",
+  "commAnnouncementCategoryGrades": "Grades",
+  "commAnnouncementCategorySchedule": "Schedule",
+  "commAnnouncementCategoryEvent": "Event",
+  "commAnnouncementCategoryGeneral": "General",
+
+  "commPostedBy": "Posted by {name}",
+  "@@commPostedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "commAskQuestion": "Ask a Question",
+  "commPending": "Pending",
+  "commAnswered": "Answered",
+  "commInReview": "In review",
+  "commResolved": "Resolved",
+  "commNoQuestionsYet": "No questions yet",
+  "commResponseLabel": "Response:",
+
+  "servantCommNoComplaints": "No complaints",
+  "servantCommRespond": "Respond",
+  "servantCommTypeResponseHint": "Type your response...",
+  "servantCommEnterResponseError": "Please enter a response.",
+  "servantCommSavedLocallySyncFailed": "Saved locally; sync failed.",
+  "servantCommSendResponse": "Send response",
+
+  "servantCommDeleteQuestionTitle": "Delete question?",
+  "servantCommDeleteQuestionBody": "This will permanently remove this question.",
+  "servantCommDeleteQuestionPermissionDenied": "You may not have permission to delete questions.",
+
+  "servantCommDeleteComplaintTitle": "Delete complaint?",
+  "servantCommDeleteComplaintBody": "This will permanently remove this complaint.",
+  "servantCommDeleteFromServerFailed": "Could not delete from server.",
+
+  "commSubjectBibleStudies": "Bible Studies",
+  "commSubjectChristianHistory": "Christian History",
+  "commSubjectGeneral": "General",
+
+  "commSubjectLabel": "Subject",
+  "commYourQuestionLabel": "Your Question",
+  "commQuestionHint": "Type your question here...",
+  "commSelectSubjectError": "Please select a subject",
+  "commEnterQuestionError": "Please enter your question",
+  "commQuestionSubmitted": "Question submitted!",
+
+  "commSubmitComplaint": "Submit Complaint",
+  "commNoComplaintsSubmitted": "No complaints submitted",
+
+  "commCategoryLabel": "Category",
+  "commCategoryTeacher": "Teacher",
+  "commCategoryFacility": "Facility",
+  "commCategoryCourse": "Course",
+  "commCategoryAdministrative": "Administrative",
+  "commCategoryOther": "Other",
+  "commSelectCategoryError": "Please select a category",
+
+  "commTitleLabel": "Title",
+  "commComplaintTitleHint": "Brief title for your complaint",
+  "commEnterTitleError": "Please enter a title",
+  "commDescriptionLabel": "Description",
+  "commComplaintDescriptionHint": "Describe your complaint in detail...",
+  "commEnterDescriptionError": "Please enter a description",
+  "commSubmitAnonymously": "Submit anonymously",
+  "commComplaintSubmitted": "Complaint submitted!",
+
+  "commNoActiveFeedbackForms": "No active feedback forms",
+  "commFeedbackEmptySubtitle": "Your servant may share feedback forms in the future. Check back later.",
+
+  "bootstrapErrorTitle": "App startup failed",
+  "bootstrapErrorFix": "Fix: check your internet connection and try again.",
+  "bootstrapErrorVerifyPath": "If the problem persists, contact your administrator.",
+
+  "servantDashboardTitle": "Servant Dashboard",
+  "servantDashboardSubtitle": "Class Management",
+  "servantDashboardLoadFailed": "Could not load dashboard data. Please try again.",
+  "servantTotalStudents": "Total Students",
+
+  "servantDashboardAvgAttendanceLabel": "Avg Attendance",
+  "servantDashboardPendingItemsLabel": "Pending Items",
+  "servantDashboardQuickActionsTitle": "Quick Actions",
+  "servantDashboardMarkAttendanceTitle": "Mark Attendance",
+  "servantDashboardMarkAttendanceSubtitle": "Record today's attendance",
+  "servantDashboardAddGradesTitle": "Add Grades",
+  "servantDashboardAddGradesSubtitle": "Enter or update student grades",
+  "servantRegisterStudentQuickActionTitle": "Register Student",
+  "servantRegisterStudentQuickActionSubtitle": "Add a new student to a grade",
+  "servantRegisterStudentTitle": "Register Student",
+  "servantRegisterStudentFullNameLabel": "Student full name",
+  "servantRegisterStudentFullNameHint": "e.g., John Doe",
+  "servantRegisterStudentGradeLabel": "Registering grade",
+  "servantRegisterStudentNoGradesMessage": "No grades found. Please contact your class admin.",
+  "servantRegisterStudentSubmit": "Register",
+  "servantRegisterStudentNameRequired": "Please enter the student's full name",
+  "servantRegisterStudentGradeRequired": "Please select a grade",
+  "servantRegisterStudentFailedGeneric": "Could not register student. Please try again.",
+  "servantRegisterStudentSuccessTitle": "Student registered",
+  "servantRegisterStudentSuccessMessage": "Academic ID: {academicId}\nInitial password: same as Academic ID",
+  "@@servantRegisterStudentSuccessMessage": {
+    "placeholders": {
+      "academicId": { "type": "String" }
+    }
+  },
+  "servantDashboardGradeAnalyticsSubtitle": "Performance insights & trends",
+  "servantDashboardTodayScheduleTitle": "Today's Schedule",
+  "servantDashboardSundaySchoolClassTitle": "Sunday School Class",
+  "servantDashboardSundaySchoolClassTime": "9:00 AM - 10:30 AM",
+  "servantDashboardBibleStudyReviewTitle": "Bible Study Review",
+  "servantDashboardBibleStudyReviewTime": "10:30 AM - 11:00 AM",
+  "servantDashboardPendingMessage": "{qCount,plural,=1{You have 1 question} other{You have {qCount} questions}} and {cCount,plural,=1{1 complaint} other{{cCount} complaints}} pending",
+  "@@servantDashboardPendingMessage": {
+    "placeholders": {
+      "qCount": {
+        "type": "int"
+      },
+      "cCount": {
+        "type": "int"
+      }
+    }
+  },
+  "servantDashboardViewButton": "View",
+
+  "servantAnalyticsTitle": "Grade Analytics",
+  "servantAnalyticsLoadFailed": "Failed to load analytics.",
+
+  "servantAnalyticsSubtitle": "Performance Insights & Trends",
+
+  "servantAnalyticsTabOverview": "Overview",
+  "servantAnalyticsTabBySubject": "By Subject",
+  "servantAnalyticsTabStudents": "Students",
+
+  "servantAnalyticsMetricClassAverage": "Class Average",
+  "servantAnalyticsStudentsWithGradesLabel": "{graded}/{total} students",
+  "@@servantAnalyticsStudentsWithGradesLabel": {
+    "placeholders": {
+      "graded": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "servantAnalyticsMetricAtRisk": "At-Risk",
+  "servantAnalyticsAtRiskPercentOfClass": "{percent}% of class",
+  "@@servantAnalyticsAtRiskPercentOfClass": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "servantAnalyticsMetricTopPerformers": "Top Performers",
+  "servantAnalyticsTopPerformersThreshold": "Students ≥ 90%",
+  "servantAnalyticsMetricMissingWork": "Missing Work",
+  "servantAnalyticsMissingWorkSubtitle": "Students incomplete",
+
+  "servantAnalyticsGradeDistributionTitle": "Grade Distribution",
+  "servantAnalyticsSubjectPerformanceTitle": "Subject Performance",
+  "servantAnalyticsPerformanceByAssessmentTypeTitle": "Performance by Assessment Type",
+
+  "servantAnalyticsKeyInsightsTitle": "Key Insights",
+  "servantAnalyticsNoInsightsYet": "No insights yet.",
+  "servantAnalyticsInsightClassPerformingWell": "Class is performing well with an average of 80%+",
+  "servantAnalyticsInsightAtRiskStudents": "{count,plural,=1{1 student needs additional support (below 70%)} other{{count} students need additional support (below 70%)}}",
+  "@@servantAnalyticsInsightAtRiskStudents": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsInsightIncompleteAssessments": "{count,plural,=1{1 student has incomplete assessments} other{{count} students have incomplete assessments}}",
+  "@@servantAnalyticsInsightIncompleteAssessments": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsInsightTopPerformers": "{count,plural,=1{1 student is excelling (top 1)} other{{count} students are excelling (top {count})}}",
+  "@@servantAnalyticsInsightTopPerformers": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "servantAnalyticsSelectSubjectTitle": "Select a Subject",
+  "servantAnalyticsHighestLabel": "Highest",
+  "servantAnalyticsLowestLabel": "Lowest",
+  "servantAnalyticsIncompleteLabel": "Incomplete",
+  "servantAnalyticsBackToSubjects": "Back to Subjects",
+  "servantAnalyticsAssessmentBreakdownTitle": "Assessment Breakdown",
+  "servantAnalyticsCompletedOutOf": "{completed}/{total} completed",
+  "@@servantAnalyticsCompletedOutOf": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "servantAnalyticsTopPerformersSubtitle": "Students with highest averages",
+  "servantAnalyticsStudentsNeedingSupportTitle": "Students Needing Support",
+  "servantAnalyticsStudentsNeedingSupportSubtitle": "Below 70% average - requires attention",
+  "servantAnalyticsNeedsHelp": "Needs help",
+  "servantAnalyticsIncompleteAssessmentsTitle": "Incomplete Assessments",
+  "servantAnalyticsIncompleteAssessmentsSubtitle": "Students with missing work",
+  "servantAnalyticsSubjectsLabel": "{count,plural,=1{subject} other{subjects}}",
+  "@@servantAnalyticsSubjectsLabel": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsAndMore": "And {count} more...",
+  "@@servantAnalyticsAndMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "servantAnalyticsNoStudentsToDisplay": "No students to display.",
+
+  "studentFinalResultsTitle": "Final Results",
+  "studentGradesAcademicYearLabel": "Academic Year {yearName}",
+  "@@studentGradesAcademicYearLabel": {
+    "placeholders": {
+      "yearName": { "type": "String" }
+    }
+  },
+  "studentGradesSemester1ModeMessage": "Semester 1 is in progress. These grades reflect your Semester 1 assessments so far.",
+  "studentGradesSemester2ModeMessage": "Semester 2 is in progress. These grades reflect your Semester 2 assessments so far.",
+  "studentGradesBreakModeMessage": "Break period. Grade updates are currently paused.",
+  "studentGradesAccountInactiveTitle": "Access denied",
+  "studentGradesAccountInactiveMessage": "Your account is inactive. Please contact የተከታታይ ትምህርት ዘእግዚአብሔር ምስሌነ ክፍል ኃላፊ.",
+  "studentFinalResultsFinalGradeLabel": "Final Grade",
+
+  "studentFinalResultsPromotionStatusLabel": "Promotion Status",
+  "studentFinalResultsPromotionPromotedTitle": "Promoted",
+  "studentFinalResultsPromotionPromotedMessage": "Congratulations! You have been promoted to the next grade.",
+  "studentFinalResultsPromotionAtRiskTitle": "At Risk",
+  "studentFinalResultsPromotionAtRiskMessage": "You are at risk of not being promoted. Please consult with your teacher.",
+  "studentFinalResultsPromotionNotPromotedTitle": "Not Promoted",
+  "studentFinalResultsPromotionNotPromotedMessage": "You have not met the promotion requirements. Please consult with your teacher.",
+
+  "studentFinalResultsFinalSubjectGradesTitle": "Final Subject Grades",
+  "studentFinalResultsFinalSummaryTitle": "Final Summary",
+  "studentGradesHighestGradeLabel": "Highest Grade",
+  "studentGradesLowestGradeLabel": "Lowest Grade",
+  "studentGradesSemester1AverageLabel": "Semester 1 Average",
+  "studentGradesSemester2AverageLabel": "Semester 2 Average",
+  "studentGradesOverallAverageLabel": "Overall Average",
+  "studentFinalResultsAcademicYearEndedMessage": "The academic year has ended. These are your final grades for {yearName}. Enjoy your break and we look forward to seeing you in the next academic year!",
+  "@@studentFinalResultsAcademicYearEndedMessage": {
+    "placeholders": {
+      "yearName": { "type": "String" }
+    }
+  },
+
+  "studentGradesKeepUpExcellentWork": "Keep up the excellent work!",
+  "studentGradesAssessmentsCount": "{count,plural,=1{1 assessment} other{{count} assessments}}",
+  "@@studentGradesAssessmentsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "studentGradesAssessmentBreakdownTitle": "Assessment Breakdown",
+  "studentGradesMissingAssessmentsWarning": "{count,plural,=1{⚠️ You are missing 1 assessment in this subject. Your grade is calculated based only on completed assessments.} other{⚠️ You are missing {count} assessments in this subject. Your grade is calculated based only on completed assessments.}}",
+  "@@studentGradesMissingAssessmentsWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "studentGradesPointsLabel": "{score}/{maxScore} pts",
+  "@@studentGradesPointsLabel": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "maxScore": { "type": "int" }
+    }
+  },
+  "studentGradesPerformanceSummaryTitle": "Performance Summary",
+  "studentGradesTotalSubjectsLabel": "Total Subjects",
+
+  "gradesLoadFailed": "Failed to load grades. Please try again.",
+
+  "servantGradesLoadSubjectsFailed": "Failed to load subjects.",
+  "servantGradesLoadStudentsFailed": "Failed to load students.",
+  "servantGradesLoadGradeEntriesFailed": "Failed to load grade entries.",
+  "servantGradesLockedByAdminSettings": "Grade management is locked by admin settings.",
+  "servantGradesThisAcademicYear": "this academic year",
+  "servantGradesAcademicYearEndedLocked": "Academic year {yearName} has ended. Grade management is locked.",
+  "@@servantGradesAcademicYearEndedLocked": {
+    "placeholders": {
+      "yearName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesLocked": "Grade management is locked.",
+  "servantGradesDefaultAssessmentType": "Assessment",
+
+  "servantGradesMissingAssessmentsTitle": "Missing Assessments - {subjectName}",
+  "@@servantGradesMissingAssessmentsTitle": {
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
+  },
+  "servantGradesStudentsWithIncompleteAssessments": "Students with incomplete assessments: {count}",
+  "@@servantGradesStudentsWithIncompleteAssessments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantGradesNoMissingAssessmentsFound": "No missing assessments found.",
+
+  "servantAnnouncementsEnterTitleAndMessageError": "Please enter a title and message.",
+  "servantAnnouncementsPostFailed": "Failed to post announcement. Please try again.",
+  "servantAnnouncementsSavedLocallySyncFailed": "Saved locally; sync failed.",
+  "servantAnnouncementsCreateTitle": "Create Announcement",
+  "servantAnnouncementsCategoryLabel": "Category",
+  "servantAnnouncementsSelectCategoryHint": "Select category",
+  "servantAnnouncementsTitleHint": "Title",
+  "servantAnnouncementsMessageLabel": "Message",
+  "servantAnnouncementsMessageHint": "Write your announcement...",
+  "servantAnnouncementsPostButton": "Post",
+  "servantAnnouncementsEmptyTitle": "No announcements yet",
+  "servantAnnouncementsEmptySubtitle": "Create an announcement to share updates with students.",
+  "servantAnnouncementsReadCount": "{read} / {total} read",
+  "@@servantAnnouncementsReadCount": {
+    "placeholders": {
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAnnouncementsTarget": "Target: {audience}",
+  "@@servantAnnouncementsTarget": {
+    "placeholders": {
+      "audience": {
+        "type": "String"
+      }
+    }
+  },
+  "servantAnnouncementsStudentsReadCount": "{count,plural,=1{1 student read} other{{count} students read}}",
+  "@@servantAnnouncementsStudentsReadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantAnnouncementsDeleteTitle": "Delete announcement?",
+  "servantAnnouncementsDeleteBody": "This will delete the announcement for everyone.",
+  "servantAnnouncementsDeleteFailed": "Failed to delete announcement.",
+
+  "profileErrorNotSignedIn": "You are not signed in.",
+  "profileErrorNotFound": "Profile not found.",
+
+  "servantFeedbackSelectTypeTitle": "Select type",
+  "servantFeedbackTypeTeacherEvaluation": "Teacher Evaluation",
+  "servantFeedbackTypeCourseEvaluation": "Course Evaluation",
+  "servantFeedbackTypeSemesterEvaluation": "Semester Evaluation",
+  "servantFeedbackTypeGeneral": "General",
+
+  "servantFeedbackCreateFormButton": "Create Feedback Form",
+  "servantFeedbackCreateFormSuccessToast": "Feedback form created successfully!",
+  "servantFeedbackLoadFormsFailed": "Failed to load feedback forms.",
+  "servantFeedbackEmptyTitle": "No feedback forms yet",
+  "servantFeedbackEmptySubtitle": "Create a form to collect student feedback",
+  "servantFeedbackActiveFormsLabel": "Active Forms",
+  "servantFeedbackStatusActive": "Active",
+  "servantFeedbackStatusExpired": "Expired",
+  "servantFeedbackQuestionsCount": "{count,plural,=1{1 question} other{{count} questions}}",
+  "@@servantFeedbackQuestionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackDeleteFormTitle": "Delete Feedback Form?",
+  "servantFeedbackDeleteFormFailed": "Failed to delete feedback form.",
+  "servantFeedbackDeleteFormBody": "This will permanently delete the form and all {responseCount} student responses. This action cannot be undone.",
+  "@@servantFeedbackDeleteFormBody": {
+    "placeholders": {
+      "responseCount": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackDueLabel": "Due: {date}",
+  "@@servantFeedbackDueLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "servantFeedbackResponsesCount": "{submitted}/{total} responses",
+  "@@servantFeedbackResponsesCount": {
+    "placeholders": {
+      "submitted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackViewAnalyticsButton": "View Analytics",
+
+  "servantFeedbackCreateFormTitle": "Create Feedback Form",
+  "servantFeedbackCreateFormSubmitButton": "Create Form",
+  "servantFeedbackTitleLabel": "Title",
+  "servantFeedbackTitleHint": "e.g., Mid-Semester Teacher Evaluation",
+  "servantFeedbackDescriptionLabel": "Description",
+  "servantFeedbackDescriptionHint": "Brief description of the feedback form",
+  "servantFeedbackTypeLabel": "Type",
+  "servantFeedbackStartDateLabel": "Start:",
+  "servantFeedbackEndDateLabel": "End:",
+  "servantFeedbackQuestionsSectionTitle": "Questions",
+  "servantFeedbackTextResponsesReceived": "{count,plural,=0{0 text responses received} =1{1 text response received} other{{count} text responses received}}",
+  "@@servantFeedbackTextResponsesReceived": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackQuestionsAddedCount": "{count,plural,=0{0 questions added} =1{1 question added} other{{count} questions added}}",
+  "@@servantFeedbackQuestionsAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackAddQuestionButton": "Add Question",
+  "servantFeedbackRequiredLabel": "Required",
+  "servantFeedbackNewQuestionTitle": "New Question",
+  "servantFeedbackQuestionTextLabel": "Question Text",
+  "servantFeedbackQuestionTextHint": "Enter your question...",
+  "servantFeedbackQuestionTypeLabel": "Question Type",
+  "servantFeedbackQuestionTypeRating": "Rating (1-5)",
+  "servantFeedbackQuestionTypeText": "Text",
+  "servantFeedbackQuestionTypeMultipleChoice": "Multiple choice",
+  "servantFeedbackRequiredQuestionLabel": "Required?",
+  "servantFeedbackYes": "Yes",
+  "servantFeedbackNo": "No",
+  "servantFeedbackOptionsLabel": "Options",
+  "servantFeedbackOptionHint": "Option {number}",
+  "@@servantFeedbackOptionHint": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackAddOptionButton": "Add Option",
+  "servantFeedbackMultipleChoiceNeedsTwoOptions": "Multiple choice questions need at least 2 options.",
+
+  "servantFeedbackFormNotFoundTitle": "Form not found",
+  "servantFeedbackFormNotFoundSubtitle": "Please go back and try again.",
+  "servantFeedbackAnalyticsTitle": "Feedback Analytics",
+  "servantFeedbackQuestionsAndDueLine": "{count,plural,=1{1 question} other{{count} questions}} • Due: {date}",
+  "@@servantFeedbackQuestionsAndDueLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "servantFeedbackSubmissionStatisticsTitle": "Submission Statistics",
+  "servantFeedbackSubmittedLabel": "Submitted",
+  "servantFeedbackPendingLabel": "Pending",
+  "servantFeedbackRateLabel": "Rate",
+  "servantFeedbackNoResponsesTitle": "No responses yet",
+  "servantFeedbackNoResponsesSubtitle": "Analytics will appear here as students submit feedback",
+  "servantFeedbackLoadResponsesFailed": "Failed to load responses.",
+  "servantFeedbackAverageRatingLabel": "Average Rating",
+  "servantFeedbackDistributionLabel": "Distribution:",
+  "servantFeedbackResponsesCountLabel": "{count,plural,=1{1 response} other{{count} responses}}",
+  "@@servantFeedbackResponsesCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servantFeedbackEnterTitleError": "Please enter a title.",
+  "servantFeedbackEnterDescriptionError": "Please enter a description.",
+  "servantFeedbackAddAtLeastOneQuestionError": "Please add at least one question to the feedback form.",
+  "servantFeedbackValidDatesError": "Please select valid start and end dates.",
+  "servantFeedbackEndAfterStartError": "End date must be after start date.",
+  "servantFeedbackSelectTypeError": "Please select a type.",
+  "servantFeedbackCreateFormFailed": "Failed to create feedback form. Please try again."
+}

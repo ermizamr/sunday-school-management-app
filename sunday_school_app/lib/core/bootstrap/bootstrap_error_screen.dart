@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 class BootstrapErrorScreen extends StatelessWidget {
   const BootstrapErrorScreen({super.key, required this.message});
@@ -7,6 +8,13 @@ class BootstrapErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    assert(() {
+      debugPrint('Bootstrap error: $message');
+      return true;
+    }());
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -21,24 +29,15 @@ class BootstrapErrorScreen extends StatelessWidget {
                   const Icon(Icons.error_outline_rounded, size: 48),
                   const SizedBox(height: 16),
                   Text(
-                    'App startup failed',
+                    l10n.bootstrapErrorTitle,
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    message,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Fix: check Supabase configuration',
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(l10n.bootstrapErrorFix, textAlign: TextAlign.center),
                   const SizedBox(height: 8),
                   SelectableText(
-                    'Verify the values in lib/core/config/supabase_config.dart',
+                    l10n.bootstrapErrorVerifyPath,
                     textAlign: TextAlign.center,
                   ),
                 ],

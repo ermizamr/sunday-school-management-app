@@ -1,0 +1,4 @@
+# Disable gateway JWT verification.
+# The project issues ES256-signed access tokens and the gateway verification can fail.
+# The function performs its own authorization checks.
+verify_jwt = false

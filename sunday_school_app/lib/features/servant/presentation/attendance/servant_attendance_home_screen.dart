@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../../core/errors/app_error_message.dart';
+import '../../../../core/refresh/app_refresh_configurator.dart';
 import '../../../../core/supabase/supabase_client.dart';
 import 'servant_attendance_session_screen.dart';
 
@@ -77,6 +80,7 @@ class _ServantAttendanceHomeScreenState
   }
 
   Future<void> _loadInitial() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -86,7 +90,7 @@ class _ServantAttendanceHomeScreenState
       final client = SupabaseClientManager.instance.client;
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('Not signed in');
+        throw StateError('not_signed_in');
       }
 
       final academicYear = await client
@@ -106,8 +110,12 @@ class _ServantAttendanceHomeScreenState
       final academicYearId = academicYear?['id'] as String?;
       final gradeId = profile?['grade_id'] as String?;
 
-      if (academicYearId == null || gradeId == null) {
-        throw Exception('Missing active academic year or grade assignment');
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('missing_academic_year');
+      }
+
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('missing_grade_assignment');
       }
 
       final subjectRows = await client
@@ -141,9 +149,14 @@ class _ServantAttendanceHomeScreenState
         await _loadSessionsForSelectedSubject();
       }
     } catch (e) {
+      debugPrint('Servant attendance home load failed: $e');
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantAttendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -220,7 +233,7 @@ class _ServantAttendanceHomeScreenState
         .map(
           (r) => _Student(
             id: (r as Map)['id'] as String,
-            name: (r)['name'] as String? ?? 'Student',
+            name: ((r)['name'] as String?)?.trim() ?? '',
           ),
         )
         .toList();
@@ -405,26 +418,41 @@ class _ServantAttendanceHomeScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadInitial,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                SizedBox(height: 180),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Attendance')),
+        appBar: AppBar(title: Text(l10n.navAttendance)),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: AppRefreshConfigurator(
+            onRefresh: _loadInitial,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
               children: [
                 Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadInitial,
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
             ),
@@ -439,259 +467,125 @@ class _ServantAttendanceHomeScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+        child: AppRefreshConfigurator(
+          onRefresh: _loadInitial,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+                  ),
                 ),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Attendance',
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navAttendance,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Choose a subject and a date',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFBAE6FD)),
-                  ),
-                ],
-              ),
-            ),
-            if (_subjects.isEmpty)
-              const Expanded(
-                child: Center(child: Text('No subjects found for your grade.')),
-              )
-            else ...[
-              SizedBox(
-                height: 72,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _subjects.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 10),
-                  itemBuilder: (context, index) {
-                    final s = _subjects[index];
-                    final selected = s.id == selectedSubjectId;
-                    return InkWell(
-                      onTap: () async {
-                        setState(() {
-                          _selectedSubjectId = s.id;
-                          _minAbsentController.clear();
-                          _minAbsentApplied = null;
-                          _minAbsentResults = const [];
-                        });
-                        await _loadSessionsForSelectedSubject();
-                      },
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? const Color(0xFF0EA5E9)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: selected
-                              ? const [
-                                  BoxShadow(
-                                    color: Color(0x260EA5E9),
-                                    blurRadius: 14,
-                                    offset: Offset(0, 8),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            s.name,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: selected
-                                  ? Colors.white
-                                  : const Color(0xFF334155),
-                            ),
-                          ),
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.servantAttendanceChooseSubjectAndDate,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFBAE6FD),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              if (_subjects.isEmpty)
+                Expanded(
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
                     children: [
-                      // Removed search dates feature
-
-                      // Min absent filter (outer screen)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x14374151),
-                              blurRadius: 16,
-                              offset: Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Minimum days absent',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _minAbsentController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter minimum absent days',
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
+                      const SizedBox(height: 120),
+                      Center(child: Text(l10n.commonNoSubjectsForGrade)),
+                    ],
+                  ),
+                )
+              else ...[
+                SizedBox(
+                  height: 72,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _subjects.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final s = _subjects[index];
+                      final selected = s.id == selectedSubjectId;
+                      return InkWell(
+                        onTap: () async {
+                          setState(() {
+                            _selectedSubjectId = s.id;
+                            _minAbsentController.clear();
+                            _minAbsentApplied = null;
+                            _minAbsentResults = const [];
+                          });
+                          await _loadSessionsForSelectedSubject();
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFF0EA5E9)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: selected
+                                ? const [
+                                    BoxShadow(
+                                      color: Color(0x260EA5E9),
+                                      blurRadius: 14,
+                                      offset: Offset(0, 8),
                                     ),
-                                    onSubmitted: (_) => _runMinAbsentFilter(),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                ElevatedButton(
-                                  onPressed: _loadingMinAbsent
-                                      ? null
-                                      : _runMinAbsentFilter,
-                                  child: _loadingMinAbsent
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Text('Search'),
-                                ),
-                              ],
-                            ),
-                            if (_minAbsentApplied != null) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Students absent for at least $_minAbsentApplied day(s):',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              if (_minAbsentResults.isEmpty)
-                                const Text(
-                                  'No students match.',
-                                  style: TextStyle(color: Color(0xFF334155)),
-                                )
-                              else
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _minAbsentResults.length,
-                                  separatorBuilder: (context, index) =>
-                                      const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final r = _minAbsentResults[index];
-                                    return Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            r.student.name,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF0F172A),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          '${r.absentDays} absent',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFFDC2626),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Add date
-                      ElevatedButton.icon(
-                        onPressed: () => _addOrOpenDate(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add date'),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Previous dates
-                      Row(
-                        children: [
-                          const Expanded(
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
                             child: Text(
-                              'Previous dates',
+                              s.name,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
+                                color: selected
+                                    ? Colors.white
+                                    : const Color(0xFF334155),
                               ),
                             ),
                           ),
-                          if (_loadingSessions)
-                            const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (selectedSubjectId == null)
-                        const SizedBox.shrink()
-                      else if (sessions.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Text('No attendance dates yet.'),
-                        )
-                      else
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Removed search dates feature
+
+                        // Min absent filter (outer screen)
                         Container(
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -703,59 +597,222 @@ class _ServantAttendanceHomeScreenState
                               ),
                             ],
                           ),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: sessions.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final s = sessions[index];
-                              final subjectName = _subjects
-                                  .firstWhere((x) => x.id == selectedSubjectId)
-                                  .name;
-                              return ListTile(
-                                title: Text(
-                                  EthiopianDateFormatter.formatFlexible(
-                                    s.sessionDateIso,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.servantAttendanceMinimumDaysAbsent,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _minAbsentController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            l10n.servantAttendanceMinAbsentHint,
+                                        border: OutlineInputBorder(),
+                                        isDense: true,
+                                      ),
+                                      onSubmitted: (_) => _runMinAbsentFilter(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  ElevatedButton(
+                                    onPressed: _loadingMinAbsent
+                                        ? null
+                                        : _runMinAbsentFilter,
+                                    child: _loadingMinAbsent
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(l10n.commonSearch),
+                                  ),
+                                ],
+                              ),
+                              if (_minAbsentApplied != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  l10n.servantAttendanceStudentsAbsentAtLeast(
+                                    _minAbsentApplied!,
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
                                   ),
                                 ),
-                                subtitle: Text(s.sessionDateIso),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () async {
-                                  final academicYearId = _activeAcademicYearId;
-                                  final gradeId = _myGradeId;
-                                  if (academicYearId == null ||
-                                      gradeId == null) {
-                                    return;
-                                  }
-
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (context) =>
-                                          ServantAttendanceSessionScreen(
-                                            sessionId: s.id,
-                                            academicYearId: academicYearId,
-                                            gradeId: gradeId,
-                                            subjectId: selectedSubjectId,
-                                            subjectName: subjectName,
-                                            sessionDateIso: s.sessionDateIso,
-                                          ),
+                                const SizedBox(height: 8),
+                                if (_minAbsentResults.isEmpty)
+                                  Text(
+                                    l10n.servantAttendanceNoStudentsMatch,
+                                    style: const TextStyle(
+                                      color: Color(0xFF334155),
                                     ),
-                                  );
-
-                                  await _loadSessionsForSelectedSubject();
-                                },
-                              );
-                            },
+                                  )
+                                else
+                                  ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: _minAbsentResults.length,
+                                    separatorBuilder: (context, index) =>
+                                        const SizedBox(height: 8),
+                                    itemBuilder: (context, index) {
+                                      final r = _minAbsentResults[index];
+                                      return Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              r.student.name.isNotEmpty
+                                                  ? r.student.name
+                                                  : l10n.roleStudent,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF0F172A),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            l10n.servantAttendanceAbsentDays(
+                                              r.absentDays,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFFDC2626),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ],
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 12),
+
+                        // Add date
+                        ElevatedButton.icon(
+                          onPressed: () => _addOrOpenDate(context),
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.commonAddDate),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Previous dates
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.servantAttendancePreviousDates,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            if (_loadingSessions)
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (selectedSubjectId == null)
+                          const SizedBox.shrink()
+                        else if (sessions.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(l10n.servantAttendanceNoDatesYet),
+                          )
+                        else
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x14374151),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: sessions.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final s = sessions[index];
+                                final subjectName = _subjects
+                                    .firstWhere(
+                                      (x) => x.id == selectedSubjectId,
+                                    )
+                                    .name;
+                                return ListTile(
+                                  title: Text(
+                                    EthiopianDateFormatter.formatFlexible(
+                                      s.sessionDateIso,
+                                    ),
+                                  ),
+                                  subtitle: Text(s.sessionDateIso),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () async {
+                                    final academicYearId =
+                                        _activeAcademicYearId;
+                                    final gradeId = _myGradeId;
+                                    if (academicYearId == null ||
+                                        gradeId == null) {
+                                      return;
+                                    }
+
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (context) =>
+                                            ServantAttendanceSessionScreen(
+                                              sessionId: s.id,
+                                              academicYearId: academicYearId,
+                                              gradeId: gradeId,
+                                              subjectId: selectedSubjectId,
+                                              subjectName: subjectName,
+                                              sessionDateIso: s.sessionDateIso,
+                                            ),
+                                      ),
+                                    );
+
+                                    await _loadSessionsForSelectedSubject();
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

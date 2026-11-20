@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Users, UserCog, Megaphone, Calendar } from "lucide-react";
+import { t } from "../i18n/t";
 
 interface DashboardStats {
   totalUsers: number;
@@ -60,11 +61,11 @@ export function DashboardPage() {
           totalUsers: studentCount || 0,
           totalServants: servantCount || 0,
           activeAnnouncements: announcementCount || 0,
-          currentAcademicYear: activeYear?.name || "None",
+          currentAcademicYear: activeYear?.name || t("dashboardNoActiveYear"),
         });
       } catch (err: unknown) {
         console.error("Failed to load dashboard stats", err);
-        setError(err instanceof Error ? err.message : "An error occurred while loading dashboard statistics.");
+        setError(err instanceof Error ? err.message : t("dashboardErrorFallback"));
       } finally {
         setLoading(false);
       }
@@ -76,9 +77,9 @@ export function DashboardPage() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-10">
       <div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-2 text-lg">
-          Overview of your Sunday School Management System.
+        <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{t("dashboardTitle")}</h1>
+        <p className="text-muted-foreground mt-2 text-lg whitespace-pre-line">
+          {t("dashboardSubtitle")}
         </p>
       </div>
 
@@ -102,7 +103,7 @@ export function DashboardPage() {
               <Users className="w-24 h-24 text-primary" />
             </div>
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Students</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("dashboardTotalStudents")}</CardTitle>
               <div className="bg-primary/10 p-2 rounded-lg text-primary">
                 <Users className="h-5 w-5" />
               </div>
@@ -118,7 +119,7 @@ export function DashboardPage() {
               <UserCog className="w-24 h-24 text-accent" />
             </div>
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Servants</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("dashboardTotalServants")}</CardTitle>
               <div className="bg-accent/20 p-2 rounded-lg text-accent-foreground">
                 <UserCog className="h-5 w-5 text-accent-foreground" />
               </div>
@@ -134,7 +135,7 @@ export function DashboardPage() {
               <Megaphone className="w-24 h-24 text-emerald-500" />
             </div>
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Announcements</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("dashboardAnnouncements")}</CardTitle>
               <div className="bg-emerald-500/10 p-2 rounded-lg text-emerald-600">
                 <Megaphone className="h-5 w-5" />
               </div>
@@ -150,7 +151,7 @@ export function DashboardPage() {
               <Calendar className="w-24 h-24 text-purple-500" />
             </div>
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active Year</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("dashboardActiveYear")}</CardTitle>
               <div className="bg-purple-500/10 p-2 rounded-lg text-purple-600">
                 <Calendar className="h-5 w-5" />
               </div>
@@ -169,12 +170,12 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
               <span className="bg-primary w-2 h-6 rounded-full inline-block" />
-              Welcome to the Hub
+              {t("dashboardWelcomeTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-lg max-w-3xl leading-relaxed">
-              Select an option from the sidebar to manage students, servants, verify grades, and seamlessly prepare academic years for the Sunday School.
+              {t("dashboardWelcomeBody")}
             </p>
           </CardContent>
         </Card>

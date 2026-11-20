@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { supabase } from "../lib/supabase";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -47,7 +48,6 @@ type Draft = {
   grade_id: string | null;
   passing_grade: string;
   weight: string;
-  active: boolean;
 };
 
 function toNumberOrNull(value: string): number | null {
@@ -76,11 +76,12 @@ export function SubjectsPage() {
   const [createGradeId, setCreateGradeId] = React.useState<string | null>(null);
   const [createPassing, setCreatePassing] = React.useState("");
   const [createWeight, setCreateWeight] = React.useState("");
-  const [createActive, setCreateActive] = React.useState(true);
   const [createIsPrerequisite, setCreateIsPrerequisite] = React.useState(false);
 
   const [isCreating, setIsCreating] = React.useState(false);
   const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [togglingActiveId, setTogglingActiveId] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const gradeNameById = React.useMemo(() => {
     return new Map(
@@ -150,7 +151,6 @@ export function SubjectsPage() {
             ? ""
             : String(s.passing_grade),
         weight: s.weight === null || s.weight === undefined ? "" : String(s.weight),
-        active: s.active ?? true,
       }
     );
   }
@@ -176,11 +176,11 @@ export function SubjectsPage() {
     const name = createName.trim();
     const passingGrade = toNumberOrNull(createPassing);
     if (!name) {
-      setError("Subject name is required.");
+      setError(t("subjectsValidationNameRequired"));
       return;
     }
     if (passingGrade === null) {
-      setError("Passing grade is required.");
+      setError(t("subjectsValidationPassingRequired"));
       return;
     }
 
@@ -193,7 +193,6 @@ export function SubjectsPage() {
           grade_id: createGradeId,
           passing_grade: passingGrade,
           weight: toNumberOrNull(createWeight),
-          active: createActive,
         })
         .select("id")
         .single();
@@ -207,7 +206,6 @@ export function SubjectsPage() {
       setCreateGradeId(null);
       setCreatePassing("");
       setCreateWeight("");
-      setCreateActive(true);
       setCreateIsPrerequisite(false);
 
       await load();
@@ -227,7 +225,7 @@ export function SubjectsPage() {
       if (d) {
         const passingGrade = toNumberOrNull(d.passing_grade);
         if (passingGrade === null) {
-          setError("Passing grade is required.");
+          setError(t("subjectsValidationPassingRequired"));
           return;
         }
 
@@ -238,7 +236,6 @@ export function SubjectsPage() {
             grade_id: d.grade_id,
             passing_grade: passingGrade,
             weight: toNumberOrNull(d.weight),
-            active: d.active,
           })
           .eq("id", id);
 
@@ -282,37 +279,99 @@ export function SubjectsPage() {
     }
   }
 
+  async function toggleSubjectActive(subject: SubjectRow) {
+    setError(null);
+    setTogglingActiveId(subject.id);
+    try {
+      const nextActive = subject.active === false;
+
+      const { error: updateError } = await supabase
+        .from("subjects")
+        .update({ active: nextActive })
+        .eq("id", subject.id);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setSubjects((prev) =>
+        prev.map((s) => (s.id === subject.id ? { ...s, active: nextActive } : s)),
+      );
+    } finally {
+      setTogglingActiveId(null);
+    }
+  }
+
+  function isDeleteBlocked(message: string): boolean {
+    const m = (message ?? "").toLowerCase();
+    return (
+      m.includes("foreign key") ||
+      m.includes("violates foreign key") ||
+      m.includes("update or delete on table")
+    );
+  }
+
+  async function deleteSubject(subject: SubjectRow) {
+    const name = subject.name ?? subject.id;
+    if (!window.confirm(t("subjectsConfirmDelete", { name }))) {
+      return;
+    }
+
+    setError(null);
+    setDeletingId(subject.id);
+    try {
+      const { error: deleteError } = await supabase
+        .from("subjects")
+        .delete()
+        .eq("id", subject.id);
+
+      if (deleteError) {
+        setError(
+          isDeleteBlocked(deleteError.message)
+            ? t("subjectsDeleteBlocked")
+            : deleteError.message,
+        );
+        return;
+      }
+
+      await load();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Subjects</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("subjectsTitle")}</h1>
         <p className="text-muted-foreground mt-2">
-          Create and manage subjects and their grading settings.
+          {t("subjectsSubtitle")}
         </p>
       </div>
 
       {error ? (
-        <ErrorBanner title="Request failed" message={error} />
+        <ErrorBanner title={t("commonRequestFailed")} message={error} />
       ) : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Create subject</CardTitle>
-          <CardDescription>Fields not supported by your schema may be ignored by RLS/DB.</CardDescription>
+          <CardTitle>{t("subjectsCreateTitle")}</CardTitle>
+          <CardDescription>{t("subjectsSchemaNote")}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-5">
           <div className="md:col-span-2">
-            <Label htmlFor="create-name">Name</Label>
+            <Label htmlFor="create-name">{t("subjectsNameLabel")}</Label>
             <Input
               id="create-name"
-              placeholder="Mathematics"
+              placeholder={t("subjectsNamePlaceholder")}
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="create-grade">Grade</Label>
+            <Label htmlFor="create-grade">{t("subjectsGradeLabel")}</Label>
             <select
               id="create-grade"
               className="mt-2 h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -329,7 +388,7 @@ export function SubjectsPage() {
           </div>
 
           <div>
-            <Label htmlFor="create-passing">Passing grade</Label>
+            <Label htmlFor="create-passing">{t("subjectsPassingLabel")}</Label>
             <Input
               id="create-passing"
               placeholder="50"
@@ -339,7 +398,7 @@ export function SubjectsPage() {
           </div>
 
           <div>
-            <Label htmlFor="create-weight">Weight</Label>
+            <Label htmlFor="create-weight">{t("subjectsWeightLabel")}</Label>
             <Input
               id="create-weight"
               placeholder="1"
@@ -356,26 +415,17 @@ export function SubjectsPage() {
                   checked={createIsPrerequisite}
                   onChange={(e) => setCreateIsPrerequisite(e.target.checked)}
                 />
-                Is this subject a prerequisite?
+                {t("subjectsIsPrerequisite")}
               </label>
               {createIsPrerequisite ? (
                 <div className="text-xs text-muted-foreground">
-                  This marks your intent. Configure which subjects depend on it in the table below.
+                  {t("subjectsPrereqHint")}
                 </div>
               ) : null}
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={createActive}
-                onChange={(e) => setCreateActive(e.target.checked)}
-              />
-              Active
-            </label>
-
             <Button disabled={isCreating} onClick={() => void createSubject()}>
-              {isCreating ? "Creating…" : "Create"}
+              {isCreating ? t("commonCreating") : t("commonCreate")}
             </Button>
           </div>
         </CardContent>
@@ -383,22 +433,22 @@ export function SubjectsPage() {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>All subjects</CardTitle>
+          <CardTitle>{t("subjectsAllTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <div className="grid gap-3">
               <div className="grid gap-2 sm:max-w-sm">
-                <Label htmlFor="filter-grade">Filter by grade</Label>
+                <Label htmlFor="filter-grade">{t("subjectsFilterByGrade")}</Label>
                 <select
                   id="filter-grade"
                   className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   value={filterGradeId ?? ""}
                   onChange={(e) => setFilterGradeId(e.target.value ? e.target.value : null)}
                 >
-                  <option value="">All grades</option>
+                  <option value="">{t("subjectsAllGradesOption")}</option>
                   {grades.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.name ?? g.code ?? g.id}
@@ -410,13 +460,13 @@ export function SubjectsPage() {
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Prerequisite</TableHead>
-                  <TableHead>Prereq min</TableHead>
-                  <TableHead>Passing</TableHead>
-                  <TableHead>Weight</TableHead>
-                  <TableHead>Active</TableHead>
+                  <TableHead>{t("subjectsTableName")}</TableHead>
+                  <TableHead>{t("subjectsTableGrade")}</TableHead>
+                  <TableHead>{t("subjectsTablePrerequisite")}</TableHead>
+                  <TableHead>{t("subjectsTablePrereqMin")}</TableHead>
+                  <TableHead>{t("subjectsTablePassing")}</TableHead>
+                  <TableHead>{t("subjectsTableWeight")}</TableHead>
+                  <TableHead>{t("subjectsTableActive")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -465,7 +515,7 @@ export function SubjectsPage() {
                           ))}
                         </select>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {d.grade_id ? gradeNameById.get(d.grade_id) : "No grade"}
+                          {d.grade_id ? gradeNameById.get(d.grade_id) : t("subjectsNoGrade")}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -483,7 +533,7 @@ export function SubjectsPage() {
                             }))
                           }
                         >
-                          <option value="">None</option>
+                          <option value="">{t("subjectsNoneOption")}</option>
                           {subjectsInSameGrade.map((opt) => (
                             <option key={opt.id} value={opt.id}>
                               {opt.name ?? opt.id}
@@ -494,7 +544,7 @@ export function SubjectsPage() {
                       <TableCell>
                         <Input
                           inputMode="decimal"
-                          placeholder="Use prerequisite passing"
+                          placeholder={t("subjectsPrereqMinPlaceholder")}
                           value={p.minimum_score}
                           onChange={(e) =>
                             setPrerequisiteDrafts((prev) => ({
@@ -541,28 +591,34 @@ export function SubjectsPage() {
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
-                            checked={d.active}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [s.id]: {
-                                  ...d,
-                                  active: e.target.checked,
-                                },
-                              }))
-                            }
+                            checked={s.active !== false}
+                            disabled={togglingActiveId === s.id}
+                            onChange={() => void toggleSubjectActive(s)}
                           />
-                          {d.active ? "Yes" : "No"}
+                          <span className="text-xs text-muted-foreground">
+                            {s.active === false ? t("commonNo") : t("commonYes")}
+                          </span>
                         </label>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}
-                          onClick={() => void saveSubject(s.id)}
-                        >
-                          {savingId === s.id ? "Saving…" : "Save"}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            disabled={(!drafts[s.id] && !prerequisiteDrafts[s.id]) || savingId === s.id}
+                            onClick={() => void saveSubject(s.id)}
+                          >
+                            {savingId === s.id ? t("commonSaving") : t("commonSave")}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={deletingId === s.id}
+                            onClick={() => void deleteSubject(s)}
+                          >
+                            {deletingId === s.id ? t("commonDeleting") : t("commonDelete")}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

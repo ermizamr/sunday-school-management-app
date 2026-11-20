@@ -1,19 +1,19 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 import 'package:sunday_school_app/main.dart';
 
 void main() {
   testWidgets('App renders role selection', (WidgetTester tester) async {
     await tester.pumpWidget(const SundaySchoolApp());
 
-    expect(find.text('Sunday School'), findsOneWidget);
-    expect(find.text('Student'), findsOneWidget);
-    expect(find.text('Servant'), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(Scaffold));
+    final l10n = AppLocalizations.of(context);
+
+    expect(find.text(l10n.roleSelectionTitle), findsOneWidget);
+    expect(find.text(l10n.roleStudent), findsOneWidget);
+    expect(find.text(l10n.roleServant), findsOneWidget);
   });
 }

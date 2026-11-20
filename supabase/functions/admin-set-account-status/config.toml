@@ -1,0 +1,2 @@
+# Disable gateway JWT verification (see admin-create-user/config.toml).
+verify_jwt = false

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import '../../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../../core/errors/app_error_message.dart';
 import '../../../../core/supabase/supabase_client.dart';
 
 class ServantAttendanceSessionScreen extends StatefulWidget {
@@ -53,6 +55,20 @@ class _ServantAttendanceSessionScreenState
     'absent',
   ];
 
+  String _statusLabel(AppLocalizations l10n, String status) {
+    switch (status) {
+      case 'present':
+        return l10n.attendancePresent;
+      case 'late':
+        return l10n.attendanceLate;
+      case 'permission':
+        return l10n.attendancePermission;
+      case 'absent':
+      default:
+        return l10n.attendanceAbsent;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -100,7 +116,7 @@ class _ServantAttendanceSessionScreenState
           .map(
             (r) => _Student(
               id: (r as Map)['id'] as String,
-              name: (r)['name'] as String? ?? 'Student',
+              name: ((r)['name'] as String?)?.trim() ?? '',
             ),
           )
           .toList();
@@ -133,9 +149,15 @@ class _ServantAttendanceSessionScreenState
           ..addAll(statusByStudent);
       });
     } catch (e) {
+      debugPrint('Servant attendance session load failed: $e');
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = e.toString();
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.servantAttendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -177,13 +199,19 @@ class _ServantAttendanceSessionScreenState
           .upsert(payload, onConflict: 'session_id,student_id');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Attendance saved')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).servantAttendanceSaved),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save attendance')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).servantAttendanceSaveFailed,
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -196,6 +224,7 @@ class _ServantAttendanceSessionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dateLabel = EthiopianDateFormatter.formatFlexible(
       widget.sessionDateIso,
     );
@@ -212,7 +241,7 @@ class _ServantAttendanceSessionScreenState
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.commonSave),
           ),
         ],
       ),
@@ -229,7 +258,7 @@ class _ServantAttendanceSessionScreenState
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _load,
-                      child: const Text('Retry'),
+                      child: Text(l10n.commonRetry),
                     ),
                   ],
                 ),
@@ -243,8 +272,9 @@ class _ServantAttendanceSessionScreenState
                         Expanded(
                           child: TextField(
                             controller: _studentSearchController,
-                            decoration: const InputDecoration(
-                              hintText: 'Search students',
+                            decoration: InputDecoration(
+                              hintText:
+                                  l10n.servantAttendanceSearchStudentsHint,
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
@@ -254,7 +284,7 @@ class _ServantAttendanceSessionScreenState
                         const SizedBox(width: 10),
                         ElevatedButton(
                           onPressed: _applyStudentSearch,
-                          child: const Text('Search'),
+                          child: Text(l10n.commonSearch),
                         ),
                       ],
                     ),
@@ -271,7 +301,11 @@ class _ServantAttendanceSessionScreenState
                             _statusByStudentId[student.id] ?? 'present';
 
                         return ListTile(
-                          title: Text(student.name),
+                          title: Text(
+                            student.name.isNotEmpty
+                                ? student.name
+                                : l10n.roleStudent,
+                          ),
                           trailing: DropdownButton<String>(
                             value: _statuses.contains(current)
                                 ? current
@@ -280,7 +314,7 @@ class _ServantAttendanceSessionScreenState
                                 .map(
                                   (s) => DropdownMenuItem<String>(
                                     value: s,
-                                    child: Text(s),
+                                    child: Text(_statusLabel(l10n, s)),
                                   ),
                                 )
                                 .toList(),

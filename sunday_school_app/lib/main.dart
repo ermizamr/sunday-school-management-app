@@ -1,7 +1,12 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
-import 'core/bootstrap/bootstrap_error_screen.dart';
+import 'core/bootstrap/app_bootstrap.dart';
 import 'core/refresh/app_refresh_controller.dart';
 import 'core/refresh/app_refresh_scope.dart';
 import 'core/refresh/global_refresh_indicator.dart';
@@ -9,33 +14,86 @@ import 'core/push/push_notifications_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/supabase/supabase_client.dart';
 
+/// Minimum time the splash screen stays visible so its entrance animation can
+/// play even when bootstrap finishes quickly.
+const _minSplashDuration = Duration(milliseconds: 800);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Render the splash screen immediately and bootstrap in the background, so
+  // users never stare at a black screen while Supabase authenticates.
+  AppBootstrap.instance.markInitializing();
+  runApp(const ProviderScope(child: SundaySchoolApp()));
+
   Object? bootstrapError;
+  await Future.wait<void>([
+    _initializeApp().then<void>((error) {
+      bootstrapError = error;
+    }),
+    Future<void>.delayed(_minSplashDuration),
+  ]);
+
+  final error = bootstrapError;
+  if (error != null) {
+    AppBootstrap.instance.markFailed(error);
+  } else {
+    AppBootstrap.instance.markReady();
+  }
+  appRouter.refresh();
+}
+
+/// Initializes Supabase and push notifications.
+///
+/// Returns the fatal bootstrap error (Supabase) instead of throwing so the
+/// splash screen can keep its minimum duration before the error is surfaced.
+/// Push notification failures are reported but not fatal.
+Future<Object?> _initializeApp() async {
+  await _initCrashReporting();
+
   try {
     await SupabaseClientManager.instance.init();
-    try {
-      await PushNotificationsService.instance.init();
-    } catch (e, st) {
-      FlutterError.reportError(
-        FlutterErrorDetails(exception: e, stack: st, library: 'push bootstrap'),
-      );
-    }
   } catch (e, st) {
-    bootstrapError = e;
     FlutterError.reportError(
       FlutterErrorDetails(exception: e, stack: st, library: 'app bootstrap'),
     );
+    return e;
   }
 
-  runApp(ProviderScope(child: SundaySchoolApp(bootstrapError: bootstrapError)));
+  try {
+    await PushNotificationsService.instance.init();
+  } catch (e, st) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: e, stack: st, library: 'push bootstrap'),
+    );
+  }
+  return null;
+}
+
+/// Best-effort crash reporting setup, run first so startup failures are
+/// captured too. Safe if Firebase is initialized again later by the push
+/// service (its init tolerates an already-initialized Firebase).
+Future<void> _initCrashReporting() async {
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    FlutterError.onError = (details) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e, st) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: e, stack: st, library: 'crash reporting'),
+    );
+  }
 }
 
 class SundaySchoolApp extends StatefulWidget {
-  const SundaySchoolApp({super.key, this.bootstrapError});
-
-  final Object? bootstrapError;
+  const SundaySchoolApp({super.key});
 
   @override
   State<SundaySchoolApp> createState() => _SundaySchoolAppState();
@@ -44,10 +102,69 @@ class SundaySchoolApp extends StatefulWidget {
 class _SundaySchoolAppState extends State<SundaySchoolApp> {
   late final AppRefreshController _refreshController = AppRefreshController(
     defaultOnRefresh: () async {
+      final client = SupabaseClientManager.instance.client;
+
       try {
-        await SupabaseClientManager.instance.client.auth.refreshSession();
+        await client.auth.refreshSession();
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        final looksLikeInvalidJwt =
+            msg.contains('invalid jwt') ||
+            (msg.contains('jwt') && msg.contains('invalid'));
+        if (looksLikeInvalidJwt) {
+          try {
+            await PushNotificationsService.instance.unregisterBeforeSignOut();
+          } catch (_) {}
+          try {
+            await client.auth.signOut();
+          } catch (_) {}
+          try {
+            clearCachedUserProfile();
+            appRouter.refresh();
+          } catch (_) {}
+          return;
+        }
+      }
+
+      try {
+        final userId = client.auth.currentUser?.id;
+        if (userId != null) {
+          final profile = await client
+              .from('profiles')
+              .select('role, account_status')
+              .eq('id', userId)
+              .maybeSingle();
+
+          final role = profile?['role']?.toString().trim().toLowerCase();
+          final accountStatus = profile?['account_status']
+              ?.toString()
+              .trim()
+              .toLowerCase();
+
+          final shouldSignOut =
+              role != 'admin' &&
+              accountStatus != null &&
+              accountStatus != 'active';
+
+          if (shouldSignOut) {
+            try {
+              await PushNotificationsService.instance.unregisterBeforeSignOut();
+            } catch (_) {}
+            try {
+              await client.auth.signOut();
+            } catch (_) {}
+
+            try {
+              clearCachedUserProfile();
+              appRouter.refresh();
+            } catch (_) {}
+            return;
+          }
+        }
       } catch (_) {}
+
       try {
+        clearCachedUserProfile();
         appRouter.refresh();
       } catch (_) {}
     },
@@ -60,17 +177,15 @@ class _SundaySchoolAppState extends State<SundaySchoolApp> {
       useMaterial3: true,
     );
 
-    if (widget.bootstrapError != null) {
-      return MaterialApp(
-        title: 'DEAS EMSS',
-        theme: theme,
-        home: BootstrapErrorScreen(message: widget.bootstrapError.toString()),
-      );
-    }
+    const locale = Locale('am');
 
     return MaterialApp.router(
-      title: 'DEAS EMSS',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: theme,
+      locale: locale,
+      localeResolutionCallback: (deviceLocale, supportedLocales) => locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [locale],
       routerConfig: appRouter,
       builder: (context, child) {
         final routedChild = child ?? const SizedBox.shrink();

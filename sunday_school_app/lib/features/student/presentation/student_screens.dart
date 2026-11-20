@@ -1,13 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_providers.dart';
 import '../../../core/dates/ethiopian_date_formatter.dart';
+import '../../../core/errors/app_error_message.dart';
+import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/push/push_notifications_service.dart';
+
+const Color accent = Color(0xFF0284C7); // sky-600
 
 class StudentShell extends StatelessWidget {
   const StudentShell({super.key, required this.navigationShell});
@@ -23,6 +31,7 @@ class StudentShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
@@ -34,26 +43,26 @@ class StudentShell extends StatelessWidget {
         unselectedItemColor: const Color(0xFF64748B), // slate-500
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
+            icon: const Icon(Icons.home_rounded),
+            label: l10n.navHome,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_rounded),
-            label: 'Attendance',
+            icon: const Icon(Icons.calendar_month_rounded),
+            label: l10n.navAttendance,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_stories_rounded),
-            label: 'Grades',
+            icon: const Icon(Icons.auto_stories_rounded),
+            label: l10n.navGrades,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.forum_rounded),
-            label: 'Communication',
+            icon: const Icon(Icons.forum_rounded),
+            label: l10n.navCommunication,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline_rounded),
+            label: l10n.navProfile,
           ),
         ],
       ),
@@ -85,6 +94,8 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context);
+
     setState(() {
       _submitting = true;
       _error = null;
@@ -96,16 +107,49 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      String? role;
+      try {
+        role = (await authRepository.fetchCurrentUserRole())
+            ?.trim()
+            .toLowerCase();
+      } catch (_) {
+        role = null;
+      }
+
+      if (role != 'student') {
+        try {
+          await authRepository.signOut();
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _error = role == null
+                ? l10n.authRoleVerificationFailed
+                : l10n.authRoleMismatchStudent;
+          });
+        }
+        return;
+      }
+
       if (mounted) {
         context.go('/student/dashboard');
       }
     } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+      final looksLikeInvalidCredentials =
+          msg.contains('invalid login credentials') ||
+          msg.contains('invalid credentials') ||
+          msg.contains('invalid_grant');
+      if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = looksLikeInvalidCredentials
+            ? l10n.authInvalidCredentialsError
+            : l10n.authLoginFailedGeneric;
       });
     } catch (e) {
+      debugPrint('Student login failed: $e');
       setState(() {
-        _error = 'መግባት አልተሳካም። እባክዎን በድጋሚ ይሞክሩ።';
+        _error = l10n.authLoginFailedGeneric;
       });
     } finally {
       if (mounted) {
@@ -119,6 +163,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -150,9 +195,9 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                         alignment: Alignment.centerLeft,
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text(
-                        'ወደ መነሻ ገጽ',
-                        style: TextStyle(fontSize: 13),
+                      label: Text(
+                        l10n.commonBackToHome,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -194,18 +239,18 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              const Text(
-                                'የተማሪ መግቢያ',
-                                style: TextStyle(
+                              Text(
+                                l10n.authStudentLoginTitle,
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                'የእርስዎን መለያዎች ያስገቡ ለመቀየር',
-                                style: TextStyle(
+                              Text(
+                                l10n.authLoginSubtitle,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
                                 ),
@@ -221,9 +266,9 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Text(
-                                  'Email',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authEmailLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -232,19 +277,19 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  hintText: 'መታወቂያ ቁጥርዎን ያስገቡ',
+                                  hintText: l10n.authEmailHint,
                                   icon: Icons.person_rounded,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'እባክዎን መታወቂያ ቁጥርዎን ያስገቡ';
+                                      return l10n.authEmailRequiredError;
                                     }
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'Password',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.authPasswordLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF1E293B),
                                   ),
@@ -253,14 +298,14 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                 _IconTextField(
                                   controller: _passwordController,
                                   obscureText: true,
-                                  hintText: 'የይለፍ ቃልዎን ያስገቡ',
+                                  hintText: l10n.authPasswordHint,
                                   icon: Icons.lock_rounded,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'እባክዎን የይለፍ ቃልዎን ያስገቡ';
+                                      return l10n.authPasswordRequiredError;
                                     }
                                     if (value.length < 6) {
-                                      return 'የይለፍ ቃልዎ ቢያንስ 6 ፊደሎች መሆን ይኖርበታል';
+                                      return l10n.authPasswordMinLengthError(6);
                                     }
                                     return null;
                                   },
@@ -305,7 +350,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                                           MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Text('Login'),
+                                        Text(l10n.authLoginButton),
                                         if (!_submitting) ...[
                                           const SizedBox(width: 8),
                                           const Icon(
@@ -326,31 +371,35 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                             alignment: Alignment.center,
                             child: TextButton(
                               onPressed: () {
-                                // TODO: hook up password reset flow
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text(
+                                      l10n.authForgotPasswordDialogTitle,
+                                    ),
+                                    content: Text(
+                                      l10n.authForgotPasswordDialogBody,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text(l10n.commonOk),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
                               style: TextButton.styleFrom(
                                 foregroundColor: const Color(0xFF0EA5E9),
                               ),
-                              child: const Text(
-                                'የይለፍ ቃል ረሳችሁን? / Forgot password?',
-                                style: TextStyle(fontSize: 13),
+                              child: Text(
+                                l10n.authForgotPassword,
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Demo mode: use any valid email & password\nwhile backend is being wired fully.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF94A3B8),
-                        ),
                       ),
                     ),
                   ],
@@ -415,264 +464,504 @@ class _IconTextField extends StatelessWidget {
   }
 }
 
-class StudentDashboardScreen extends StatelessWidget {
+class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final displayName =
-        (user?.userMetadata?['name'] as String?) ?? user?.email ?? 'Student';
+  State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
+}
 
-    const attendancePercent = 85;
-    const academicAvg = 86;
-    const pendingQuestions = 1;
-    const openComplaints = 1;
+class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+  bool _loading = true;
+  String? _error;
+  _StudentDashboardStats? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static int _asRoundedInt(Object? value, {int fallback = 0}) {
+    if (value is num) return value.round();
+    final parsed = num.tryParse(value?.toString() ?? '');
+    return parsed?.round() ?? fallback;
+  }
+
+  Future<void> _loadStatsFromBackend() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      final userId = user?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      final profile = await client
+          .from('profiles')
+          .select('name, grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final profileMap = (profile as Map?) ?? const <String, Object?>{};
+      final gradeId = profileMap['grade_id']?.toString();
+      final name = (profileMap['name'] as String?)?.trim();
+
+      int attendancePercent = 0;
+      int academicAvg = 0;
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        try {
+          final raw = await client.rpc(
+            'compute_attendance_percent',
+            params: {
+              'p_academic_year_id': academicYearId,
+              'p_student_id': userId,
+            },
+          );
+          attendancePercent = _asRoundedInt(raw, fallback: 0);
+        } catch (_) {}
+
+        if (gradeId != null && gradeId.isNotEmpty) {
+          try {
+            final raw = await client.rpc(
+              'compute_overall_average',
+              params: {
+                'p_academic_year_id': academicYearId,
+                'p_grade_id': gradeId,
+                'p_student_id': userId,
+              },
+            );
+            academicAvg = _asRoundedInt(raw, fallback: 0);
+          } catch (_) {}
+        }
+      }
+
+      var pendingQuestions = 0;
+      var openComplaints = 0;
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        try {
+          final rows = await client
+              .from('questions')
+              .select('id')
+              .eq('student_id', userId)
+              .eq('academic_year_id', academicYearId)
+              .eq('answered', false);
+          pendingQuestions = rows.length;
+        } catch (_) {}
+
+        try {
+          final rows = await client
+              .from('complaints')
+              .select('id, status')
+              .eq('student_id', userId)
+              .eq('academic_year_id', academicYearId)
+              .inFilter('status', const ['pending', 'in_review']);
+          openComplaints = rows.length;
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _stats = _StudentDashboardStats(
+          name: name,
+          gradeId: gradeId,
+          academicYearId: academicYearId,
+          attendancePercent: attendancePercent.clamp(0, 100),
+          academicAvg: academicAvg.clamp(0, 100),
+          pendingQuestions: pendingQuestions,
+          openComplaints: openComplaints,
+        );
+      });
+    } catch (e) {
+      debugPrint('Student dashboard load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.studentDashboardLoadFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final user = Supabase.instance.client.auth.currentUser;
+
+    final displayName =
+        (_stats?.name != null && _stats!.name!.trim().isNotEmpty)
+        ? _stats!.name!.trim()
+        : user?.email ?? l10n.roleStudent;
+
+    final attendancePercent = _stats?.attendancePercent ?? 0;
+    final academicAvg = _stats?.academicAvg ?? 0;
+    final pendingQuestions = _stats?.pendingQuestions ?? 0;
+    final openComplaints = _stats?.openComplaints ?? 0;
     final pendingTotal = pendingQuestions + openComplaints;
 
+    final attendanceValue = _loading ? '—' : '$attendancePercent%';
+    final avgValue = _loading ? '—' : '$academicAvg%';
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF8FAFC), // slate-50
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xFF0284C7), // sky-600
-                      Color(0xFF0EA5E9), // sky-500
+        child: AppRefreshConfigurator(
+          onRefresh: _loadStatsFromBackend,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xFF0284C7), // sky-600
+                        Color(0xFF0EA5E9), // sky-500
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.dashboardWelcome,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Color(0xFFBAE6FD), // sky-200
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'እንኳን በደህና መጡ!',
-                      style: TextStyle(
-                        fontSize: 22,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      displayName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Color(0xFFBAE6FD), // sky-200
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(0, -16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DashboardStatCard(
-                              iconBackground: const Color(0xFFE0F2FE),
-                              iconColor: const Color(0xFF0284C7),
-                              icon: Icons.calendar_month_rounded,
-                              value: '$attendancePercent%',
-                              label: 'የመገኘት መቆጣጠሪያ',
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _DashboardStatCard(
-                              iconBackground: const Color(0xFFFEF3C7),
-                              iconColor: const Color(0xFFD97706),
-                              icon: Icons.emoji_events_rounded,
-                              value: '$academicAvg%',
-                              label: 'አማካኝ ውጤት',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Communication overview
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0F000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(color: Color(0xFFF1F5F9)),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.notifications_rounded,
-                                    size: 20,
-                                    color: Color(0xFF475569),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Expanded(
-                                    child: Text(
-                                      'ግንኙነት',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                  if (pendingTotal > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0EA5E9),
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '$pendingTotal pending',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_error != null) ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFFCA5A5),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  _KeyValueRow(
-                                    label: 'Pending Questions',
-                                    value: '$pendingQuestions',
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _KeyValueRow(
-                                    label: 'Open Complaints',
-                                    value: '$openComplaints',
-                                  ),
-                                ],
-                              ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(18),
-                                  bottomRight: Radius.circular(18),
-                                ),
-                              ),
-                              child: Center(
-                                child: TextButton(
-                                  onPressed: () =>
-                                      context.go('/student/communication'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF0EA5E9),
-                                  ),
-                                  child: const Text('Go to Communication'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Quick actions
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0F000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Quick Actions',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
+                            child: Row(
                               children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 18,
+                                  color: Color(0xFFB91C1C),
+                                ),
+                                const SizedBox(width: 8),
                                 Expanded(
-                                  child: _QuickActionTile(
-                                    icon: Icons.trending_up_rounded,
-                                    label: 'View Grades',
-                                    onTap: () => context.go('/student/grades'),
+                                  child: Text(
+                                    _error!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF7F1D1D),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _QuickActionTile(
-                                    icon: Icons.calendar_month_rounded,
-                                    label: 'Attendance',
-                                    onTap: () =>
-                                        context.go('/student/attendance'),
+                                const SizedBox(width: 8),
+                                TextButton(
+                                  onPressed: _loading
+                                      ? null
+                                      : _loadStatsFromBackend,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB91C1C),
                                   ),
+                                  child: Text(l10n.commonRetry),
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DashboardStatCard(
+                                iconBackground: const Color(0xFFE0F2FE),
+                                iconColor: const Color(0xFF0284C7),
+                                icon: Icons.calendar_month_rounded,
+                                value: attendanceValue,
+                                label: l10n.dashboardAttendanceStat,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _DashboardStatCard(
+                                iconBackground: const Color(0xFFFEF3C7),
+                                iconColor: const Color(0xFFD97706),
+                                icon: Icons.emoji_events_rounded,
+                                value: avgValue,
+                                label: l10n.dashboardAverageScoreStat,
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 16),
+
+                        // Communication overview
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0F000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Color(0xFFF1F5F9),
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.notifications_rounded,
+                                      size: 20,
+                                      color: Color(0xFF475569),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.dashboardCommunicationTitle,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                    if (!_loading && pendingTotal > 0)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0EA5E9),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          l10n.dashboardPendingCount(
+                                            pendingTotal,
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    _KeyValueRow(
+                                      label: l10n.dashboardPendingQuestions,
+                                      value: _loading
+                                          ? '—'
+                                          : '$pendingQuestions',
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _KeyValueRow(
+                                      label: l10n.dashboardOpenComplaints,
+                                      value: _loading ? '—' : '$openComplaints',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.only(
+                                    bottomLeft: Radius.circular(18),
+                                    bottomRight: Radius.circular(18),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        context.go('/student/communication'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0EA5E9),
+                                    ),
+                                    child: Text(
+                                      l10n.dashboardGoToCommunication,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Quick actions
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0F000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.dashboardQuickActions,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _QuickActionTile(
+                                      icon: Icons.trending_up_rounded,
+                                      label: l10n.dashboardViewGrades,
+                                      onTap: () =>
+                                          context.go('/student/grades'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _QuickActionTile(
+                                      icon: Icons.calendar_month_rounded,
+                                      label: l10n.navAttendance,
+                                      onTap: () =>
+                                          context.go('/student/attendance'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _StudentDashboardStats {
+  const _StudentDashboardStats({
+    required this.attendancePercent,
+    required this.academicAvg,
+    required this.pendingQuestions,
+    required this.openComplaints,
+    this.name,
+    this.gradeId,
+    this.academicYearId,
+  });
+
+  final String? name;
+  final String? gradeId;
+  final String? academicYearId;
+  final int attendancePercent;
+  final int academicAvg;
+  final int pendingQuestions;
+  final int openComplaints;
 }
 
 class StudentAttendanceScreen extends StatefulWidget {
@@ -712,6 +1001,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   Future<void> _loadAttendanceFromBackend() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _loadingAttendance = true;
       _attendanceError = null;
@@ -721,7 +1011,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       final client = Supabase.instance.client;
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
-        throw Exception('Not signed in');
+        throw StateError('not_signed_in');
       }
 
       final academicYear = await client
@@ -740,8 +1030,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
       final academicYearId = academicYear?['id'] as String?;
       final gradeId = profile?['grade_id'] as String?;
-      if (academicYearId == null || gradeId == null) {
-        throw Exception('Missing active academic year or grade assignment');
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('missing_academic_year');
+      }
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('missing_grade_assignment');
       }
 
       final subjectRows = await client
@@ -755,7 +1048,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           .map(
             (r) => _AttendanceSubject(
               id: (r as Map)['id'] as String,
-              name: (r)['name'] as String? ?? 'Subject',
+              name: (r)['name'] as String? ?? l10n.commSubjectLabel,
             ),
           )
           .toList();
@@ -825,9 +1118,14 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         _selectedSubjectId = nextSelected;
       });
     } catch (e) {
+      debugPrint('Student attendance load failed: $e');
       if (!mounted) return;
       setState(() {
-        _attendanceError = e.toString();
+        _attendanceError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.attendanceLoadFailed,
+        );
       });
     } finally {
       if (mounted) {
@@ -885,35 +1183,38 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   String _formatDate(DateTime date) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekdays = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
     final wd = weekdays[(date.weekday - 1).clamp(0, 6)];
     return '$wd, ${EthiopianDateFormatter.formatDateTime(date)}';
   }
 
-  ({String text, Color color, IconData icon}) _performance(int percentage) {
+  ({String text, Color color, IconData icon}) _performance(
+    AppLocalizations l10n,
+    int percentage,
+  ) {
     if (percentage >= 95) {
       return (
-        text: 'Excellent attendance!',
+        text: l10n.attendancePerformanceExcellent,
         color: const Color(0xFF16A34A),
         icon: Icons.trending_up_rounded,
       );
     }
     if (percentage >= 85) {
       return (
-        text: 'Great attendance!',
+        text: l10n.attendancePerformanceGreat,
         color: const Color(0xFF16A34A),
         icon: Icons.trending_up_rounded,
       );
     }
     if (percentage >= 75) {
       return (
-        text: 'Good attendance',
+        text: l10n.attendancePerformanceGood,
         color: const Color(0xFFD97706),
         icon: Icons.info_outline_rounded,
       );
     }
     return (
-      text: 'Attendance needs improvement',
+      text: l10n.attendancePerformanceNeedsImprovement,
       color: const Color(0xFFDC2626),
       icon: Icons.info_outline_rounded,
     );
@@ -921,30 +1222,18 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loadingAttendance) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
-      );
-    }
-
-    if (_attendanceError != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Attendance')),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _attendanceError!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _loadAttendanceFromBackend,
-                  child: const Text('Retry'),
-                ),
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                SizedBox(height: 180),
+                Center(child: CircularProgressIndicator()),
               ],
             ),
           ),
@@ -952,10 +1241,49 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       );
     }
 
-    if (_attendanceSubjects.isEmpty) {
-      return const Scaffold(
+    if (_attendanceError != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.navAttendance)),
         body: SafeArea(
-          child: Center(child: Text('No subjects found for your grade.')),
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _attendanceError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadAttendanceFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_attendanceSubjects.isEmpty) {
+      return Scaffold(
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadAttendanceFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 160),
+                Center(child: Text(l10n.commonNoSubjectsForGrade)),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -970,7 +1298,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     );
     final subjectPercentage = _subjectPercentage(selectedSubjectId);
     final stats = _statusStats(selectedSubjectId);
-    final performance = _performance(subjectPercentage);
+    final performance = _performance(l10n, subjectPercentage);
 
     final subjectRecords =
         _attendanceRecords
@@ -1022,494 +1350,517 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+        child: AppRefreshConfigurator(
+          onRefresh: _loadAttendanceFromBackend,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navAttendance,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.attendanceTrackSubtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFBAE6FD),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Attendance',
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Track your class participation',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFBAE6FD)),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Overall stats
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14374151),
-                            blurRadius: 16,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Overall Attendance',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                Icons.calendar_month_rounded,
-                                size: 20,
-                                color: Colors.grey.shade400,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '$overall%',
-                                style: TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w800,
-                                  color: percentageColor(overall),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  'across all subjects',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF94A3B8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Subject tabs
-                    SizedBox(
-                      height: 72,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _attendanceSubjects.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final s = _attendanceSubjects[index];
-                          final selected = s.id == selectedSubjectId;
-                          final p = _subjectPercentage(s.id);
-                          return InkWell(
-                            onTap: () =>
-                                setState(() => _selectedSubjectId = s.id),
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? const Color(0xFF0EA5E9)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: selected
-                                    ? const [
-                                        BoxShadow(
-                                          color: Color(0x260EA5E9),
-                                          blurRadius: 14,
-                                          offset: Offset(0, 8),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    s.name,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: selected
-                                          ? Colors.white
-                                          : const Color(0xFF334155),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '$p% attendance',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: selected
-                                          ? const Color(0xFFBAE6FD)
-                                          : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Subject stats
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  subject.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '$subjectPercentage%',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                  color: percentageColor(subjectPercentage),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  performance.icon,
-                                  size: 18,
-                                  color: performance.color,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  performance.text,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: performance.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFDCFCE7),
-                                  icon: Icons.check_circle_rounded,
-                                  iconColor: const Color(0xFF16A34A),
-                                  value: '${stats.present}',
-                                  label: 'Present',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFFEF3C7),
-                                  icon: Icons.schedule_rounded,
-                                  iconColor: const Color(0xFFD97706),
-                                  value: '${stats.late}',
-                                  label: 'Late',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  bg: const Color(0xFFFEE2E2),
-                                  icon: Icons.cancel_rounded,
-                                  iconColor: const Color(0xFFDC2626),
-                                  value: '${stats.absent}',
-                                  label: 'Absent',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // History
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Color(0xFFE2E8F0)),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Attendance History',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${stats.total} sessions recorded',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (subjectRecords.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(32),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_month_rounded,
-                                    size: 52,
-                                    color: Colors.grey.shade300,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'No attendance records yet',
-                                    style: TextStyle(color: Color(0xFF64748B)),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Column(
-                              children: subjectRecords.map((r) {
-                                final s = statusStyle(r.status);
-                                final statusText = switch (r.status) {
-                                  _AttendanceStatus.present => 'present',
-                                  _AttendanceStatus.late => 'late',
-                                  _AttendanceStatus.absent => 'absent',
-                                  _AttendanceStatus.permission => 'permission',
-                                };
-                                return Container(
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: Color(0xFFE2E8F0),
-                                      ),
-                                    ),
-                                  ),
-                                  child: InkWell(
-                                    onTap: () {},
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 14,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: s.bg,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: s.border,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              s.icon,
-                                              color: s.text,
-                                              size: 22,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  _formatDate(r.date),
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF0F172A),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  subject.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    color: Color(0xFF64748B),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: s.bg,
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                              border: Border.all(
-                                                color: s.border,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              statusText,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                color: s.text,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (subjectPercentage < 85) ...[
-                      const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Overall stats
                       Container(
-                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFFDE68A)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14374151),
+                              blurRadius: 16,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
                         ),
-                        child: const Row(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: Color(0xFFD97706),
-                              size: 20,
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Improve Your Attendance',
-                                    style: TextStyle(
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l10n.attendanceOverallTitle,
+                                    style: const TextStyle(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF92400E),
+                                      color: Color(0xFF64748B),
                                     ),
                                   ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Regular attendance is important for your learning and promotion. Try to attend all classes and arrive on time.',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF92400E),
+                                ),
+                                Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 20,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$overall%',
+                                  style: TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w800,
+                                    color: percentageColor(overall),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Padding(
+                                  padding: EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    l10n.attendanceAcrossAllSubjects,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF94A3B8),
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Subject tabs
+                      SizedBox(
+                        height: 72,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _attendanceSubjects.length,
+                          separatorBuilder: (_, index) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            final s = _attendanceSubjects[index];
+                            final selected = s.id == selectedSubjectId;
+                            final p = _subjectPercentage(s.id);
+                            return InkWell(
+                              onTap: () =>
+                                  setState(() => _selectedSubjectId = s.id),
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? const Color(0xFF0EA5E9)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: selected
+                                      ? const [
+                                          BoxShadow(
+                                            color: Color(0x260EA5E9),
+                                            blurRadius: 14,
+                                            offset: Offset(0, 8),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      s.name,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: selected
+                                            ? Colors.white
+                                            : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.attendancePercentLabel(p),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: selected
+                                            ? const Color(0xFFBAE6FD)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Subject stats
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    subject.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '$subjectPercentage%',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: percentageColor(subjectPercentage),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    performance.icon,
+                                    size: 18,
+                                    color: performance.color,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    performance.text,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: performance.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFDCFCE7),
+                                    icon: Icons.check_circle_rounded,
+                                    iconColor: const Color(0xFF16A34A),
+                                    value: '${stats.present}',
+                                    label: l10n.attendancePresent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFFEF3C7),
+                                    icon: Icons.schedule_rounded,
+                                    iconColor: const Color(0xFFD97706),
+                                    value: '${stats.late}',
+                                    label: l10n.attendanceLate,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniStat(
+                                    bg: const Color(0xFFFEE2E2),
+                                    icon: Icons.cancel_rounded,
+                                    iconColor: const Color(0xFFDC2626),
+                                    value: '${stats.absent}',
+                                    label: l10n.attendanceAbsent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // History
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                16,
+                                20,
+                                12,
+                              ),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.attendanceHistoryTitle,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.attendanceSessionsRecorded(
+                                      stats.total,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (subjectRecords.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_month_rounded,
+                                      size: 52,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      l10n.attendanceNoRecordsYet,
+                                      style: const TextStyle(
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Column(
+                                children: subjectRecords.map((r) {
+                                  final s = statusStyle(r.status);
+                                  final statusText = switch (r.status) {
+                                    _AttendanceStatus.present =>
+                                      l10n.attendancePresent,
+                                    _AttendanceStatus.late =>
+                                      l10n.attendanceLate,
+                                    _AttendanceStatus.absent =>
+                                      l10n.attendanceAbsent,
+                                    _AttendanceStatus.permission =>
+                                      l10n.attendancePermission,
+                                  };
+                                  return Container(
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Color(0xFFE2E8F0),
+                                        ),
+                                      ),
+                                    ),
+                                    child: InkWell(
+                                      onTap: () {},
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 14,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: s.bg,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: s.border,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                s.icon,
+                                                color: s.text,
+                                                size: 22,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    _formatDate(r.date),
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    subject.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: s.bg,
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                                border: Border.all(
+                                                  color: s.border,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                statusText,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: s.text,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (subjectPercentage < 85) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                color: Color(0xFFD97706),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.attendanceImproveTitle,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF92400E),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.attendanceImproveBody,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1596,15 +1947,24 @@ class _QuickActionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: const Color(0xFF0EA5E9)),
-            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F2FE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 18, color: const Color(0xFF0284C7)),
+            ),
+            const SizedBox(height: 10),
             Text(
               label,
               style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
@@ -1717,138 +2077,550 @@ class StudentGradesScreen extends StatefulWidget {
 class _StudentGradesScreenState extends State<StudentGradesScreen> {
   String? _expandedSubjectId;
   PromotionCriteriaSet _criteria = PromotionCriteriaSet.defaults;
-  bool _loadingCriteria = false;
 
-  final _academicYear = const _GradesAcademicYear(
-    name: '2025-2026',
+  _AcademicYearPeriod _displayPeriod = _AcademicYearPeriod.semester1;
+
+  bool _loadingGrades = true;
+  String? _gradesError;
+
+  _GradesAcademicYear _academicYear = const _GradesAcademicYear(
+    name: '',
     status: _AcademicYearStatus.active,
+    period: _AcademicYearPeriod.semester1,
   );
 
-  final _currentStudent = const _GradesStudent(
-    id: '1',
-    name: 'Sarah Johnson',
+  _GradesStudent _currentStudent = const _GradesStudent(
+    id: '',
+    name: '',
     promotionStatus: _PromotionStatus.eligible,
+    accountStatus: _AccountStatus.active,
   );
 
-  late final List<_GradesSubject> _subjects = const [
-    _GradesSubject(id: '1', name: 'Bible Studies'),
-    _GradesSubject(id: '2', name: 'Christian History'),
-    _GradesSubject(id: '3', name: 'Memory Verses'),
-    _GradesSubject(id: '4', name: 'Activities'),
-  ];
+  List<_GradesSubject> _subjects = const [];
+  List<_GradesEntry> _gradeEntries = const [];
 
-  late final List<_GradesEntry> _gradeEntries = [
-    _GradesEntry(
-      id: 'g1',
-      subjectId: '1',
-      gradeType: 'Quiz 1',
-      maxScore: 20,
-      weight: 20,
-      date: DateTime(2026, 2, 10),
-      scores: const {'1': 18, '2': 15, '3': 19, '4': null},
-    ),
-    _GradesEntry(
-      id: 'g2',
-      subjectId: '1',
-      gradeType: 'Midterm Exam',
-      maxScore: 100,
-      weight: 40,
-      date: DateTime(2026, 3, 1),
-      scores: const {'1': 92, '2': 78, '3': 88, '4': 0},
-    ),
-    _GradesEntry(
-      id: 'g3',
-      subjectId: '1',
-      gradeType: 'Final Project',
-      maxScore: 50,
-      weight: 40,
-      date: DateTime(2026, 3, 4),
-      scores: const {'1': 48, '2': 41, '3': 46, '4': 45},
-    ),
-    _GradesEntry(
-      id: 'g4',
-      subjectId: '2',
-      gradeType: 'Essay',
-      maxScore: 50,
-      weight: 50,
-      date: DateTime(2026, 2, 18),
-      scores: const {'1': 40, '2': 35, '3': 45, '4': 44},
-    ),
-    _GradesEntry(
-      id: 'g5',
-      subjectId: '2',
-      gradeType: 'Final Exam',
-      maxScore: 100,
-      weight: 50,
-      date: DateTime(2026, 3, 3),
-      scores: const {'1': 84, '2': 66, '3': 90, '4': 75},
-    ),
-    _GradesEntry(
-      id: 'g6',
-      subjectId: '3',
-      gradeType: 'Recitation',
-      maxScore: 10,
-      date: DateTime(2026, 2, 20),
-      scores: const {'1': 8, '2': 6, '3': 9, '4': 7},
-    ),
-    _GradesEntry(
-      id: 'g7',
-      subjectId: '3',
-      gradeType: 'Test',
-      maxScore: 100,
-      date: DateTime(2026, 3, 2),
-      scores: const {'1': 78, '2': 61, '3': 85, '4': 70},
-    ),
-    _GradesEntry(
-      id: 'g8',
-      subjectId: '4',
-      gradeType: 'Participation',
-      maxScore: 10,
-      date: DateTime(2026, 2, 22),
-      scores: const {'1': 9, '2': 8, '3': 10, '4': 9},
-    ),
-    _GradesEntry(
-      id: 'g9',
-      subjectId: '4',
-      gradeType: 'Final Activity',
-      maxScore: 100,
-      date: DateTime(2026, 3, 4),
-      scores: const {'1': 88, '2': 72, '3': 95, '4': 80},
-    ),
-  ];
+  int? _semester1Average;
+  int? _semester2Average;
+  int? _yearAverage;
+  final Map<String, int?> _subjectAverages = {};
 
   bool get _isYearActive => _academicYear.status == _AcademicYearStatus.active;
+  bool get _isActiveAccount =>
+      _currentStudent.accountStatus == _AccountStatus.active;
 
   @override
   void initState() {
     super.initState();
-    _loadPromotionCriteria();
+    _loadGradesFromBackend();
   }
 
-  Future<void> _loadPromotionCriteria() async {
-    if (_loadingCriteria) return;
+  static int _asInt(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
 
+  static DateTime? _asDate(Object? value) {
+    if (value is DateTime) return value;
+    final raw = value?.toString();
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  static _AccountStatus _accountStatusFromDb(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'active':
+        return _AccountStatus.active;
+      case 'inactive_pending_admin':
+        return _AccountStatus.inactivePendingAdmin;
+      case 'graduated':
+        return _AccountStatus.graduated;
+    }
+    return _AccountStatus.unknown;
+  }
+
+  static _AcademicYearPeriod _academicYearPeriodFromDb(
+    String? raw, {
+    _AcademicYearPeriod fallback = _AcademicYearPeriod.semester1,
+  }) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'semester1':
+        return _AcademicYearPeriod.semester1;
+      case 'semester2':
+        return _AcademicYearPeriod.semester2;
+      case 'break':
+        return _AcademicYearPeriod.breakPeriod;
+    }
+    return fallback;
+  }
+
+  static ({DateTime start, DateTime end})? _dateRangeForPeriod({
+    required _AcademicYearPeriod period,
+    required DateTime? startDate,
+    required DateTime? endDate,
+    required DateTime? semester1EndDate,
+    required DateTime? semester2StartDate,
+  }) {
+    final today = DateTime.now();
+
+    DateTime? rangeStart;
+    DateTime? rangeEnd;
+
+    if (period == _AcademicYearPeriod.semester1) {
+      rangeStart = startDate;
+      rangeEnd = semester1EndDate ?? today;
+    } else if (period == _AcademicYearPeriod.semester2) {
+      rangeStart = semester2StartDate;
+      if (rangeStart == null && startDate != null && endDate != null) {
+        final midOffset = (endDate.difference(startDate).inDays / 2).floor();
+        rangeStart = startDate.add(Duration(days: midOffset + 1));
+      }
+      rangeEnd = today;
+    }
+
+    if (rangeStart == null || rangeEnd == null) return null;
+
+    if (endDate != null && rangeEnd.isAfter(endDate)) {
+      rangeEnd = endDate;
+    }
+
+    if (rangeStart.isAfter(rangeEnd)) return null;
+    return (start: rangeStart, end: rangeEnd);
+  }
+
+  static _PromotionStatus _promotionStatusFromDb(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'eligible':
+        return _PromotionStatus.eligible;
+      case 'at_risk':
+        return _PromotionStatus.atRisk;
+      case 'not_eligible':
+        return _PromotionStatus.notEligible;
+    }
+    return _PromotionStatus.eligible;
+  }
+
+  Future<void> _loadGradesFromBackend() async {
     setState(() {
-      _loadingCriteria = true;
+      _loadingGrades = true;
+      _gradesError = null;
     });
 
     try {
       final client = Supabase.instance.client;
-      final repo = PromotionCriteriaRepository(client);
-      final criteria = await repo.fetchForCurrentUserActiveYear();
-      if (!mounted) return;
-      if (criteria != null) {
-        setState(() {
-          _criteria = criteria;
-        });
+      final user = client.auth.currentUser;
+      final userId = user?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
       }
-    } catch (_) {
-      // Keep defaults on any error.
-    } finally {
+
+      final profile = await client
+          .from('profiles')
+          .select('name, grade_id, account_status')
+          .eq('id', userId)
+          .maybeSingle();
+      final profileMap = (profile as Map?) ?? const <String, Object?>{};
+      final gradeId = profileMap['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final studentName =
+          (profileMap['name'] as String?)?.trim() ?? (user?.email ?? '');
+
+      final accountStatus = _accountStatusFromDb(
+        profileMap['account_status']?.toString(),
+      );
+
+      if (accountStatus != _AccountStatus.active) {
+        if (!mounted) return;
+        setState(() {
+          _currentStudent = _GradesStudent(
+            id: userId,
+            name: studentName,
+            promotionStatus: _PromotionStatus.eligible,
+            accountStatus: accountStatus,
+          );
+          _subjects = const [];
+          _gradeEntries = const [];
+          _semester1Average = null;
+          _semester2Average = null;
+          _yearAverage = null;
+          _subjectAverages.clear();
+        });
+        return;
+      }
+
+      Map<String, dynamic>? yearRow;
+      yearRow = await client
+          .from('academic_years')
+          .select(
+            'id, name, status, current_period, start_date, end_date, semester1_end_date, semester2_start_date',
+          )
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      yearRow ??= await client
+          .from('academic_years')
+          .select(
+            'id, name, status, current_period, start_date, end_date, semester1_end_date, semester2_start_date',
+          )
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final academicYearId = yearRow?['id']?.toString();
+      final academicYearName = yearRow?['name']?.toString() ?? '';
+      final yearStatusRaw = yearRow?['status']?.toString() ?? 'active';
+      final yearPeriodRaw = yearRow?['current_period']?.toString();
+      final startDate = _asDate(yearRow?['start_date']);
+      final endDate = _asDate(yearRow?['end_date']);
+      final semester1EndDate = _asDate(yearRow?['semester1_end_date']);
+      final semester2StartDate = _asDate(yearRow?['semester2_start_date']);
+
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final yearStatus = yearStatusRaw == 'active'
+          ? _AcademicYearStatus.active
+          : _AcademicYearStatus.ended;
+
+      final yearPeriod = _academicYearPeriodFromDb(
+        yearPeriodRaw,
+        fallback: yearStatus == _AcademicYearStatus.active
+            ? _AcademicYearPeriod.semester1
+            : _AcademicYearPeriod.breakPeriod,
+      );
+
+      var displayPeriod = yearPeriod;
+      if (yearStatus == _AcademicYearStatus.active &&
+          yearPeriod == _AcademicYearPeriod.breakPeriod) {
+        final today = DateTime.now();
+        if (semester2StartDate != null && !today.isBefore(semester2StartDate)) {
+          displayPeriod = _AcademicYearPeriod.semester2;
+        } else {
+          displayPeriod = _AcademicYearPeriod.semester1;
+        }
+      }
+
+      final assessmentRange = yearStatus == _AcademicYearStatus.active
+          ? _dateRangeForPeriod(
+              period: displayPeriod,
+              startDate: startDate,
+              endDate: endDate,
+              semester1EndDate: semester1EndDate,
+              semester2StartDate: semester2StartDate,
+            )
+          : null;
+
+      PromotionCriteriaSet? criteria;
+      try {
+        final repo = PromotionCriteriaRepository(client);
+        criteria = await repo.fetchForGradeYear(
+          academicYearId: academicYearId,
+          gradeId: gradeId,
+        );
+      } catch (_) {
+        // Keep defaults.
+      }
+
+      final subjectRows = await client
+          .from('subjects')
+          .select('id, name, active')
+          .eq('grade_id', gradeId)
+          .order('name');
+
+      final allSubjects = subjectRows
+          .map(
+            (r) => _GradesSubject(
+              id: (r as Map)['id'] as String,
+              name: (r)['name'] as String? ?? 'Subject',
+              active: (r)['active'] as bool? ?? true,
+            ),
+          )
+          .toList();
+
+      final entries = <_GradesEntry>[];
+      final assessmentRows = await client
+          .from('assessments')
+          .select(
+            'id, subject_id, grade_type, max_score, weight, assessment_date',
+          )
+          .eq('academic_year_id', academicYearId)
+          .eq('grade_id', gradeId)
+          .order('assessment_date', ascending: false);
+
+      final assessedSubjectIdsAllYear = <String>{};
+      final assessedSubjectIdsView = <String>{};
+      final assessmentIds = <String>[];
+      final viewAssessmentRows = <Map<String, Object?>>[];
+
+      bool isInRange(DateTime? dt) {
+        if (assessmentRange == null) return true;
+        if (dt == null) return false;
+        if (dt.isBefore(assessmentRange.start)) return false;
+        if (dt.isAfter(assessmentRange.end)) return false;
+        return true;
+      }
+
+      for (final r in assessmentRows) {
+        final map = (r as Map).cast<String, Object?>();
+        final subjectId = map['subject_id']?.toString();
+        if (subjectId != null && subjectId.isNotEmpty) {
+          assessedSubjectIdsAllYear.add(subjectId);
+        }
+
+        final date = DateTime.tryParse(
+          map['assessment_date']?.toString() ?? '',
+        );
+        if (!isInRange(date)) continue;
+
+        final id = map['id']?.toString();
+        if (id != null && id.isNotEmpty) assessmentIds.add(id);
+        if (subjectId != null && subjectId.isNotEmpty) {
+          assessedSubjectIdsView.add(subjectId);
+        }
+        viewAssessmentRows.add(map);
+      }
+
+      var subjects = yearStatus == _AcademicYearStatus.ended
+          ? allSubjects
+                .where((s) => assessedSubjectIdsAllYear.contains(s.id))
+                .toList()
+          : (yearPeriod == _AcademicYearPeriod.breakPeriod
+                ? allSubjects
+                      .where((s) => assessedSubjectIdsView.contains(s.id))
+                      .toList()
+                : allSubjects
+                      .where(
+                        (s) =>
+                            s.active || assessedSubjectIdsView.contains(s.id),
+                      )
+                      .toList());
+
+      if (subjects.isEmpty && allSubjects.isNotEmpty) {
+        subjects = allSubjects;
+      }
+
+      final scoreByAssessmentId = <String, int?>{};
+      if (assessmentIds.isNotEmpty) {
+        final scoreRows = await client
+            .from('assessment_scores')
+            .select('assessment_id, score')
+            .eq('student_id', userId)
+            .inFilter('assessment_id', assessmentIds);
+
+        for (final r in scoreRows) {
+          final map = r as Map;
+          final aid = map['assessment_id']?.toString();
+          if (aid == null || aid.isEmpty) continue;
+          final score = map['score'];
+          scoreByAssessmentId[aid] = score == null ? null : _asInt(score);
+        }
+      }
+
+      final displayedSubjectIds = subjects.map((s) => s.id).toSet();
+      for (final map in viewAssessmentRows) {
+        final id = map['id']?.toString();
+        final subjectId = map['subject_id']?.toString();
+        if (id == null || subjectId == null) continue;
+        if (!displayedSubjectIds.contains(subjectId)) continue;
+
+        final dateRaw = map['assessment_date']?.toString() ?? '';
+        final date = DateTime.tryParse(dateRaw) ?? DateTime.now();
+
+        final maxScore = _asInt(map['max_score'], fallback: 1);
+        final maxScoreSafe = maxScore <= 0 ? 1 : maxScore;
+
+        final weight = _asInt(map['weight']);
+        final weightValue = weight <= 0 ? null : weight;
+
+        entries.add(
+          _GradesEntry(
+            id: id,
+            subjectId: subjectId,
+            gradeType: map['grade_type']?.toString() ?? '',
+            maxScore: maxScoreSafe,
+            weight: weightValue,
+            date: date,
+            scores: {userId: scoreByAssessmentId[id]},
+          ),
+        );
+      }
+
+      int? semester1Average;
+      int? semester2Average;
+      int? yearAverage;
+      final subjectAverages = <String, int?>{};
+      var promotionStatus = _PromotionStatus.eligible;
+      var gotAcademicAssessment = false;
+
+      try {
+        final raw = await client.rpc(
+          'get_my_academic_assessment',
+          params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
+        );
+
+        if (raw is Map) {
+          gotAcademicAssessment = true;
+          final sem1Raw = raw['semester1_average'];
+          final sem2Raw = raw['semester2_average'];
+          final yearRaw = raw['year_average'];
+          semester1Average = sem1Raw == null ? null : _asInt(sem1Raw);
+          semester2Average = sem2Raw == null ? null : _asInt(sem2Raw);
+          yearAverage = yearRaw == null ? null : _asInt(yearRaw);
+          promotionStatus = _promotionStatusFromDb(
+            raw['promotion_status']?.toString(),
+          );
+        }
+      } catch (_) {}
+
+      if (!gotAcademicAssessment) {
+        try {
+          final sem1Raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': 'semester1',
+            },
+          );
+          if (sem1Raw is Map) {
+            semester1Average = sem1Raw['overall_average'] == null
+                ? null
+                : _asInt(sem1Raw['overall_average']);
+          }
+        } catch (_) {}
+
+        try {
+          final sem2Raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': 'semester2',
+            },
+          );
+          if (sem2Raw is Map) {
+            semester2Average = sem2Raw['overall_average'] == null
+                ? null
+                : _asInt(sem2Raw['overall_average']);
+          }
+        } catch (_) {}
+
+        if (semester1Average != null && semester2Average != null) {
+          yearAverage = ((semester1Average + semester2Average) / 2).round();
+        }
+
+        try {
+          final snapRaw = await client.rpc(
+            'get_my_grading_snapshot',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+            },
+          );
+          if (snapRaw is Map) {
+            promotionStatus = _promotionStatusFromDb(
+              snapRaw['status']?.toString(),
+            );
+          }
+        } catch (_) {}
+      }
+
+      try {
+        final raw = await client.rpc(
+          'get_my_subject_averages',
+          params: {'p_grade_id': gradeId, 'p_academic_year_id': academicYearId},
+        );
+        if (yearStatus != _AcademicYearStatus.active && raw is List) {
+          for (final item in raw) {
+            if (item is! Map) continue;
+            final sid = item['subject_id']?.toString();
+            if (sid == null || sid.isEmpty) continue;
+            final avg = item['subject_average'];
+            subjectAverages[sid] = avg == null ? null : _asInt(avg);
+          }
+        }
+      } catch (_) {}
+
+      if (yearStatus == _AcademicYearStatus.active) {
+        try {
+          final semesterParam = displayPeriod == _AcademicYearPeriod.semester2
+              ? 'semester2'
+              : 'semester1';
+          final raw = await client.rpc(
+            'get_my_semester_report',
+            params: {
+              'p_grade_id': gradeId,
+              'p_academic_year_id': academicYearId,
+              'p_semester': semesterParam,
+            },
+          );
+
+          if (raw is Map) {
+            final list = raw['subject_averages'];
+            if (list is List) {
+              for (final item in list) {
+                if (item is! Map) continue;
+                final sid = item['subject_id']?.toString();
+                if (sid == null || sid.isEmpty) continue;
+                final avg = item['average'];
+                subjectAverages[sid] = avg == null ? null : _asInt(avg);
+              }
+            }
+          }
+        } catch (_) {
+          // Ignore; fallback calculation uses loaded assessments.
+        }
+      }
+
       if (!mounted) return;
       setState(() {
-        _loadingCriteria = false;
+        _academicYear = _GradesAcademicYear(
+          name: academicYearName,
+          status: yearStatus,
+          period: yearPeriod,
+        );
+        _displayPeriod = displayPeriod;
+        _currentStudent = _GradesStudent(
+          id: userId,
+          name: studentName,
+          promotionStatus: promotionStatus,
+          accountStatus: accountStatus,
+        );
+        _subjects = subjects;
+        _gradeEntries = entries;
+        _semester1Average = semester1Average;
+        _semester2Average = semester2Average;
+        _yearAverage = yearAverage;
+        _subjectAverages
+          ..clear()
+          ..addAll(subjectAverages);
+        if (criteria != null) {
+          _criteria = criteria;
+        }
       });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student grades load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _gradesError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.gradesLoadFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingGrades = false;
+        });
+      }
     }
   }
 
@@ -1906,6 +2678,10 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 
   int? _calculateSubjectAverage(String studentId, String subjectId) {
+    if (_subjectAverages.containsKey(subjectId)) {
+      return _subjectAverages[subjectId];
+    }
+
     final allEntries = _entriesForSubject(subjectId);
     if (allEntries.isEmpty) return 0;
 
@@ -1939,38 +2715,13 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return (totalPercentage / entries.length).round();
   }
 
-  int _calculateOverallAverage(String studentId) {
-    if (_subjects.isEmpty) return 0;
-
-    var total = 0;
-    var count = 0;
-    for (final subject in _subjects) {
-      final subjectAvg = _calculateSubjectAverage(studentId, subject.id);
-      if (subjectAvg != null) {
-        total += subjectAvg;
-        count++;
-      }
-    }
-    if (count == 0) return 0;
-    return (total / count).round();
+  int? _calculateOverallAverage(String _) {
+    return _yearAverage;
   }
 
-  String _formatMonthDay(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}';
+  String _formatMonthDay(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context);
+    return DateFormat.MMMd(l10n.localeName).format(date);
   }
 
   void _toggleSubject(String subjectId) {
@@ -1981,14 +2732,169 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (_loadingGrades) {
+      return Scaffold(
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                SizedBox(height: 180),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_gradesError != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.navGrades)),
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _gradesError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadGradesFromBackend,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_isActiveAccount) {
+      return _buildInactiveAccount(context);
+    }
+
+    if (_subjects.isEmpty) {
+      return Scaffold(
+        body: SafeArea(
+          child: AppRefreshConfigurator(
+            onRefresh: _loadGradesFromBackend,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 160),
+                Center(child: Text(l10n.commonNoSubjectsForGrade)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (!_isYearActive) {
       return _buildFinalResults(context);
     }
     return _buildActiveYear(context);
   }
 
+  Widget _buildInactiveAccount(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                width: double.infinity,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.navGrades,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB), // amber-50
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.lock_rounded,
+                          color: Color(0xFFB45309),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.studentGradesAccountInactiveTitle,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF78350F),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      l10n.studentGradesAccountInactiveMessage,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF78350F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFinalResults(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final avgGrade = _calculateOverallAverage(_currentStudent.id);
+    final avgGradeText = avgGrade == null ? '—' : '$avgGrade%';
+    final sem1Text = _semester1Average == null ? '—' : '${_semester1Average!}%';
+    final sem2Text = _semester2Average == null ? '—' : '${_semester2Average!}%';
 
     Color promotionGradientStart;
     Color promotionGradientEnd;
@@ -2001,25 +2907,22 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
         promotionGradientStart = const Color(0xFF22C55E); // green-500
         promotionGradientEnd = const Color(0xFF16A34A); // green-600
         promotionIcon = Icons.check_circle_rounded;
-        promotionTitle = 'Promoted';
-        promotionMessage =
-            'Congratulations! You have been promoted to the next grade.';
+        promotionTitle = l10n.studentFinalResultsPromotionPromotedTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionPromotedMessage;
         break;
       case _PromotionStatus.atRisk:
         promotionGradientStart = const Color(0xFFF59E0B); // amber-500
         promotionGradientEnd = const Color(0xFFEA580C); // amber-600
         promotionIcon = Icons.warning_rounded;
-        promotionTitle = 'At Risk';
-        promotionMessage =
-            'You are at risk of not being promoted. Please consult with your teacher.';
+        promotionTitle = l10n.studentFinalResultsPromotionAtRiskTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionAtRiskMessage;
         break;
       case _PromotionStatus.notEligible:
         promotionGradientStart = const Color(0xFFEF4444); // red-500
         promotionGradientEnd = const Color(0xFFDC2626); // red-600
         promotionIcon = Icons.warning_rounded;
-        promotionTitle = 'Not Promoted';
-        promotionMessage =
-            'You have not met the promotion requirements. Please consult with your teacher.';
+        promotionTitle = l10n.studentFinalResultsPromotionNotPromotedTitle;
+        promotionMessage = l10n.studentFinalResultsPromotionNotPromotedMessage;
         break;
     }
 
@@ -2037,377 +2940,460 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Final Results',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Academic Year ${_academicYear.name}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                width: double.infinity,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Final Grade',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFFFDE68A),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$avgGrade%',
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Academic Year ${_academicYear.name}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFEF3C7), // amber-100
-                            ),
-                          ),
-                        ],
+                    Text(
+                      l10n.studentFinalResultsTitle,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            promotionGradientStart,
-                            promotionGradientEnd,
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
                           ],
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentFinalResultsFinalGradeLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFFFDE68A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        avgGradeText,
+                                        style: const TextStyle(
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester1AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem1Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester2AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem2Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.studentGradesAcademicYearLabel(
+                                _academicYear.name,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFFFEF3C7), // amber-100
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  promotionIcon,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Promotion Status',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xEFFFFFFF),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      promotionTitle,
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              promotionGradientStart,
+                              promotionGradientEnd,
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            promotionMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xEFFFFFFF),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    promotionIcon,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentFinalResultsPromotionStatusLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xEFFFFFFF),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        promotionTitle,
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 10),
+                            Text(
+                              promotionMessage,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xEFFFFFFF),
                               ),
                             ),
-                            child: const Text(
-                              'Final Subject Grades',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A),
-                              ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
                             ),
-                          ),
-                          ..._subjects.map((subject) {
-                            final subjectAverage =
-                                _calculateSubjectAverage(
-                                  _currentStudent.id,
-                                  subject.id,
-                                ) ??
-                                0;
-                            return Container(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                14,
-                                16,
-                                14,
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
                               ),
                               decoration: const BoxDecoration(
                                 border: Border(
                                   bottom: BorderSide(color: Color(0xFFF1F5F9)),
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          subject.name,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _gradeBgColor(subjectAverage),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '$subjectAverage%',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: _gradeColor(subjectAverage),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _PercentBar(
-                                    value: subjectAverage,
-                                    backgroundColor: const Color(0xFFF1F5F9),
-                                    barColor: _barColor(subjectAverage),
-                                    height: 8,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.trending_up_rounded,
-                                size: 20,
-                                color: Color(0xFF0284C7), // sky-600
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Final Summary',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.studentFinalResultsFinalSubjectGradesTitle,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          _SummaryRow(
-                            label: 'Highest Grade',
-                            value: '$highest%',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(label: 'Lowest Grade', value: '$lowest%'),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          const SizedBox(height: 12),
-                          _SummaryRow(
-                            label: 'Overall Average',
-                            value: '$avgGrade%',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2FE), // sky-50
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFBAE6FD)),
-                      ),
-                      padding: const EdgeInsets.all(14),
-                      child: Text(
-                        'The academic year has ended. These are your final grades for ${_academicYear.name}. Enjoy your break and we look forward to seeing you in the next academic year!',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF0C4A6E), // sky-900
+                            ),
+                            ..._subjects.map((subject) {
+                              final subjectAverage =
+                                  _calculateSubjectAverage(
+                                    _currentStudent.id,
+                                    subject.id,
+                                  ) ??
+                                  0;
+                              return Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  14,
+                                  16,
+                                  14,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Color(0xFFF1F5F9),
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            subject.name,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _gradeBgColor(
+                                              subjectAverage,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$subjectAverage%',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: _gradeColor(
+                                                subjectAverage,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _PercentBar(
+                                      value: subjectAverage,
+                                      backgroundColor: const Color(0xFFF1F5F9),
+                                      barColor: _barColor(subjectAverage),
+                                      height: 8,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 20,
+                                  color: Color(0xFF0284C7), // sky-600
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.studentFinalResultsFinalSummaryTitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            _SummaryRow(
+                              label: l10n.studentGradesHighestGradeLabel,
+                              value: '$highest%',
+                            ),
+                            const SizedBox(height: 8),
+                            _SummaryRow(
+                              label: l10n.studentGradesLowestGradeLabel,
+                              value: '$lowest%',
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 12),
+                            _SummaryRow(
+                              label: l10n.studentGradesOverallAverageLabel,
+                              value: avgGradeText,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE), // sky-50
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          l10n.studentFinalResultsAcademicYearEndedMessage(
+                            _academicYear.name,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF0C4A6E), // sky-900
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildActiveYear(BuildContext context) {
-    final avgGrade = _calculateOverallAverage(_currentStudent.id);
+    final l10n = AppLocalizations.of(context);
+    final displayAvg = _displayPeriod == _AcademicYearPeriod.semester2
+        ? _semester2Average
+        : _semester1Average;
+    final displayAvgText = displayAvg == null ? '—' : '$displayAvg%';
+    final displayAvgLabel = _displayPeriod == _AcademicYearPeriod.semester2
+        ? l10n.studentGradesSemester2AverageLabel
+        : l10n.studentGradesSemester1AverageLabel;
+    final sem1Text = _semester1Average == null ? '—' : '${_semester1Average!}%';
+    final sem2Text = _semester2Average == null ? '—' : '${_semester2Average!}%';
 
     final highest = _subjects
         .map((s) => _calculateSubjectAverage(_currentStudent.id, s.id) ?? 0)
@@ -2419,393 +3405,566 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              width: double.infinity,
-              child: const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Grades',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
-                  ),
+        child: AppRefreshConfigurator(
+          onRefresh: _loadGradesFromBackend,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                width: double.infinity,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Overall Average',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFFFDE68A),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$avgGrade%',
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Keep up the excellent work!',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFEF3C7), // amber-100
-                            ),
-                          ),
-                        ],
+                    Text(
+                      l10n.navGrades,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
-                    Column(
-                      children: _subjects.map((subject) {
-                        final entries = _entriesForSubject(subject.id);
-                        final missingCount = entries
-                            .where((e) => e.scores[_currentStudent.id] == null)
-                            .length;
-                        final subjectAverage =
-                            _calculateSubjectAverage(
-                              _currentStudent.id,
-                              subject.id,
-                            ) ??
-                            0;
-                        final isExpanded = _expandedSubjectId == subject.id;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_academicYear.period ==
+                          _AcademicYearPeriod.breakPeriod)
+                        Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFFFFBEB), // amber-50
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x14000000),
-                                blurRadius: 12,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
+                            border: Border.all(
+                              color: const Color(0xFFFDE68A), // amber-200
+                            ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: [
-                              InkWell(
-                                onTap: () => _toggleSubject(subject.id),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    14,
-                                    16,
-                                    12,
+                          padding: const EdgeInsets.all(14),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            l10n.studentGradesBreakModeMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF78350F),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE), // sky-50
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFBAE6FD), // sky-200
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            _academicYear.period ==
+                                    _AcademicYearPeriod.semester2
+                                ? l10n.studentGradesSemester2ModeMessage
+                                : l10n.studentGradesSemester1ModeMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF0C4A6E), // sky-900
+                            ),
+                          ),
+                        ),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(51),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
+                                  child: const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              subject.name,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF0F172A),
-                                              ),
-                                            ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 14,
-                                                      vertical: 8,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: _gradeBgColor(
-                                                    subjectAverage,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  '$subjectAverage%',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: _gradeColor(
-                                                      subjectAverage,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Icon(
-                                                isExpanded
-                                                    ? Icons
-                                                          .keyboard_arrow_up_rounded
-                                                    : Icons
-                                                          .keyboard_arrow_down_rounded,
-                                                color: const Color(
-                                                  0xFF94A3B8,
-                                                ), // slate-400
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _PercentBar(
-                                        value: subjectAverage,
-                                        backgroundColor: const Color(
-                                          0xFFF1F5F9,
+                                      Text(
+                                        displayAvgLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFFFDE68A),
                                         ),
-                                        barColor: _barColor(subjectAverage),
-                                        height: 8,
                                       ),
-                                      const SizedBox(height: 10),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          '${entries.length} ${entries.length == 1 ? 'assessment' : 'assessments'}',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(
-                                              0xFF64748B,
-                                            ), // slate-500
-                                          ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        displayAvgText,
+                                        style: const TextStyle(
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                              if (isExpanded)
-                                Container(
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                      top: BorderSide(color: Color(0xFFF1F5F9)),
-                                    ),
-                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
                                   child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          12,
-                                          16,
-                                          12,
-                                        ),
-                                        color: const Color(0xFFF8FAFC),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            const Text(
-                                              'Assessment Breakdown',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(
-                                                  0xFF334155,
-                                                ), // slate-700
-                                              ),
-                                            ),
-                                            if (missingCount > 0) ...[
-                                              const SizedBox(height: 10),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 10,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(
-                                                    0xFFFFFBEB,
-                                                  ), // amber-50
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  border: Border.all(
-                                                    color: const Color(
-                                                      0xFFFDE68A,
-                                                    ), // amber-200
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  '⚠️ You are missing $missingCount assessment(s) in this subject. Your grade is calculated based only on completed assessments.',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(
-                                                      0xFF78350F,
-                                                    ), // amber-900
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
+                                      Text(
+                                        l10n.studentGradesSemester1AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
                                         ),
                                       ),
-                                      Column(
-                                        children: entries.map((entry) {
-                                          final score =
-                                              entry.scores[_currentStudent.id];
-                                          final hasScore = score != null;
-                                          final percentage = hasScore
-                                              ? ((score / entry.maxScore) * 100)
-                                                    .round()
-                                              : 0;
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem1Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.studentGradesSemester2AverageLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        sem2Text,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.studentGradesKeepUpExcellentWork,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFFFEF3C7), // amber-100
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        children: _subjects.map((subject) {
+                          final entries = _entriesForSubject(subject.id);
+                          final missingCount = entries
+                              .where(
+                                (e) => e.scores[_currentStudent.id] == null,
+                              )
+                              .length;
+                          final subjectAverage =
+                              _calculateSubjectAverage(
+                                _currentStudent.id,
+                                subject.id,
+                              ) ??
+                              0;
+                          final isExpanded = _expandedSubjectId == subject.id;
 
-                                          return Container(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              16,
-                                              12,
-                                              16,
-                                              12,
-                                            ),
-                                            decoration: const BoxDecoration(
-                                              border: Border(
-                                                top: BorderSide(
-                                                  color: Color(0xFFF1F5F9),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x14000000),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: [
+                                InkWell(
+                                  onTap: () => _toggleSubject(subject.id),
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      12,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                subject.name,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF0F172A),
                                                 ),
                                               ),
                                             ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
+                                            Row(
                                               children: [
-                                                Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 8,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: _gradeBgColor(
+                                                      subjectAverage,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '$subjectAverage%',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _gradeColor(
+                                                        subjectAverage,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Icon(
+                                                  isExpanded
+                                                      ? Icons
+                                                            .keyboard_arrow_up_rounded
+                                                      : Icons
+                                                            .keyboard_arrow_down_rounded,
+                                                  color: const Color(
+                                                    0xFF94A3B8,
+                                                  ), // slate-400
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _PercentBar(
+                                          value: subjectAverage,
+                                          backgroundColor: const Color(
+                                            0xFFF1F5F9,
+                                          ),
+                                          barColor: _barColor(subjectAverage),
+                                          height: 8,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            l10n.studentGradesAssessmentsCount(
+                                              entries.length,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(
+                                                0xFF64748B,
+                                              ), // slate-500
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (isExpanded)
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        top: BorderSide(
+                                          color: Color(0xFFF1F5F9),
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            12,
+                                            16,
+                                            12,
+                                          ),
+                                          color: const Color(0xFFF8FAFC),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Text(
+                                                l10n.studentGradesAssessmentBreakdownTitle,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(
+                                                    0xFF334155,
+                                                  ), // slate-700
+                                                ),
+                                              ),
+                                              if (missingCount > 0) ...[
+                                                const SizedBox(height: 10),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 10,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFFFFBEB,
+                                                    ), // amber-50
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFFFDE68A,
+                                                      ), // amber-200
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    l10n.studentGradesMissingAssessmentsWarning(
+                                                      missingCount,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(
+                                                        0xFF78350F,
+                                                      ), // amber-900
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          children: entries.map((entry) {
+                                            final score = entry
+                                                .scores[_currentStudent.id];
+                                            final hasScore = score != null;
+                                            final percentage = hasScore
+                                                ? ((score / entry.maxScore) *
+                                                          100)
+                                                      .round()
+                                                : 0;
+
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    16,
+                                                    12,
+                                                    16,
+                                                    12,
+                                                  ),
+                                              decoration: const BoxDecoration(
+                                                border: Border(
+                                                  top: BorderSide(
+                                                    color: Color(0xFFF1F5F9),
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.stretch,
+                                                children: [
+                                                  Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                Text(
+                                                                  entry
+                                                                      .gradeType,
+                                                                  style: const TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    color: Color(
+                                                                      0xFF0F172A,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                if (entry
+                                                                        .weight !=
+                                                                    null) ...[
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                  Container(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          4,
+                                                                    ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color(
+                                                                        0xFFFEF3C7,
+                                                                      ),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            999,
+                                                                          ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      '${entry.weight}%',
+                                                                      style: const TextStyle(
+                                                                        fontSize:
+                                                                            11,
+                                                                        color: Color(
+                                                                          0xFFB45309,
+                                                                        ),
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 6,
+                                                            ),
+                                                            Text(
+                                                              _formatMonthDay(
+                                                                context,
+                                                                entry.date,
+                                                              ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        12,
+                                                                    color: Color(
+                                                                      0xFF64748B,
+                                                                    ),
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Column(
                                                         crossAxisAlignment:
                                                             CrossAxisAlignment
-                                                                .start,
+                                                                .end,
                                                         children: [
-                                                          Row(
-                                                            children: [
-                                                              Text(
-                                                                entry.gradeType,
-                                                                style: const TextStyle(
-                                                                  fontSize: 13,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                  color: Color(
-                                                                    0xFF0F172A,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              if (entry
-                                                                      .weight !=
-                                                                  null) ...[
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Container(
-                                                                  padding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            10,
-                                                                        vertical:
-                                                                            4,
-                                                                      ),
-                                                                  decoration: BoxDecoration(
-                                                                    color: const Color(
-                                                                      0xFFFEF3C7,
+                                                          Text(
+                                                            hasScore
+                                                                ? '$percentage%'
+                                                                : l10n.commonPending,
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: hasScore
+                                                                  ? _gradeColor(
+                                                                      percentage,
+                                                                    )
+                                                                  : const Color(
+                                                                      0xFF64748B,
                                                                     ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                          999,
-                                                                        ),
-                                                                  ),
-                                                                  child: Text(
-                                                                    '${entry.weight}%',
-                                                                    style: const TextStyle(
-                                                                      fontSize:
-                                                                          11,
-                                                                      color: Color(
-                                                                        0xFFB45309,
-                                                                      ),
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ],
+                                                            ),
                                                           ),
                                                           const SizedBox(
-                                                            height: 6,
+                                                            height: 2,
                                                           ),
                                                           Text(
-                                                            _formatMonthDay(
-                                                              entry.date,
-                                                            ),
+                                                            hasScore
+                                                                ? l10n.studentGradesPointsLabel(
+                                                                    score,
+                                                                    entry
+                                                                        .maxScore,
+                                                                  )
+                                                                : '—',
                                                             style:
                                                                 const TextStyle(
                                                                   fontSize: 12,
@@ -2816,146 +3975,116 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                                           ),
                                                         ],
                                                       ),
-                                                    ),
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .end,
-                                                      children: [
-                                                        Text(
-                                                          hasScore
-                                                              ? '$percentage%'
-                                                              : 'Pending',
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: hasScore
-                                                                ? _gradeColor(
-                                                                    percentage,
-                                                                  )
-                                                                : const Color(
-                                                                    0xFF64748B,
-                                                                  ),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        Text(
-                                                          hasScore
-                                                              ? '$score/${entry.maxScore} pts'
-                                                              : '—',
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 12,
-                                                                color: Color(
-                                                                  0xFF64748B,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 10),
-                                                _PercentBar(
-                                                  value: percentage,
-                                                  backgroundColor: const Color(
-                                                    0xFFF1F5F9,
+                                                    ],
                                                   ),
-                                                  barColor: hasScore
-                                                      ? _barColor(percentage)
-                                                      : const Color(0xFFE2E8F0),
-                                                  height: 6,
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
+                                                  const SizedBox(height: 10),
+                                                  _PercentBar(
+                                                    value: percentage,
+                                                    backgroundColor:
+                                                        const Color(0xFFF1F5F9),
+                                                    barColor: hasScore
+                                                        ? _barColor(percentage)
+                                                        : const Color(
+                                                            0xFFE2E8F0,
+                                                          ),
+                                                    height: 6,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 20,
+                                  color: Color(0xFF0284C7),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.studentGradesPerformanceSummaryTitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F172A),
                                   ),
                                 ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x14000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            _SummaryRow(
+                              label: l10n.studentGradesHighestGradeLabel,
+                              value: '$highest%',
+                            ),
+                            const SizedBox(height: 8),
+                            _SummaryRow(
+                              label: l10n.studentGradesLowestGradeLabel,
+                              value: '$lowest%',
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 12),
+                            _SummaryRow(
+                              label: l10n.studentGradesTotalSubjectsLabel,
+                              value: '${_subjects.length}',
+                            ),
+                          ],
+                        ),
                       ),
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.trending_up_rounded,
-                                size: 20,
-                                color: Color(0xFF0284C7),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Performance Summary',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          _SummaryRow(
-                            label: 'Highest Grade',
-                            value: '$highest%',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(label: 'Lowest Grade', value: '$lowest%'),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          const SizedBox(height: 12),
-                          _SummaryRow(
-                            label: 'Total Subjects',
-                            value: '${_subjects.length}',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-enum _AcademicYearStatus {
-  active,
-  // ignore: unused_field
-  ended,
-}
+enum _AcademicYearStatus { active, ended }
+
+enum _AcademicYearPeriod { semester1, semester2, breakPeriod }
+
+enum _AccountStatus { active, inactivePendingAdmin, graduated, unknown }
 
 class _GradesAcademicYear {
-  const _GradesAcademicYear({required this.name, required this.status});
+  const _GradesAcademicYear({
+    required this.name,
+    required this.status,
+    required this.period,
+  });
 
   final String name;
   final _AcademicYearStatus status;
+  final _AcademicYearPeriod period;
 }
 
 enum _PromotionStatus { eligible, atRisk, notEligible }
@@ -2965,18 +4094,25 @@ class _GradesStudent {
     required this.id,
     required this.name,
     required this.promotionStatus,
+    required this.accountStatus,
   });
 
   final String id;
   final String name;
   final _PromotionStatus promotionStatus;
+  final _AccountStatus accountStatus;
 }
 
 class _GradesSubject {
-  const _GradesSubject({required this.id, required this.name});
+  const _GradesSubject({
+    required this.id,
+    required this.name,
+    required this.active,
+  });
 
   final String id;
   final String name;
+  final bool active;
 }
 
 class _GradesEntry {
@@ -3058,12 +4194,185 @@ class _StudentCommunicationScreenState
   bool _showQuestionForm = false;
   bool _showComplaintForm = false;
 
+  bool _loadingBadges = false;
+  int _announcementBadgeCount = 0;
+  int _pendingFeedbackBadgeCount = 0;
+
+  final _announcementsKey = GlobalKey<_AnnouncementsSectionState>();
+  final _questionsKey = GlobalKey<_QuestionsListState>();
+  final _questionFormKey = GlobalKey<_QuestionFormState>();
+  final _complaintsKey = GlobalKey<_ComplaintsListState>();
+  final _complaintFormKey = GlobalKey<_ComplaintFormState>();
+  final _feedbackKey = GlobalKey<_FeedbackSectionState>();
+
   @override
   void initState() {
     super.initState();
     final parsed = _parseTab(widget.initialTab);
     if (parsed != null) {
       _activeTab = parsed;
+    }
+
+    _loadBadgeCountsFromBackend();
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadBadgeCountsFromBackend() async {
+    if (_loadingBadges) return;
+
+    setState(() {
+      _loadingBadges = true;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var announcementCount = 0;
+      try {
+        var q = client.from('announcements').select('id').eq('active', true);
+
+        if (academicYearId != null && academicYearId.isNotEmpty) {
+          q = q.eq('academic_year_id', academicYearId);
+        }
+        if (gradeId != null && gradeId.isNotEmpty) {
+          q = q.or('grade_id.is.null,grade_id.eq.$gradeId');
+        }
+        final rows = await q;
+        announcementCount = (rows as List).length;
+      } catch (_) {}
+
+      var pendingFeedbackForms = 0;
+      try {
+        if (academicYearId != null &&
+            academicYearId.isNotEmpty &&
+            gradeId != null &&
+            gradeId.isNotEmpty) {
+          final today = _todayIso();
+          final forms = await client
+              .from('feedback_forms')
+              .select('id')
+              .eq('academic_year_id', academicYearId)
+              .eq('grade_id', gradeId)
+              .lte('start_date', today)
+              .gte('end_date', today);
+
+          final formIds = (forms as List)
+              .map((r) => (r as Map)['id']?.toString())
+              .whereType<String>()
+              .toList(growable: false);
+
+          if (formIds.isNotEmpty) {
+            final subs = await client
+                .from('feedback_submissions')
+                .select('form_id')
+                .eq('student_id', userId)
+                .inFilter('form_id', formIds);
+
+            final submitted = (subs as List)
+                .map((r) => (r as Map)['form_id']?.toString())
+                .whereType<String>()
+                .toSet();
+            pendingFeedbackForms = formIds
+                .where((id) => !submitted.contains(id))
+                .length;
+          }
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _announcementBadgeCount = announcementCount;
+        _pendingFeedbackBadgeCount = pendingFeedbackForms;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingBadges = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    await _loadBadgeCountsFromBackend();
+
+    switch (_activeTab) {
+      case _CommTab.announcements:
+        final state = _announcementsKey.currentState;
+        if (state != null) {
+          await state._loadAnnouncementsFromBackend();
+        }
+        return;
+      case _CommTab.questions:
+        if (_showQuestionForm) {
+          final state = _questionFormKey.currentState;
+          if (state != null) {
+            await state._loadContextFromBackend();
+          }
+          return;
+        }
+        final state = _questionsKey.currentState;
+        if (state != null) {
+          await state._loadQuestionsFromBackend();
+        }
+        return;
+      case _CommTab.complaints:
+        if (_showComplaintForm) {
+          final state = _complaintFormKey.currentState;
+          if (state != null) {
+            await state._loadContextFromBackend();
+          }
+          return;
+        }
+        final state = _complaintsKey.currentState;
+        if (state != null) {
+          await state._loadComplaintsFromBackend();
+        }
+        return;
+      case _CommTab.feedback:
+        final state = _feedbackKey.currentState;
+        if (state != null) {
+          await state._loadFeedbackFormsFromBackend();
+        }
+        return;
     }
   }
 
@@ -3097,140 +4406,154 @@ class _StudentCommunicationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final unreadAnnouncements = 2;
-    final pendingFeedbackForms = 1;
+    final l10n = AppLocalizations.of(context);
+    final unreadAnnouncements = _announcementBadgeCount;
+    final pendingFeedbackForms = _pendingFeedbackBadgeCount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Sticky header with tabs
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: 0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Communication',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+        child: AppRefreshConfigurator(
+          onRefresh: _handleRefresh,
+          child: Column(
+            children: [
+              // Sticky header with tabs
+              Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                padding: const EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 24,
+                  bottom: 0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.navCommunication,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _CommTabButton(
-                          label: 'Announcements',
-                          icon: Icons.campaign_rounded,
-                          selected: _activeTab == _CommTab.announcements,
-                          badgeCount: unreadAnnouncements,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.announcements;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                        _CommTabButton(
-                          label: 'Questions',
-                          icon: Icons.question_answer_rounded,
-                          selected: _activeTab == _CommTab.questions,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.questions;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                        _CommTabButton(
-                          label: 'Complaints',
-                          icon: Icons.report_problem_rounded,
-                          selected: _activeTab == _CommTab.complaints,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.complaints;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                        _CommTabButton(
-                          label: 'Feedback',
-                          icon: Icons.fact_check_rounded,
-                          selected: _activeTab == _CommTab.feedback,
-                          badgeCount: pendingFeedbackForms,
-                          onTap: () {
-                            setState(() {
-                              _activeTab = _CommTab.feedback;
-                              _showQuestionForm = false;
-                              _showComplaintForm = false;
-                            });
-                          },
-                        ),
-                      ],
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _CommTabButton(
+                            label: l10n.commAnnouncements,
+                            icon: Icons.campaign_rounded,
+                            selected: _activeTab == _CommTab.announcements,
+                            badgeCount: unreadAnnouncements,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.announcements;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                              _loadBadgeCountsFromBackend();
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commQuestions,
+                            icon: Icons.question_answer_rounded,
+                            selected: _activeTab == _CommTab.questions,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.questions;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commComplaints,
+                            icon: Icons.report_problem_rounded,
+                            selected: _activeTab == _CommTab.complaints,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.complaints;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                            },
+                          ),
+                          _CommTabButton(
+                            label: l10n.commFeedback,
+                            icon: Icons.fact_check_rounded,
+                            selected: _activeTab == _CommTab.feedback,
+                            badgeCount: pendingFeedbackForms,
+                            onTap: () {
+                              setState(() {
+                                _activeTab = _CommTab.feedback;
+                                _showQuestionForm = false;
+                                _showComplaintForm = false;
+                              });
+                              _loadBadgeCountsFromBackend();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Builder(
-                  builder: (context) {
-                    switch (_activeTab) {
-                      case _CommTab.announcements:
-                        return const _AnnouncementsSection();
-                      case _CommTab.questions:
-                        if (_showQuestionForm) {
-                          return _QuestionForm(
-                            onCancel: () {
-                              setState(() => _showQuestionForm = false);
-                            },
-                          );
-                        }
-                        return _QuestionsList(
-                          onAskQuestion: () {
-                            setState(() => _showQuestionForm = true);
-                          },
-                        );
-                      case _CommTab.complaints:
-                        if (_showComplaintForm) {
-                          return _ComplaintForm(
-                            onCancel: () {
-                              setState(() => _showComplaintForm = false);
-                            },
-                          );
-                        }
-                        return _ComplaintsList(
-                          onSubmitComplaint: () {
-                            setState(() => _showComplaintForm = true);
-                          },
-                        );
-                      case _CommTab.feedback:
-                        return const _FeedbackSection();
-                    }
-                  },
+                  ],
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Builder(
+                    builder: (context) {
+                      switch (_activeTab) {
+                        case _CommTab.announcements:
+                          return _AnnouncementsSection(key: _announcementsKey);
+                        case _CommTab.questions:
+                          if (_showQuestionForm) {
+                            return _QuestionForm(
+                              key: _questionFormKey,
+                              onCancel: () {
+                                setState(() => _showQuestionForm = false);
+                              },
+                            );
+                          }
+                          return _QuestionsList(
+                            key: _questionsKey,
+                            onAskQuestion: () {
+                              setState(() => _showQuestionForm = true);
+                            },
+                          );
+                        case _CommTab.complaints:
+                          if (_showComplaintForm) {
+                            return _ComplaintForm(
+                              key: _complaintFormKey,
+                              onCancel: () {
+                                setState(() => _showComplaintForm = false);
+                              },
+                            );
+                          }
+                          return _ComplaintsList(
+                            key: _complaintsKey,
+                            onSubmitComplaint: () {
+                              setState(() => _showComplaintForm = true);
+                            },
+                          );
+                        case _CommTab.feedback:
+                          return _FeedbackSection(
+                            key: _feedbackKey,
+                            onSubmitted: _loadBadgeCountsFromBackend,
+                          );
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3305,10 +4628,10 @@ class _CommTabButton extends StatelessWidget {
   }
 }
 
-// --- Communication tab content widgets (static demo data) ---
+// --- Communication tab content widgets ---
 
 class _AnnouncementsSection extends StatefulWidget {
-  const _AnnouncementsSection();
+  const _AnnouncementsSection({super.key});
 
   @override
   State<_AnnouncementsSection> createState() => _AnnouncementsSectionState();
@@ -3342,7 +4665,17 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
   Future<void> _loadAnnouncementsFromBackend() async {
     final client = Supabase.instance.client;
     final userId = client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      final l10n = AppLocalizations.of(context);
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.errorAuthRequired;
+        _items.clear();
+        _expandedId = null;
+        _isLoading = false;
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -3387,9 +4720,9 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
         final createdById = map['created_by']?.toString() ?? '';
         return _Announcement(
           id: map['id'] as String,
-          title: (map['title'] as String?) ?? '',
-          message: (map['message'] as String?) ?? '',
-          createdBy: createdById == userId ? 'You' : 'Servant',
+          title: maybeFixMojibake((map['title'] as String?) ?? ''),
+          message: maybeFixMojibake((map['message'] as String?) ?? ''),
+          createdBy: createdById == userId ? 'you' : 'servant',
           createdDate: createdAt.isNotEmpty
               ? _dateOnly(createdAt)
               : _todayIso(),
@@ -3408,8 +4741,13 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = 'Failed to load announcements.';
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commAnnouncementsLoadFailed,
+        );
         _items.clear();
         _expandedId = null;
         _isLoading = false;
@@ -3419,6 +4757,7 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.only(top: 24),
@@ -3447,14 +4786,14 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
           const SizedBox(height: 40),
           Icon(Icons.campaign_rounded, size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 8),
-          const Text(
-            'No announcements',
-            style: TextStyle(color: Color(0xFF64748B)),
+          Text(
+            l10n.commNoAnnouncements,
+            style: const TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Check back later for updates',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          Text(
+            l10n.commAnnouncementsEmptySubtitle,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
         ],
       );
@@ -3464,6 +4803,14 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
       children: _items.map((item) {
         final expanded = _expandedId == item.id;
         final unread = item.unread;
+
+        final categoryLabel = switch (item.category) {
+          'urgent' => l10n.commAnnouncementCategoryUrgent,
+          'grades' => l10n.commAnnouncementCategoryGrades,
+          'schedule' => l10n.commAnnouncementCategorySchedule,
+          'event' => l10n.commAnnouncementCategoryEvent,
+          _ => l10n.commAnnouncementCategoryGeneral,
+        };
 
         Color badgeBg;
         Color badgeText;
@@ -3571,11 +4918,11 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                                     color: badgeBg,
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                      color: badgeBg.withOpacity(0.8),
+                                      color: badgeBg.withAlpha(204),
                                     ),
                                   ),
                                   child: Text(
-                                    item.category,
+                                    categoryLabel,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: badgeText,
@@ -3632,7 +4979,11 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Posted by ${item.createdBy}',
+                              l10n.commPostedBy(
+                                item.createdBy == 'you'
+                                    ? l10n.commonYou
+                                    : l10n.roleServant,
+                              ),
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF94A3B8),
@@ -3661,35 +5012,139 @@ class _AnnouncementsSectionState extends State<_AnnouncementsSection> {
   }
 }
 
-class _QuestionsList extends StatelessWidget {
-  const _QuestionsList({required this.onAskQuestion});
+class _QuestionsList extends StatefulWidget {
+  const _QuestionsList({super.key, required this.onAskQuestion});
 
   final VoidCallback onAskQuestion;
 
   @override
-  Widget build(BuildContext context) {
-    final questions = const [
-      _Question(
-        subject: 'Bible Studies',
-        question: 'Will next week’s quiz include last month’s memory verses?',
-        status: 'Pending',
-        answered: false,
-        date: 'Feb 27',
-      ),
-      _Question(
-        subject: 'Christian History',
-        question:
-            'Can you share additional resources about early church fathers?',
-        status: 'Answered',
-        answered: true,
-        answer:
-            'Yes, we will share a reading list and a short video next class.',
-        date: 'Feb 20',
-      ),
-    ];
+  State<_QuestionsList> createState() => _QuestionsListState();
+}
 
-    final pending = questions.where((q) => !q.answered).toList(growable: false);
-    final answered = questions.where((q) => q.answered).toList(growable: false);
+class _QuestionsListState extends State<_QuestionsList> {
+  bool _isLoading = true;
+  String? _error;
+  final List<_Question> _questions = [];
+
+  static String _dateOnly(String value) {
+    if (value.length >= 10) return value.substring(0, 10);
+    return value;
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuestionsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadQuestionsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var query = client
+          .from('questions')
+          .select(
+            'id, question, answer, answered, created_at, subject:subjects(name)',
+          )
+          .eq('student_id', userId);
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      final rows = await query.order('created_at', ascending: false).limit(50);
+
+      final items = (rows as List).map((r) {
+        final map = r as Map;
+        final createdAt = map['created_at']?.toString() ?? '';
+        final subjectRaw = map['subject'];
+        final subjectName = subjectRaw is Map
+            ? subjectRaw['name']?.toString()
+            : null;
+        final answered = (map['answered'] as bool?) ?? false;
+
+        return _Question(
+          subject: maybeFixMojibake(subjectName?.trim() ?? ''),
+          question: maybeFixMojibake((map['question'] as String?) ?? ''),
+          status: answered ? 'answered' : 'pending',
+          answered: answered,
+          answer: maybeFixMojibakeNullable(map['answer'] as String?),
+          date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
+        );
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _questions
+          ..clear()
+          ..addAll(items);
+        _isLoading = false;
+      });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student questions load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadQuestionsFailed,
+        );
+        _questions.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    final pending = _questions
+        .where((q) => !q.answered)
+        .toList(growable: false);
+    final answered = _questions
+        .where((q) => q.answered)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3697,7 +5152,7 @@ class _QuestionsList extends StatelessWidget {
         SizedBox(
           height: 44,
           child: ElevatedButton.icon(
-            onPressed: onAskQuestion,
+            onPressed: widget.onAskQuestion,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0EA5E9),
               foregroundColor: Colors.white,
@@ -3706,40 +5161,74 @@ class _QuestionsList extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.add_rounded, size: 20),
-            label: const Text('Ask a Question', style: TextStyle(fontSize: 14)),
+            label: Text(
+              l10n.commAskQuestion,
+              style: const TextStyle(fontSize: 14),
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        if (pending.isNotEmpty) ...[
-          const Text(
-            'Pending',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 8),
-          ...pending.map((q) => _QuestionCard(question: q)),
-          const SizedBox(height: 16),
-        ],
-        if (answered.isNotEmpty) ...[
-          const Text(
-            'Answered',
-            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 8),
-          ...answered.map((q) => _QuestionCard(question: q)),
-        ],
-        if (questions.isEmpty) ...[
-          const SizedBox(height: 40),
-          Icon(
-            Icons.chat_bubble_outline_rounded,
-            color: Colors.grey.shade300,
-            size: 48,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'No questions yet',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B)),
-          ),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Column(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 42,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadQuestionsFromBackend,
+                child: Text(l10n.commonRetry),
+              ),
+            ],
+          )
+        else if (_questions.isEmpty)
+          Column(
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: Colors.grey.shade300,
+                size: 48,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.commNoQuestionsYet,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            ],
+          )
+        else ...[
+          if (pending.isNotEmpty) ...[
+            Text(
+              l10n.commPending,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 8),
+            ...pending.map((q) => _QuestionCard(question: q)),
+            const SizedBox(height: 16),
+          ],
+          if (answered.isNotEmpty) ...[
+            Text(
+              l10n.commAnswered,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 8),
+            ...answered.map((q) => _QuestionCard(question: q)),
+          ],
         ],
       ],
     );
@@ -3753,6 +5242,10 @@ class _QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final subjectLabel = question.subject.trim().isNotEmpty
+        ? question.subject
+        : l10n.commSubjectGeneral;
     final statusColor = question.answered
         ? const Color(0xFF16A34A)
         : const Color(0xFFFBBF24); // green / amber
@@ -3787,7 +5280,7 @@ class _QuestionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  question.subject,
+                  subjectLabel,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF0369A1),
@@ -3801,7 +5294,7 @@ class _QuestionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  question.status,
+                  question.answered ? l10n.commAnswered : l10n.commPending,
                   style: TextStyle(fontSize: 11, color: statusColor),
                 ),
               ),
@@ -3823,9 +5316,12 @@ class _QuestionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Response:',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF0369A1)),
+                  Text(
+                    l10n.commResponseLabel,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF0369A1),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -3851,7 +5347,7 @@ class _QuestionCard extends StatelessWidget {
 }
 
 class _QuestionForm extends StatefulWidget {
-  const _QuestionForm({required this.onCancel});
+  const _QuestionForm({super.key, required this.onCancel});
 
   final VoidCallback onCancel;
 
@@ -3860,13 +5356,208 @@ class _QuestionForm extends StatefulWidget {
 }
 
 class _QuestionFormState extends State<_QuestionForm> {
+  static const _generalSubjectValue = 'general';
+
   final _formKey = GlobalKey<FormState>();
-  String _subject = '';
+
+  bool _loadingContext = false;
+  String? _contextError;
+  String? _submitError;
+  String? _academicYearId;
+  String? _gradeId;
+  List<_QuestionSubjectOption> _subjectOptions = const [];
+
+  String _subjectValue = _generalSubjectValue;
   String _question = '';
+  bool _submitting = false;
   bool _showSuccess = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadContextFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
+    if (_loadingContext) return;
+
+    setState(() {
+      _loadingContext = true;
+      _contextError = null;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final subjectRows = await client
+          .from('subjects')
+          .select('id, name')
+          .eq('grade_id', gradeId)
+          .eq('active', true)
+          .order('name');
+
+      final options = <_QuestionSubjectOption>[
+        _QuestionSubjectOption(
+          value: _generalSubjectValue,
+          label: l10n.commSubjectGeneral,
+        ),
+      ];
+
+      for (final r in (subjectRows as List)) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        options.add(
+          _QuestionSubjectOption(
+            value: id,
+            label: map['name']?.toString() ?? id,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _gradeId = gradeId;
+        _academicYearId = academicYearId;
+        _subjectOptions = options;
+        if (_subjectValue.isEmpty) {
+          _subjectValue = _generalSubjectValue;
+        }
+      });
+    } catch (e) {
+      debugPrint('Student question form context load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _contextError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadContextFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingContext = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitQuestionToBackend() async {
+    if (_submitting) return;
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final gradeId = _gradeId;
+      final academicYearId = _academicYearId;
+      if (gradeId == null || academicYearId == null) {
+        throw StateError('Missing class context');
+      }
+
+      final subjectId = _subjectValue == _generalSubjectValue
+          ? null
+          : _subjectValue;
+
+      await client.from('questions').insert({
+        'student_id': userId,
+        'grade_id': gradeId,
+        'academic_year_id': academicYearId,
+        'subject_id': subjectId,
+        'question': _question.trim(),
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _showSuccess = true;
+      });
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
+        setState(() {
+          _showSuccess = false;
+        });
+        widget.onCancel();
+      });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student question submit failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitQuestionFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    final subjectOptions = _subjectOptions.isNotEmpty
+        ? _subjectOptions
+        : [
+            _QuestionSubjectOption(
+              value: _generalSubjectValue,
+              label: l10n.commSubjectGeneral,
+            ),
+          ];
+
     return Form(
       key: _formKey,
       child: Column(
@@ -3888,55 +5579,60 @@ class _QuestionFormState extends State<_QuestionForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Ask a Question',
-                  style: TextStyle(
+                Text(
+                  l10n.commAskQuestion,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Subject',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commSubjectLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  initialValue: _subject.isEmpty ? null : _subject,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Bible Studies',
-                      child: Text('Bible Studies'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Christian History',
-                      child: Text('Christian History'),
-                    ),
-                    DropdownMenuItem(value: 'General', child: Text('General')),
-                  ],
+                  initialValue: _subjectValue.isEmpty ? null : _subjectValue,
+                  items: subjectOptions
+                      .map(
+                        (o) => DropdownMenuItem(
+                          value: o.value,
+                          child: Text(o.label),
+                        ),
+                      )
+                      .toList(growable: false),
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
-                    setState(() => _subject = value ?? '');
+                    setState(
+                      () => _subjectValue = value ?? _generalSubjectValue,
+                    );
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select a subject';
+                      return l10n.commSelectSubjectError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Your Question',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commYourQuestionLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLines: 4,
                   maxLength: 500,
                   decoration: _textareaDecoration.copyWith(
-                    hintText: 'Type your question here...',
+                    hintText: l10n.commQuestionHint,
                     counterText: '${_question.length}/500',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -3948,34 +5644,35 @@ class _QuestionFormState extends State<_QuestionForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your question';
+                      return l10n.commEnterQuestionError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
+                if (_contextError != null || _submitError != null) ...[
+                  Text(
+                    _contextError ?? _submitError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (!_formKey.currentState!.validate()) {
-                            return;
-                          }
-                          setState(() {
-                            _showSuccess = true;
-                          });
-                          Future.delayed(
-                            const Duration(milliseconds: 1500),
-                            () {
-                              if (!mounted) return;
-                              setState(() {
-                                _showSuccess = false;
-                              });
-                              widget.onCancel();
-                            },
-                          );
-                        },
+                        onPressed:
+                            (_submitting ||
+                                _loadingContext ||
+                                _gradeId == null ||
+                                _academicYearId == null)
+                            ? null
+                            : () {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
+                                _submitQuestionToBackend();
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0EA5E9),
                           foregroundColor: Colors.white,
@@ -3984,7 +5681,7 @@ class _QuestionFormState extends State<_QuestionForm> {
                           ),
                         ),
                         icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text('Send'),
+                        label: Text(l10n.commonSend),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -3999,7 +5696,7 @@ class _QuestionFormState extends State<_QuestionForm> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ],
                 ),
@@ -4018,22 +5715,27 @@ class _QuestionFormState extends State<_QuestionForm> {
                   color: const Color(0xFF22C55E),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_rounded,
                       color: Colors.white,
                       size: 18,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'Question submitted!',
-                      style: TextStyle(fontSize: 12, color: Colors.white),
+                      l10n.commQuestionSubmitted,
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
                 ),
               ),
+            ),
+          if (_loadingContext)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -4041,21 +5743,129 @@ class _QuestionFormState extends State<_QuestionForm> {
   }
 }
 
-class _ComplaintsList extends StatelessWidget {
-  const _ComplaintsList({required this.onSubmitComplaint});
+class _QuestionSubjectOption {
+  const _QuestionSubjectOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
+}
+
+class _ComplaintsList extends StatefulWidget {
+  const _ComplaintsList({super.key, required this.onSubmitComplaint});
 
   final VoidCallback onSubmitComplaint;
 
   @override
+  State<_ComplaintsList> createState() => _ComplaintsListState();
+}
+
+class _ComplaintsListState extends State<_ComplaintsList> {
+  bool _isLoading = true;
+  String? _error;
+  final List<_Complaint> _complaints = [];
+
+  static String _dateOnly(String value) {
+    if (value.length >= 10) return value.substring(0, 10);
+    return value;
+  }
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComplaintsFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadComplaintsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        throw StateError('Not signed in');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+
+      var query = client
+          .from('complaints')
+          .select('id, category, status, complaint, created_at')
+          .eq('student_id', userId);
+
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      final rows = await query.order('created_at', ascending: false).limit(50);
+
+      final items = (rows as List).map((r) {
+        final map = r as Map;
+        final createdAt = map['created_at']?.toString() ?? '';
+        return _Complaint(
+          category: map['category']?.toString() ?? 'other',
+          status: map['status']?.toString() ?? 'pending',
+          text: maybeFixMojibake(map['complaint']?.toString() ?? ''),
+          date: createdAt.isNotEmpty ? _dateOnly(createdAt) : _todayIso(),
+        );
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _complaints
+          ..clear()
+          ..addAll(items);
+        _isLoading = false;
+      });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student complaints load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadComplaintsFailed,
+        );
+        _complaints.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final complaints = const [
-      _Complaint(
-        category: 'teacher',
-        status: 'pending',
-        text: 'The classroom is often too noisy during activities.',
-        date: 'Feb 25',
-      ),
-    ];
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4063,7 +5873,7 @@ class _ComplaintsList extends StatelessWidget {
         SizedBox(
           height: 44,
           child: ElevatedButton.icon(
-            onPressed: onSubmitComplaint,
+            onPressed: widget.onSubmitComplaint,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0EA5E9),
               foregroundColor: Colors.white,
@@ -4072,28 +5882,58 @@ class _ComplaintsList extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.add_rounded, size: 20),
-            label: const Text(
-              'Submit Complaint',
-              style: TextStyle(fontSize: 14),
+            label: Text(
+              l10n.commSubmitComplaint,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        if (complaints.isEmpty) ...[
-          const SizedBox(height: 40),
-          Icon(
-            Icons.report_problem_outlined,
-            color: Colors.grey.shade300,
-            size: 48,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'No complaints submitted',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B)),
-          ),
-        ] else
-          ...complaints.map((c) => _ComplaintCard(complaint: c)),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Column(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 42,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadComplaintsFromBackend,
+                child: Text(l10n.commonRetry),
+              ),
+            ],
+          )
+        else if (_complaints.isEmpty)
+          Column(
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.report_problem_outlined,
+                color: Colors.grey.shade300,
+                size: 48,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.commNoComplaintsSubmitted,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            ],
+          )
+        else
+          ..._complaints.map((c) => _ComplaintCard(complaint: c)),
       ],
     );
   }
@@ -4106,6 +5946,7 @@ class _ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Color statusColor;
     Color statusBg;
     switch (complaint.status) {
@@ -4121,6 +5962,22 @@ class _ComplaintCard extends StatelessWidget {
         statusBg = const Color(0xFFDBEAFE);
         statusColor = const Color(0xFF1D4ED8);
     }
+
+    final categoryLabel = switch (complaint.category) {
+      'teacher' => l10n.commCategoryTeacher,
+      'facility' => l10n.commCategoryFacility,
+      'course' => l10n.commCategoryCourse,
+      'administrative' => l10n.commCategoryAdministrative,
+      'other' => l10n.commCategoryOther,
+      _ => complaint.category,
+    };
+
+    final statusLabel = switch (complaint.status) {
+      'pending' => l10n.commPending,
+      'in_review' => l10n.commInReview,
+      'resolved' => l10n.commResolved,
+      _ => complaint.status,
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -4149,7 +6006,7 @@ class _ComplaintCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  complaint.category,
+                  categoryLabel,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF475569),
@@ -4163,7 +6020,7 @@ class _ComplaintCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  complaint.status,
+                  statusLabel,
                   style: TextStyle(fontSize: 11, color: statusColor),
                 ),
               ),
@@ -4186,7 +6043,7 @@ class _ComplaintCard extends StatelessWidget {
 }
 
 class _ComplaintForm extends StatefulWidget {
-  const _ComplaintForm({required this.onCancel});
+  const _ComplaintForm({super.key, required this.onCancel});
 
   final VoidCallback onCancel;
 
@@ -4196,14 +6053,169 @@ class _ComplaintForm extends StatefulWidget {
 
 class _ComplaintFormState extends State<_ComplaintForm> {
   final _formKey = GlobalKey<FormState>();
+
+  bool _loadingContext = false;
+  String? _contextError;
+  String? _submitError;
+  String? _academicYearId;
+  String? _gradeId;
+
   String _category = '';
   String _title = '';
   String _description = '';
   bool _anonymous = false;
+  bool _submitting = false;
   bool _showSuccess = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadContextFromBackend();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
+    if (_loadingContext) return;
+
+    setState(() {
+      _loadingContext = true;
+      _contextError = null;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _gradeId = gradeId;
+        _academicYearId = academicYearId;
+      });
+    } catch (e) {
+      debugPrint('Student complaint form context load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _contextError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadContextFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingContext = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitComplaintToBackend() async {
+    if (_submitting) return;
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final gradeId = _gradeId;
+      final academicYearId = _academicYearId;
+      if (gradeId == null || academicYearId == null) {
+        throw StateError('Missing class context');
+      }
+
+      final title = _title.trim();
+      final description = _description.trim();
+      final complaintText = title.isEmpty
+          ? description
+          : '$title\n\n$description';
+
+      await client.from('complaints').insert({
+        'student_id': userId,
+        'grade_id': gradeId,
+        'academic_year_id': academicYearId,
+        'category': _category.isEmpty ? null : _category,
+        'complaint': complaintText,
+        'status': 'pending',
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _showSuccess = true;
+      });
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
+        setState(() {
+          _showSuccess = false;
+        });
+        widget.onCancel();
+      });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student complaint submit failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitComplaintFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
@@ -4225,34 +6237,46 @@ class _ComplaintFormState extends State<_ComplaintForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Submit Complaint',
-                  style: TextStyle(
+                Text(
+                  l10n.commSubmitComplaint,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Category',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commCategoryLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: _category.isEmpty ? null : _category,
-                  items: const [
-                    DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'teacher',
+                      child: Text(l10n.commCategoryTeacher),
+                    ),
                     DropdownMenuItem(
                       value: 'facility',
-                      child: Text('Facility'),
+                      child: Text(l10n.commCategoryFacility),
                     ),
-                    DropdownMenuItem(value: 'course', child: Text('Course')),
+                    DropdownMenuItem(
+                      value: 'course',
+                      child: Text(l10n.commCategoryCourse),
+                    ),
                     DropdownMenuItem(
                       value: 'administrative',
-                      child: Text('Administrative'),
+                      child: Text(l10n.commCategoryAdministrative),
                     ),
-                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                    DropdownMenuItem(
+                      value: 'other',
+                      child: Text(l10n.commCategoryOther),
+                    ),
                   ],
                   decoration: _dropdownDecoration,
                   onChanged: (value) {
@@ -4260,21 +6284,24 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select a category';
+                      return l10n.commSelectCategoryError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Title',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commTitleLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLength: 100,
                   decoration: _inputDecoration.copyWith(
-                    hintText: 'Brief title for your complaint',
+                    hintText: l10n.commComplaintTitleHint,
                     counterText: '${_title.length}/100',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -4286,22 +6313,25 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a title';
+                      return l10n.commEnterTitleError;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Description',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1F2937)),
+                Text(
+                  l10n.commDescriptionLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   maxLines: 4,
                   maxLength: 500,
                   decoration: _textareaDecoration.copyWith(
-                    hintText: 'Describe your complaint in detail...',
+                    hintText: l10n.commComplaintDescriptionHint,
                     counterText: '${_description.length}/500',
                     counterStyle: const TextStyle(
                       fontSize: 11,
@@ -4313,7 +6343,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a description';
+                      return l10n.commEnterDescriptionError;
                     }
                     return null;
                   },
@@ -4328,10 +6358,10 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                       },
                     ),
                     const SizedBox(width: 4),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Submit anonymously',
-                        style: TextStyle(
+                        l10n.commSubmitAnonymously,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF334155),
                         ),
@@ -4344,18 +6374,16 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (!_formKey.currentState!.validate()) return;
-                          setState(() => _showSuccess = true);
-                          Future.delayed(
-                            const Duration(milliseconds: 1500),
-                            () {
-                              if (!mounted) return;
-                              setState(() => _showSuccess = false);
-                              widget.onCancel();
-                            },
-                          );
-                        },
+                        onPressed:
+                            (_submitting ||
+                                _loadingContext ||
+                                _gradeId == null ||
+                                _academicYearId == null)
+                            ? null
+                            : () {
+                                if (!_formKey.currentState!.validate()) return;
+                                _submitComplaintToBackend();
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0EA5E9),
                           foregroundColor: Colors.white,
@@ -4364,7 +6392,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                           ),
                         ),
                         icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text('Submit'),
+                        label: Text(l10n.commonSubmit),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -4379,10 +6407,17 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ],
                 ),
+                if (_contextError != null || _submitError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _contextError ?? _submitError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ],
             ),
           ),
@@ -4398,22 +6433,27 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                   color: const Color(0xFF22C55E),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_rounded,
                       color: Colors.white,
                       size: 18,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'Complaint submitted!',
-                      style: TextStyle(fontSize: 12, color: Colors.white),
+                      l10n.commComplaintSubmitted,
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ],
                 ),
               ),
+            ),
+          if (_loadingContext)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -4421,15 +6461,597 @@ class _ComplaintFormState extends State<_ComplaintForm> {
   }
 }
 
-class _FeedbackSection extends StatelessWidget {
-  const _FeedbackSection();
+class _FeedbackSection extends StatefulWidget {
+  const _FeedbackSection({super.key, required this.onSubmitted});
+
+  final VoidCallback onSubmitted;
+
+  @override
+  State<_FeedbackSection> createState() => _FeedbackSectionState();
+}
+
+class _FeedbackSectionState extends State<_FeedbackSection> {
+  bool _isLoading = true;
+  String? _error;
+
+  final List<_StudentFeedbackForm> _forms = [];
+  _StudentFeedbackForm? _activeForm;
+
+  final _formKey = GlobalKey<FormState>();
+  bool _submitting = false;
+  String? _submitError;
+
+  final Map<String, TextEditingController> _textControllers = {};
+  final Map<String, Object?> _answers = {};
+
+  static String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeedbackFormsFromBackend();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+    try {
+      final id = await client.rpc('active_academic_year_id');
+      final asString = id?.toString();
+      if (asString != null && asString.isNotEmpty) return asString;
+    } catch (_) {}
+
+    try {
+      final row = await client
+          .from('academic_years')
+          .select('id')
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return (row as Map?)?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _resetAnswerState() {
+    _submitError = null;
+    _answers.clear();
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    _textControllers.clear();
+  }
+
+  TextEditingController _textControllerFor(String questionId) {
+    return _textControllers.putIfAbsent(
+      questionId,
+      () =>
+          TextEditingController(text: (_answers[questionId] as String?) ?? ''),
+    );
+  }
+
+  Future<void> _loadFeedbackFormsFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final academicYearId = await _activeAcademicYearId(client);
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
+      final profile = await client
+          .from('profiles')
+          .select('grade_id')
+          .eq('id', userId)
+          .maybeSingle();
+      final gradeId = (profile as Map?)?['grade_id']?.toString();
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+
+      final today = _todayIso();
+      final rows = await client
+          .from('feedback_forms')
+          .select(
+            'id, title, description, start_date, end_date, created_at, feedback_questions(id, position, type, question, required, options)',
+          )
+          .eq('academic_year_id', academicYearId)
+          .eq('grade_id', gradeId)
+          .lte('start_date', today)
+          .gte('end_date', today)
+          .order('created_at', ascending: false);
+
+      final forms = <_StudentFeedbackForm>[];
+      final formIds = <String>[];
+
+      for (final r in (rows as List)) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        formIds.add(id);
+
+        final questionsRaw =
+            (map['feedback_questions'] as List<dynamic>? ?? const []);
+        questionsRaw.sort((a, b) {
+          final pa = (a as Map)['position'] as int? ?? 0;
+          final pb = (b as Map)['position'] as int? ?? 0;
+          return pa.compareTo(pb);
+        });
+
+        final questions = questionsRaw
+            .map((q) {
+              final qMap = q as Map;
+              final optionsRaw = qMap['options'];
+              final options = optionsRaw is List
+                  ? optionsRaw.whereType<String>().toList()
+                  : const <String>[];
+
+              return _StudentFeedbackQuestion(
+                id: qMap['id']?.toString() ?? '',
+                question: qMap['question']?.toString() ?? '',
+                type: qMap['type']?.toString() ?? 'text',
+                required: (qMap['required'] as bool?) ?? true,
+                options: options,
+              );
+            })
+            .where((q) => q.id.isNotEmpty)
+            .toList(growable: false);
+
+        forms.add(
+          _StudentFeedbackForm(
+            id: id,
+            title: map['title']?.toString() ?? '',
+            description: map['description']?.toString() ?? '',
+            startDate: map['start_date']?.toString() ?? today,
+            endDate: map['end_date']?.toString() ?? today,
+            questions: questions,
+          ),
+        );
+      }
+
+      final submittedFormIds = <String>{};
+      if (formIds.isNotEmpty) {
+        try {
+          final subs = await client
+              .from('feedback_submissions')
+              .select('form_id')
+              .eq('student_id', userId)
+              .inFilter('form_id', formIds);
+
+          for (final s in (subs as List)) {
+            final fid = (s as Map)['form_id']?.toString();
+            if (fid != null && fid.isNotEmpty) submittedFormIds.add(fid);
+          }
+        } catch (_) {}
+      }
+
+      final pendingForms = forms
+          .where((f) => !submittedFormIds.contains(f.id))
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _forms
+          ..clear()
+          ..addAll(pendingForms);
+        _isLoading = false;
+      });
+    } catch (e) {
+      final l10n = AppLocalizations.of(context);
+      debugPrint('Student feedback forms load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commLoadFeedbackFormsFailed,
+        );
+        _forms.clear();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _openForm(_StudentFeedbackForm form) {
+    setState(() {
+      _activeForm = form;
+      _resetAnswerState();
+    });
+  }
+
+  void _closeForm() {
+    setState(() {
+      _activeForm = null;
+      _resetAnswerState();
+    });
+  }
+
+  Future<void> _submitActiveForm() async {
+    if (_submitting) return;
+
+    final form = _activeForm;
+    if (form == null) return;
+
+    final l10n = AppLocalizations.of(context);
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      setState(() {
+        _submitError = l10n.servantGradesFillRequiredFieldsError;
+      });
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+
+      final answers = <String, Object?>{};
+      for (final q in form.questions) {
+        switch (q.type) {
+          case 'text':
+            final text = _textControllerFor(q.id).text.trim();
+            answers[q.id] = text;
+            _answers[q.id] = text;
+            break;
+          case 'rating':
+            answers[q.id] = _answers[q.id];
+            break;
+          case 'multiple_choice':
+            answers[q.id] = _answers[q.id];
+            break;
+          default:
+            final text = _textControllerFor(q.id).text.trim();
+            answers[q.id] = text;
+            _answers[q.id] = text;
+        }
+      }
+
+      await client.from('feedback_submissions').insert({
+        'form_id': form.id,
+        'student_id': userId,
+        'answers': answers,
+      });
+
+      if (!mounted) return;
+      _closeForm();
+      widget.onSubmitted();
+      await _loadFeedbackFormsFromBackend();
+    } catch (e) {
+      debugPrint('Student feedback submit failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _submitError = presentErrorMessage(
+          l10n,
+          e,
+          fallback: l10n.commSubmitFeedbackFailed,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Column(
+        children: [
+          const SizedBox(height: 24),
+          Icon(
+            Icons.error_outline_rounded,
+            size: 42,
+            color: Colors.red.shade300,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _loadFeedbackFormsFromBackend,
+            child: Text(l10n.commonRetry),
+          ),
+        ],
+      );
+    }
+
+    final activeForm = _activeForm;
+    if (activeForm != null) {
+      return Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.fact_check_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          activeForm.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (activeForm.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      activeForm.description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  ...activeForm.questions.map((q) {
+                    final label = q.required ? '${q.question} *' : q.question;
+
+                    Widget field;
+                    if (q.type == 'rating') {
+                      final current = _answers[q.id];
+                      field = DropdownButtonFormField<int>(
+                        initialValue: current is int ? current : null,
+                        decoration: _dropdownDecoration,
+                        items: List.generate(
+                          5,
+                          (i) => DropdownMenuItem(
+                            value: i + 1,
+                            child: Text('${i + 1}'),
+                          ),
+                        ),
+                        onChanged: _submitting
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _answers[q.id] = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null) {
+                            return l10n.servantFeedbackRequiredLabel;
+                          }
+                          return null;
+                        },
+                      );
+                    } else if (q.type == 'multiple_choice') {
+                      final current = _answers[q.id];
+                      final options = q.options;
+                      field = DropdownButtonFormField<String>(
+                        initialValue: current is String ? current : null,
+                        decoration: _dropdownDecoration,
+                        items: options
+                            .map(
+                              (o) => DropdownMenuItem(value: o, child: Text(o)),
+                            )
+                            .toList(growable: false),
+                        onChanged: (_submitting || options.isEmpty)
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _answers[q.id] = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return l10n.servantFeedbackRequiredLabel;
+                          }
+                          return null;
+                        },
+                      );
+                    } else {
+                      field = TextFormField(
+                        controller: _textControllerFor(q.id),
+                        maxLines: 2,
+                        decoration: _textareaDecoration,
+                        enabled: !_submitting,
+                        validator: (value) {
+                          if (!q.required) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return l10n.servantFeedbackRequiredLabel;
+                          }
+                          return null;
+                        },
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          field,
+                        ],
+                      ),
+                    );
+                  }),
+                  if (_submitError != null) ...[
+                    Text(
+                      _submitError!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _submitting ? null : _submitActiveForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0EA5E9),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: Text(l10n.commonSubmit),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton(
+                        onPressed: _submitting ? null : _closeForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(l10n.commonCancel),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_forms.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.fact_check_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.commNoActiveFeedbackForms,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.commFeedbackEmptySubtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
+      children: _forms.map((form) {
+        final due = EthiopianDateFormatter.formatFlexible(form.endDate);
+        final subtitle = l10n.servantFeedbackQuestionsAndDueLine(
+          form.questions.length,
+          due,
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -4453,27 +7075,87 @@ class _FeedbackSection extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'No active feedback forms',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+                  Expanded(
+                    child: Text(
+                      form.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Your servant may share feedback forms in the future. Check back later.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              if (form.description.trim().isNotEmpty)
+                Text(
+                  form.description,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => _openForm(form),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0EA5E9),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(l10n.commonSubmit),
+                ),
               ),
             ],
           ),
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
+}
+
+class _StudentFeedbackForm {
+  const _StudentFeedbackForm({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.startDate,
+    required this.endDate,
+    required this.questions,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String startDate;
+  final String endDate;
+  final List<_StudentFeedbackQuestion> questions;
+}
+
+class _StudentFeedbackQuestion {
+  const _StudentFeedbackQuestion({
+    required this.id,
+    required this.question,
+    required this.type,
+    required this.required,
+    required this.options,
+  });
+
+  final String id;
+  final String question;
+  final String type;
+  final bool required;
+  final List<String> options;
 }
 
 // --- Shared helpers and data classes ---
@@ -4697,13 +7379,89 @@ class _ProfileData {
   final String? email;
 }
 
-class _StudentProfileScreenState extends State<StudentProfileScreen> {
+class _StudentProfileScreenState extends State<StudentProfileScreen>
+    with WidgetsBindingObserver {
   late Future<_ProfileData> _profileFuture;
+  StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
+  String? _subscribedUserId;
+  bool _profileStreamInitialized = false;
+  bool _active = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _profileFuture = _loadProfile();
+    _subscribeToProfileUpdates();
+  }
+
+  void _subscribeToProfileUpdates() {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    if (_subscribedUserId == userId && _profileSubscription != null) {
+      return;
+    }
+
+    _profileSubscription?.cancel();
+    _subscribedUserId = userId;
+    _profileStreamInitialized = false;
+
+    _profileSubscription = client
+        .from('profiles')
+        .stream(primaryKey: ['id'])
+        .eq('id', userId)
+        .listen((_) {
+          if (!_profileStreamInitialized) {
+            _profileStreamInitialized = true;
+            return;
+          }
+
+          if (!mounted || !_active) return;
+          setState(() {
+            _profileFuture = _loadProfile();
+          });
+        });
+  }
+
+  @override
+  void deactivate() {
+    _active = false;
+    _profileSubscription?.cancel();
+    _profileSubscription = null;
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _active = true;
+    _subscribeToProfileUpdates();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
+    if (!_active) return;
+
+    _subscribeToProfileUpdates();
+
+    if (!mounted) return;
+    setState(() {
+      _profileFuture = _loadProfile();
+    });
+  }
+
+  @override
+  void dispose() {
+    _active = false;
+    WidgetsBinding.instance.removeObserver(this);
+    _profileSubscription?.cancel();
+    super.dispose();
   }
 
   Future<_ProfileData> _loadProfile() async {
@@ -4765,7 +7523,21 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF0284C7); // sky-600
+    final l10n = AppLocalizations.of(context);
+
+    String friendlyAcademicId(String value) {
+      final v = value.trim();
+      if (v.isEmpty) return l10n.commonNa;
+      final looksLikeUuid = RegExp(
+        r'^[0-9a-fA-F]{8}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{12}$',
+      ).hasMatch(v);
+      if (looksLikeUuid) return l10n.commonNa;
+      return v;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -4778,7 +7550,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
@@ -4786,21 +7558,21 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
                   ),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Profile',
-                      style: TextStyle(
+                      l10n.navProfile,
+                      style: const TextStyle(
                         fontSize: 22,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Account details',
-                      style: TextStyle(
+                      l10n.profileAccountDetailsSubtitle,
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFFBAE6FD),
                         fontWeight: FontWeight.w600,
@@ -4822,6 +7594,24 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     }
 
                     if (snapshot.hasError) {
+                      final error = snapshot.error;
+                      String errorText;
+                      if (error is StateError) {
+                        final msg = error.message.toLowerCase().trim();
+                        if (msg == 'not signed in' || msg == 'not_signed_in') {
+                          errorText = l10n.profileErrorNotSignedIn;
+                        } else if (msg == 'profile not found' ||
+                            msg == 'profile_not_found') {
+                          errorText = l10n.profileErrorNotFound;
+                        } else {
+                          errorText = presentErrorMessage(l10n, error);
+                        }
+                      } else if (error != null) {
+                        errorText = presentErrorMessage(l10n, error);
+                      } else {
+                        errorText = l10n.errorSomethingWentWrong;
+                      }
+
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -4838,16 +7628,16 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Could not load profile',
-                              style: TextStyle(
+                            Text(
+                              l10n.profileLoadFailedTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              snapshot.error.toString(),
+                              errorText,
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 13,
@@ -4857,7 +7647,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             ElevatedButton.icon(
                               onPressed: _handleRefresh,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
+                              label: Text(l10n.commonRetry),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: accent,
                                 foregroundColor: Colors.white,
@@ -4881,14 +7671,30 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
                     final displayName =
                         (data.name == null || data.name!.trim().isEmpty)
-                        ? 'Student'
+                        ? l10n.roleStudent
                         : data.name!.trim();
                     final gradeText =
                         (data.gradeName == null || data.gradeName!.isEmpty)
-                        ? 'Not assigned'
+                        ? l10n.profileNotAssigned
                         : (data.gradeCode == null || data.gradeCode!.isEmpty)
                         ? data.gradeName!
                         : '${data.gradeName} (${data.gradeCode})';
+
+                    final roleLabel = switch (data.role.toLowerCase()) {
+                      'student' => l10n.roleStudent,
+                      'servant' => l10n.roleServant,
+                      _ => data.role,
+                    };
+
+                    final accountStatusLabel = switch (data.accountStatus
+                        .toLowerCase()) {
+                      'active' => l10n.accountStatusActive,
+                      'inactive_pending_admin' => l10n.accountStatusInactive,
+                      'inactive' => l10n.accountStatusInactive,
+                      'suspended' => l10n.accountStatusSuspended,
+                      'disabled' => l10n.accountStatusDisabled,
+                      _ => data.accountStatus,
+                    };
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4959,8 +7765,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.badge_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Academic ID'),
-                                subtitle: Text(data.academicId),
+                                title: Text(l10n.profileAcademicIdLabel),
+                                subtitle: Text(
+                                  friendlyAcademicId(data.academicId),
+                                ),
                               ),
                               const Divider(height: 1),
                               ListTile(
@@ -4969,7 +7777,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.class_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Grade'),
+                                title: Text(l10n.profileGradeLabel),
                                 subtitle: Text(gradeText),
                               ),
                               const Divider(height: 1),
@@ -4979,8 +7787,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.verified_user_outlined,
                                   color: accent,
                                 ),
-                                title: const Text('Account status'),
-                                subtitle: Text(data.accountStatus),
+                                title: Text(l10n.profileAccountStatusLabel),
+                                subtitle: Text(accountStatusLabel),
                               ),
                               const Divider(height: 1),
                               ListTile(
@@ -4989,17 +7797,32 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   Icons.work_outline,
                                   color: accent,
                                 ),
-                                title: const Text('Role'),
-                                subtitle: Text(data.role),
+                                title: Text(l10n.profileRoleLabel),
+                                subtitle: Text(roleLabel),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push('/student/profile/change-password'),
+                          icon: const Icon(Icons.lock_reset_rounded),
+                          label: Text(l10n.profileChangePassword),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: accent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(color: accent),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         ElevatedButton.icon(
                           onPressed: _signOut,
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Sign out'),
+                          label: Text(l10n.commonSignOut),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accent,
                             foregroundColor: Colors.white,
@@ -5016,6 +7839,246 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class StudentChangePasswordScreen extends StatefulWidget {
+  const StudentChangePasswordScreen({super.key});
+
+  @override
+  State<StudentChangePasswordScreen> createState() =>
+      _StudentChangePasswordScreenState();
+}
+
+class _StudentChangePasswordScreenState
+    extends State<StudentChangePasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final l10n = AppLocalizations.of(context);
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      if (client.auth.currentUser == null) {
+        setState(() {
+          _error = l10n.profileErrorNotSignedIn;
+        });
+        return;
+      }
+
+      await client.auth.updateUser(
+        UserAttributes(password: _newPasswordController.text),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authPasswordUpdateSuccess)));
+      context.pop();
+    } on AuthException catch (e) {
+      debugPrint('Student password update failed: ${e.message}');
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.authPasswordUpdateFailedGeneric;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = l10n.authPasswordUpdateFailedGeneric;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 12, 24, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.profileChangePassword,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.profileChangePasswordSubtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFBAE6FD),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0F000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.authNewPasswordLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _IconTextField(
+                        controller: _newPasswordController,
+                        obscureText: true,
+                        hintText: l10n.authNewPasswordHint,
+                        icon: Icons.lock_rounded,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.authPasswordRequiredError;
+                          }
+                          if (value.length < 6) {
+                            return l10n.authPasswordMinLengthError(6);
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.authConfirmPasswordLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _IconTextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        hintText: l10n.authConfirmPasswordHint,
+                        icon: Icons.lock_outline_rounded,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.authConfirmPasswordRequiredError;
+                          }
+                          if (value != _newPasswordController.text) {
+                            return l10n.authPasswordMismatchError;
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Color(0xFFDC2626),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: _submitting ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF0EA5E9),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: _submitting
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                          label: Text(l10n.commonUpdate),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

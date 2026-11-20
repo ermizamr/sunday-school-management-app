@@ -40,6 +40,62 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+function incrementCount(map: Record<string, number>, key: string) {
+  if (!key) return;
+  map[key] = (map[key] ?? 0) + 1;
+}
+
+function isLegacyInvalidTokenError(code: string): boolean {
+  // Only disable tokens for permanent, token-specific errors.
+  // https://firebase.google.com/docs/cloud-messaging/http-server-ref#error-codes
+  return code === "NotRegistered" || code === "InvalidRegistration" || code === "MismatchSenderId";
+}
+
+function extractV1FcmErrorCode(json: unknown): string | null {
+  const details = (json as any)?.error?.details;
+  if (!Array.isArray(details)) return null;
+  for (const d of details) {
+    const code = (d as any)?.errorCode;
+    if (typeof code === "string" && code.trim()) return code.trim();
+  }
+  return null;
+}
+
+function looksLikeV1InvalidToken(json: unknown): boolean {
+  const code = extractV1FcmErrorCode(json);
+  if (code === "UNREGISTERED") return true;
+
+  const status = (json as any)?.error?.status;
+  const message = (json as any)?.error?.message;
+  if (typeof status === "string" && status === "INVALID_ARGUMENT") {
+    const msg = typeof message === "string" ? message.toLowerCase() : "";
+    if (msg.includes("registration") && msg.includes("token")) return true;
+  }
+
+  return false;
+}
+
+async function disableInvalidPushTokens(db: any, tokens: string[]): Promise<number> {
+  const unique = Array.from(new Set(tokens)).filter(Boolean);
+  if (unique.length === 0) return 0;
+
+  const batches = chunk(unique, 900);
+  let disabled = 0;
+  for (const batch of batches) {
+    try {
+      const { error } = await db
+        .from("device_push_tokens")
+        .update({ enabled: false })
+        .in("fcm_token", batch);
+      if (!error) disabled += batch.length;
+    } catch {
+      // Best-effort cleanup; ignore.
+    }
+  }
+
+  return disabled;
+}
+
 function base64UrlEncode(input: Uint8Array): string {
   let str = "";
   for (const b of input) str += String.fromCharCode(b);
@@ -141,7 +197,13 @@ function getServiceAccountFromEnv(): FcmServiceAccount | null {
   }
 }
 
-async function sendFcmLegacy(tokens: string[], title: string, body: string, data: Record<string, string>) {
+async function sendFcmLegacy(
+  db: any,
+  tokens: string[],
+  title: string,
+  body: string,
+  data: Record<string, string>,
+) {
   const serverKey = Deno.env.get("FCM_SERVER_KEY");
   if (!serverKey) {
     return { ok: false, error: "Missing FCM_SERVER_KEY secret" } as const;
@@ -152,6 +214,8 @@ async function sendFcmLegacy(tokens: string[], title: string, body: string, data
   let success = 0;
   let failure = 0;
   const errors: unknown[] = [];
+  const tokenErrors: Record<string, number> = {};
+  const invalidTokens: string[] = [];
 
   for (const batch of batches) {
     const res = await fetch("https://fcm.googleapis.com/fcm/send", {
@@ -179,12 +243,33 @@ async function sendFcmLegacy(tokens: string[], title: string, body: string, data
     const batchFailure = (json?.failure ?? 0) as number;
     success += batchSuccess;
     failure += batchFailure;
+
+    const results = Array.isArray(json?.results) ? (json?.results as any[]) : null;
+    if (results) {
+      for (let i = 0; i < results.length && i < batch.length; i++) {
+        const err = results[i]?.error;
+        if (typeof err === "string" && err.trim()) {
+          const code = err.trim();
+          incrementCount(tokenErrors, code);
+          if (isLegacyInvalidTokenError(code)) {
+            invalidTokens.push(batch[i]);
+          }
+        }
+      }
+    }
   }
 
-  return { ok: true, success, failure, errors } as const;
+  const disabledTokens = await disableInvalidPushTokens(db, invalidTokens);
+  return { ok: true, success, failure, errors, tokenErrors, disabledTokens } as const;
 }
 
-async function sendFcmV1(tokens: string[], title: string, body: string, data: Record<string, string>) {
+async function sendFcmV1(
+  db: any,
+  tokens: string[],
+  title: string,
+  body: string,
+  data: Record<string, string>,
+) {
   const sa = getServiceAccountFromEnv();
   if (!sa) {
     return { ok: false, error: "Missing/invalid FCM_SERVICE_ACCOUNT_JSON secret" } as const;
@@ -197,6 +282,8 @@ async function sendFcmV1(tokens: string[], title: string, body: string, data: Re
   let success = 0;
   let failure = 0;
   const errors: unknown[] = [];
+  const tokenErrors: Record<string, number> = {};
+  const invalidTokens: string[] = [];
 
   for (const batch of batches) {
     const results = await Promise.all(
@@ -220,7 +307,7 @@ async function sendFcmV1(tokens: string[], title: string, body: string, data: Re
           }),
         });
         const json = await res.json().catch(() => null);
-        return { ok: res.ok, status: res.status, json };
+        return { token, ok: res.ok, status: res.status, json };
       }),
     );
 
@@ -229,23 +316,44 @@ async function sendFcmV1(tokens: string[], title: string, body: string, data: Re
       else {
         failure += 1;
         if (errors.length < 20) errors.push({ status: r.status, body: r.json });
+
+        const code = extractV1FcmErrorCode(r.json);
+        if (typeof code === "string" && code.trim()) {
+          incrementCount(tokenErrors, code.trim());
+        } else {
+          const status = (r.json as any)?.error?.status;
+          if (typeof status === "string" && status.trim()) {
+            incrementCount(tokenErrors, status.trim());
+          }
+        }
+
+        if (looksLikeV1InvalidToken(r.json)) {
+          invalidTokens.push(r.token);
+        }
       }
     }
   }
 
-  return { ok: true, success, failure, errors } as const;
+  const disabledTokens = await disableInvalidPushTokens(db, invalidTokens);
+  return { ok: true, success, failure, errors, tokenErrors, disabledTokens } as const;
 }
 
-async function sendFcm(tokens: string[], title: string, body: string, data: Record<string, string>) {
+async function sendFcm(
+  db: any,
+  tokens: string[],
+  title: string,
+  body: string,
+  data: Record<string, string>,
+) {
   // Prefer v1 if configured (works for newer Firebase projects).
   if (Deno.env.get("FCM_SERVICE_ACCOUNT_JSON")) {
     try {
-      return await sendFcmV1(tokens, title, body, data);
+      return await sendFcmV1(db, tokens, title, body, data);
     } catch (e) {
       return { ok: false, error: (e as Error).message } as const;
     }
   }
-  return await sendFcmLegacy(tokens, title, body, data);
+  return await sendFcmLegacy(db, tokens, title, body, data);
 }
 
 async function requireCaller(req: Request) {
@@ -263,7 +371,7 @@ async function requireCaller(req: Request) {
     } as const;
   }
 
-  const authHeader = req.headers.get("Authorization") ?? "";
+  const authHeader = req.headers.get("X-Authorization") ?? req.headers.get("Authorization") ?? "";
 
   const callerClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -277,7 +385,7 @@ async function requireCaller(req: Request) {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const { data: profile, error: profileError } = await adminClient
     .from("profiles")
-    .select("role")
+    .select("role, account_status")
     .eq("id", userData.user.id)
     .maybeSingle();
 
@@ -286,8 +394,14 @@ async function requireCaller(req: Request) {
   }
 
   const role = (profile?.role ?? null) as UserRole | null;
+  const accountStatus = (profile?.account_status ?? null) as string | null;
+
   if (role !== "admin" && role !== "servant") {
     return { ok: false, status: 403, body: { error: "Forbidden" } } as const;
+  }
+
+  if (accountStatus !== "active") {
+    return { ok: false, status: 403, body: { error: "Inactive account" } } as const;
   }
 
   return { ok: true, adminClient, callerId: userData.user.id, callerRole: role } as const;
@@ -368,7 +482,7 @@ serve(async (req: Request) => {
     const title = `Announcement \u2022 ${categoryLabel}`;
     const body = `${truncateText(ann.title ?? "", 80)}${ann.message ? ` \u2014 ${truncateText(ann.message, 120)}` : ""}`;
 
-    const res = await sendFcm(tokens, title, body, {
+    const res = await sendFcm(db, tokens, title, body, {
       type: "announcement",
       id: ann.id,
       event: payload.event,
@@ -438,7 +552,7 @@ serve(async (req: Request) => {
     const title = `Feedback \u2022 ${typeLabel}`;
     const body = `${truncateText(form.title ?? "", 90)}${form.description ? ` \u2014 ${truncateText(form.description, 120)}` : ""}`;
 
-    const res = await sendFcm(tokens, title, body, {
+    const res = await sendFcm(db, tokens, title, body, {
       type: "feedback_form_created",
       id: form.id,
       event: payload.event,
@@ -487,7 +601,7 @@ serve(async (req: Request) => {
     const title = "Answer to your question";
     const body = truncateText((q.answer ?? "").toString(), 120);
 
-    const res = await sendFcm(tokens, title, body.length > 120 ? body.slice(0, 117) + "..." : body, {
+    const res = await sendFcm(db, tokens, title, body.length > 120 ? body.slice(0, 117) + "..." : body, {
       type: "question_answered",
       id: q.id,
       event: payload.event,
@@ -542,7 +656,7 @@ serve(async (req: Request) => {
     const title = "Response to your complaint";
     const body = truncateText((c.response ?? "").toString(), 120);
 
-    const res = await sendFcm(tokens, title, body.length > 120 ? body.slice(0, 117) + "..." : body, {
+    const res = await sendFcm(db, tokens, title, body.length > 120 ? body.slice(0, 117) + "..." : body, {
       type: "complaint_responded",
       id: c.id,
       event: payload.event,

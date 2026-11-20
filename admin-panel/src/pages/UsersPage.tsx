@@ -1,7 +1,9 @@
 import * as React from "react";
 
 import { supabase } from "../lib/supabase";
+import { invokeEdgeFunction } from "../lib/invokeEdgeFunction";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { t } from "../i18n/t";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -107,6 +109,17 @@ export function UsersPage() {
     void load();
   }, [load]);
 
+  function statusLabel(status: string): string {
+    switch (status) {
+      case "active":
+        return t("usersStatusActive");
+      case "inactive_pending_admin":
+        return t("usersStatusInactive");
+      default:
+        return status;
+    }
+  }
+
   function draftFor(p: ProfileRow): Draft {
     return (
       drafts[p.id] ?? {
@@ -148,35 +161,48 @@ export function UsersPage() {
     const password = createPassword.trim();
     const email = createEmail.trim();
 
-    if (!academicId || !name || !password) {
-      setError("Academic ID, name, and password are required.");
+    if (!name || !createGradeId) {
+      setError(t("usersValidationRequired"));
       return;
     }
 
     setIsCreating(true);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const body: Record<string, unknown> = {
+        email: email || undefined,
+        role: "student",
+        name,
+        grade_id: createGradeId,
+      };
+
+      if (academicId) body.academic_id = academicId;
+      if (password) body.password = password;
+
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-create-user",
         {
-          body: {
-            email: email || undefined,
-            password,
-            role: "student",
-            academic_id: academicId,
-            name,
-            grade_id: createGradeId,
-          },
+          ...body,
         },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
       if ((data as { error?: string } | null)?.error) {
         setError((data as { error: string }).error);
         return;
+      }
+
+      const assignedAcademicId = (data as { academic_id?: string } | null)?.academic_id;
+      if (assignedAcademicId) {
+        const lines = [`${t("usersAcademicIdLabel")}: ${assignedAcademicId}`];
+        if (!password) {
+          lines.push(`${t("usersPasswordLabel")}: ${assignedAcademicId}`);
+        }
+
+        window.alert(lines.join("\n"));
       }
 
       setCreateEmail("");
@@ -192,19 +218,19 @@ export function UsersPage() {
   }
 
   async function resetPasswordFor(userId: string, displayName: string) {
-    const newPassword = window.prompt(`New password for ${displayName}:`);
+    const newPassword = window.prompt(t("usersPromptNewPassword", { name: displayName }));
     if (!newPassword) return;
 
     setError(null);
     setActionId(userId);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-reset-password",
-        { body: { user_id: userId, new_password: newPassword } },
+        { user_id: userId, new_password: newPassword },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
@@ -220,26 +246,26 @@ export function UsersPage() {
   async function toggleAccountStatus(p: ProfileRow) {
     const current = (p.account_status ?? "active").toLowerCase();
     if (current === "graduated") {
-      setError("Graduated users are read-only in this toggle. Change status from backend admin tools if needed.");
+      setError(t("usersGraduatedReadOnlyError"));
       return;
     }
 
     const next = current === "inactive_pending_admin" ? "active" : "inactive_pending_admin";
-    const actionLabel = next === "active" ? "activate" : "deactivate";
-    if (!window.confirm(`Are you sure you want to ${actionLabel} ${p.name ?? p.id}?`)) {
+    const actionLabel = next === "active" ? t("usersActivate") : t("usersDeactivate");
+    if (!window.confirm(t("usersConfirmToggleStatus", { action: actionLabel, name: p.name ?? p.id }))) {
       return;
     }
 
     setError(null);
     setActionId(p.id);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
+      const { data, error: invokeError } = await invokeEdgeFunction(
         "admin-set-account-status",
-        { body: { user_id: p.id, account_status: next } },
+        { user_id: p.id, account_status: next },
       );
 
       if (invokeError) {
-        setError(invokeError.message);
+        setError(invokeError);
         return;
       }
 
@@ -257,41 +283,41 @@ export function UsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Students</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("usersTitleStudents")}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage students, their grade assignment, and account status.
+          {t("usersSubtitle")}
         </p>
       </div>
 
       {error ? (
-        <ErrorBanner title="Request failed" message={error} />
+        <ErrorBanner title={t("commonRequestFailed")} message={error} />
       ) : null}
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle>Create user</CardTitle>
+          <CardTitle>{t("usersCreateUserTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
-            <Label htmlFor="create-academic">Academic ID</Label>
+            <Label htmlFor="create-academic">{t("usersAcademicIdLabel")}</Label>
             <Input
               id="create-academic"
               value={createAcademicId}
               onChange={(e) => setCreateAcademicId(e.target.value)}
-              placeholder="e.g., STU-0001"
+              placeholder={t("usersAcademicIdPlaceholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="create-name">Name</Label>
+            <Label htmlFor="create-name">{t("usersNameLabel")}</Label>
             <Input
               id="create-name"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
-              placeholder="Full name"
+              placeholder={t("usersNamePlaceholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="create-password">Password</Label>
+            <Label htmlFor="create-password">{t("usersPasswordLabel")}</Label>
             <Input
               id="create-password"
               type="password"
@@ -301,18 +327,18 @@ export function UsersPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="create-email">Email (optional)</Label>
+            <Label htmlFor="create-email">{t("usersEmailOptionalLabel")}</Label>
             <Input
               id="create-email"
               type="email"
               value={createEmail}
               onChange={(e) => setCreateEmail(e.target.value)}
-              placeholder="If empty, uses academic_id@school.local"
+              placeholder={t("usersEmailPlaceholder")}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="create-grade">Grade</Label>
+            <Label htmlFor="create-grade">{t("usersGradeLabel")}</Label>
             <select
               id="create-grade"
               className="h-10 w-full rounded-md border bg-input-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -330,18 +356,15 @@ export function UsersPage() {
 
           <div className="md:col-span-3">
             <Button disabled={isCreating} onClick={() => void createUser()}>
-              {isCreating ? "Creating…" : "Create user"}
+              {isCreating ? t("commonCreating") : t("usersCreateUserButton")}
             </Button>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Uses the Edge Function <span className="font-mono">admin-create-user</span>.
-            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="border-b flex flex-col gap-4 items-start sm:flex-row sm:items-center sm:justify-between py-5">
-          <CardTitle>All users</CardTitle>
+          <CardTitle>{t("usersAllUsersTitle")}</CardTitle>
           <div className="w-full sm:w-auto flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="w-full sm:w-52">
               <select
@@ -349,14 +372,14 @@ export function UsersPage() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive_pending_admin")}
               >
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive_pending_admin">Inactive</option>
+                <option value="all">{t("usersAllStatuses")}</option>
+                <option value="active">{t("usersStatusActive")}</option>
+                <option value="inactive_pending_admin">{t("usersStatusInactive")}</option>
               </select>
             </div>
             <div className="w-full sm:w-72">
               <Input
-                placeholder="Search by name or Academic ID..."
+                placeholder={t("usersSearchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-background"
@@ -366,15 +389,15 @@ export function UsersPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t("commonLoading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Academic ID</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("usersTableName")}</TableHead>
+                  <TableHead>{t("usersTableAcademicId")}</TableHead>
+                  <TableHead>{t("usersTableGrade")}</TableHead>
+                  <TableHead>{t("usersTableStatus")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -382,7 +405,7 @@ export function UsersPage() {
                   {filteredProfiles.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        No students match your search.
+                        {t("usersNoMatches")}
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -420,7 +443,7 @@ export function UsersPage() {
                           ))}
                         </select>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {d.grade_id ? gradeNameById.get(d.grade_id) : "No grade"}
+                          {d.grade_id ? gradeNameById.get(d.grade_id) : t("usersNoGrade")}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -433,7 +456,7 @@ export function UsersPage() {
                                 : "inline-flex rounded-full bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-700"
                           }
                         >
-                          {status === "inactive_pending_admin" ? "inactive" : status}
+                          {statusLabel(status)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -443,7 +466,7 @@ export function UsersPage() {
                             disabled={!drafts[p.id] || savingId === p.id}
                             onClick={() => void saveProfile(p.id)}
                           >
-                            {savingId === p.id ? "Saving…" : "Save"}
+                            {savingId === p.id ? t("commonSaving") : t("commonSave")}
                           </Button>
 
                           <Button
@@ -452,7 +475,7 @@ export function UsersPage() {
                             disabled={actionId === p.id}
                             onClick={() => void resetPasswordFor(p.id, displayName)}
                           >
-                            Reset password
+                            {t("usersResetPassword")}
                           </Button>
 
                           <Button
@@ -462,10 +485,10 @@ export function UsersPage() {
                             onClick={() => void toggleAccountStatus(p)}
                           >
                             {actionId === p.id
-                              ? "Working…"
+                              ? t("commonWorking")
                               : status === "inactive_pending_admin"
-                                ? "Activate"
-                                : "Deactivate"}
+                                ? t("usersActivate")
+                                : t("usersDeactivate")}
                           </Button>
                         </div>
                       </TableCell>

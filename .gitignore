@@ -9,8 +9,6 @@ admin-panel/dist-ssr/
 # Temporary full workspace clone
 .tmp-ssapp-edge/
 
-# Supabase CLI internal state
-supabase/.branches/
 # Admin Panel env files (keep admin-panel/.env.example)
 admin-panel/.env
 admin-panel/.env.e2e
@@ -21,3 +19,6 @@ admin-panel/.env.*.local
 
 # Firebase / FCM service account (never commit)
 service-account.json
+
+# Supabase CLI internal state
+supabase/.branches/

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
 import 'servant_analytics_calculations.dart';
 
@@ -43,6 +44,7 @@ class AnalyticsHeaderTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
 
     Widget tab(String label, AnalyticsView value) {
@@ -55,7 +57,7 @@ class AnalyticsHeaderTabs extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+              color: isSelected ? Colors.white : Colors.white.withAlpha(51),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -73,11 +75,11 @@ class AnalyticsHeaderTabs extends StatelessWidget {
 
     return Row(
       children: [
-        tab('Overview', AnalyticsView.overview),
+        tab(l10n.servantAnalyticsTabOverview, AnalyticsView.overview),
         const SizedBox(width: 8),
-        tab('By Subject', AnalyticsView.subjects),
+        tab(l10n.servantAnalyticsTabBySubject, AnalyticsView.subjects),
         const SizedBox(width: 8),
-        tab('Students', AnalyticsView.students),
+        tab(l10n.servantAnalyticsTabStudents, AnalyticsView.students),
       ],
     );
   }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sunday_school_app/l10n/app_localizations.dart';
 
+import '../../../../core/errors/app_error_message.dart';
+import '../../../../core/refresh/app_refresh_configurator.dart';
 import 'servant_analytics_calculations.dart';
 import 'servant_analytics_repository.dart';
 import 'servant_analytics_widgets.dart';
@@ -42,173 +45,200 @@ class _ServantAnalyticsScreenState extends State<ServantAnalyticsScreen> {
     });
   }
 
+  Future<void> _handleRefresh() async {
+    final future = _repository.loadActiveYearForCurrentServantGrade();
+    setState(() {
+      _future = future;
+    });
+
+    try {
+      await future;
+    } catch (_) {
+      // Surface the failure via FutureBuilder.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
-    return FutureBuilder<ServantAnalyticsSnapshot>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          final message = snapshot.error is ServantAnalyticsException
-              ? (snapshot.error as ServantAnalyticsException).message
-              : 'Failed to load analytics.';
-          return Scaffold(
-            appBar: AppBar(title: const Text('Grade Analytics')),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () {
-                        setState(() {
-                          _future = _repository
-                              .loadActiveYearForCurrentServantGrade();
-                        });
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+    return AppRefreshConfigurator(
+      onRefresh: _handleRefresh,
+      child: FutureBuilder<ServantAnalyticsSnapshot>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF8FAFC),
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: const [
+                  SizedBox(height: 180),
+                  Center(child: CircularProgressIndicator()),
+                ],
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        final data = calculateAnalyticsData(snapshot.requireData);
+          if (snapshot.hasError) {
+            debugPrint('Servant analytics load failed: ${snapshot.error}');
+            final err = snapshot.error;
+            final message = err == null
+                ? l10n.servantAnalyticsLoadFailed
+                : presentErrorMessage(
+                    l10n,
+                    err,
+                    fallback: l10n.servantAnalyticsLoadFailed,
+                  );
+            return Scaffold(
+              appBar: AppBar(title: Text(l10n.servantAnalyticsTitle)),
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const SizedBox(height: 120),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _handleRefresh,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
+              ),
+            );
+          }
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
-          body: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 170,
-                  backgroundColor: cs.primary,
-                  automaticallyImplyLeading: false,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [cs.primary, cs.primary.withOpacity(0.9)],
+          final data = calculateAnalyticsData(snapshot.requireData);
+
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            body: NestedScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 170,
+                    backgroundColor: cs.primary,
+                    automaticallyImplyLeading: false,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [cs.primary, cs.primary.withAlpha(230)],
+                          ),
                         ),
-                      ),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  InkWell(
-                                    onTap: () =>
-                                        context.go('/servant/dashboard'),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.arrow_back_rounded,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Grade Analytics',
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () =>
+                                          context.go('/servant/dashboard'),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withAlpha(51),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Performance Insights & Trends',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withOpacity(
-                                              0.85,
+                                        child: const Icon(
+                                          Icons.arrow_back_rounded,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            l10n.servantAnalyticsTitle,
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            l10n.servantAnalyticsSubtitle,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white.withAlpha(
+                                                217,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              AnalyticsHeaderTabs(
-                                selected: _selectedView,
-                                onSelected: _setView,
-                              ),
-                            ],
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                AnalyticsHeaderTabs(
+                                  selected: _selectedView,
+                                  onSelected: _setView,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ];
-            },
-            body: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
-              children: [
-                if (_selectedView == AnalyticsView.overview)
-                  _OverviewView(data: data, tooltip: _tooltip),
-                if (_selectedView == AnalyticsView.subjects)
-                  _SubjectsView(
-                    data: data,
-                    selectedSubjectId: _selectedSubjectId,
-                    onSelectSubject: (id) {
-                      setState(() {
-                        _tooltip.hide();
-                        _selectedSubjectId = id;
-                      });
-                    },
-                    onBack: () {
-                      setState(() {
-                        _tooltip.hide();
-                        _selectedSubjectId = null;
-                      });
-                    },
-                    tooltip: _tooltip,
-                  ),
-                if (_selectedView == AnalyticsView.students)
-                  _StudentsView(data: data),
-              ],
+                ];
+              },
+              body: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
+                children: [
+                  if (_selectedView == AnalyticsView.overview)
+                    _OverviewView(data: data, tooltip: _tooltip),
+                  if (_selectedView == AnalyticsView.subjects)
+                    _SubjectsView(
+                      data: data,
+                      selectedSubjectId: _selectedSubjectId,
+                      onSelectSubject: (id) {
+                        setState(() {
+                          _tooltip.hide();
+                          _selectedSubjectId = id;
+                        });
+                      },
+                      onBack: () {
+                        setState(() {
+                          _tooltip.hide();
+                          _selectedSubjectId = null;
+                        });
+                      },
+                      tooltip: _tooltip,
+                    ),
+                  if (_selectedView == AnalyticsView.students)
+                    _StudentsView(data: data),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -221,6 +251,7 @@ class _OverviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final atRiskPercent = data.totalStudents <= 0
         ? 0
         : ((data.atRiskStudents.length / data.totalStudents) * 100).round();
@@ -239,34 +270,38 @@ class _OverviewView extends StatelessWidget {
             MetricCard(
               icon: Icons.my_location_rounded,
               iconColor: Colors.lightBlue.shade600,
-              label: 'Class Average',
+              label: l10n.servantAnalyticsMetricClassAverage,
               value: '${data.classAverage}%',
-              subLabel:
-                  '${data.studentsWithGrades}/${data.totalStudents} students',
+              subLabel: l10n.servantAnalyticsStudentsWithGradesLabel(
+                data.studentsWithGrades,
+                data.totalStudents,
+              ),
               valueColor: const Color(0xFF0F172A),
             ),
             MetricCard(
               icon: Icons.warning_amber_rounded,
               iconColor: Colors.amber.shade700,
-              label: 'At-Risk',
+              label: l10n.servantAnalyticsMetricAtRisk,
               value: '${data.atRiskStudents.length}',
-              subLabel: '$atRiskPercent% of class',
+              subLabel: l10n.servantAnalyticsAtRiskPercentOfClass(
+                atRiskPercent,
+              ),
               valueColor: Colors.amber.shade700,
             ),
             MetricCard(
               icon: Icons.emoji_events_rounded,
               iconColor: Colors.green.shade700,
-              label: 'Top Performers',
+              label: l10n.servantAnalyticsMetricTopPerformers,
               value: '${data.topPerformers.length}',
-              subLabel: 'Students ≥ 90%',
+              subLabel: l10n.servantAnalyticsTopPerformersThreshold,
               valueColor: Colors.green.shade700,
             ),
             MetricCard(
               icon: Icons.menu_book_rounded,
               iconColor: Colors.red.shade600,
-              label: 'Missing Work',
+              label: l10n.servantAnalyticsMetricMissingWork,
               value: '${data.studentsWithMissing.length}',
-              subLabel: 'Students incomplete',
+              subLabel: l10n.servantAnalyticsMissingWorkSubtitle,
               valueColor: Colors.red.shade600,
             ),
           ],
@@ -276,13 +311,13 @@ class _OverviewView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.bar_chart_rounded, color: Color(0xFF334155)),
-                  SizedBox(width: 8),
+                  const Icon(Icons.bar_chart_rounded, color: Color(0xFF334155)),
+                  const SizedBox(width: 8),
                   Text(
-                    'Grade Distribution',
-                    style: TextStyle(
+                    l10n.servantAnalyticsGradeDistributionTitle,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0F172A),
@@ -303,9 +338,9 @@ class _OverviewView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Subject Performance',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsSubjectPerformanceTitle,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -361,9 +396,9 @@ class _OverviewView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Performance by Assessment Type',
-                  style: TextStyle(
+                Text(
+                  l10n.servantAnalyticsPerformanceByAssessmentTypeTitle,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
@@ -422,14 +457,15 @@ class _InsightsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final items = <Widget>[];
 
     if (data.classAverage >= 80) {
       items.add(
-        const _InsightLine(
+        _InsightLine(
           leading: '✓',
           leadingColor: Colors.green,
-          text: 'Class is performing well with an average of 80%+',
+          text: l10n.servantAnalyticsInsightClassPerformingWell,
         ),
       );
     }
@@ -439,8 +475,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '⚠',
           leadingColor: Colors.amber.shade800,
-          text:
-              '${data.atRiskStudents.length} student${data.atRiskStudents.length > 1 ? 's' : ''} need additional support (below 70%)',
+          text: l10n.servantAnalyticsInsightAtRiskStudents(
+            data.atRiskStudents.length,
+          ),
         ),
       );
     }
@@ -450,8 +487,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '!',
           leadingColor: Colors.red.shade700,
-          text:
-              '${data.studentsWithMissing.length} student${data.studentsWithMissing.length > 1 ? 's have' : ' has'} incomplete assessments',
+          text: l10n.servantAnalyticsInsightIncompleteAssessments(
+            data.studentsWithMissing.length,
+          ),
         ),
       );
     }
@@ -461,8 +499,9 @@ class _InsightsList extends StatelessWidget {
         _InsightLine(
           leading: '⭐',
           leadingColor: Colors.green.shade700,
-          text:
-              '${data.topPerformers.length} student${data.topPerformers.length > 1 ? 's are' : ' is'} excelling (top ${data.topPerformers.length})',
+          text: l10n.servantAnalyticsInsightTopPerformers(
+            data.topPerformers.length,
+          ),
         ),
       );
     }
@@ -470,9 +509,9 @@ class _InsightsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Key Insights',
-          style: TextStyle(
+        Text(
+          l10n.servantAnalyticsKeyInsightsTitle,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
@@ -480,9 +519,9 @@ class _InsightsList extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (items.isEmpty)
-          const Text(
-            'No insights yet.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF334155)),
+          Text(
+            l10n.servantAnalyticsNoInsightsYet,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
           )
         else
           ...items.expand((w) sync* {
@@ -543,13 +582,14 @@ class _SubjectsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (selectedSubjectId == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Select a Subject',
-            style: TextStyle(
+          Text(
+            l10n.servantAnalyticsSelectSubjectTitle,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
@@ -599,17 +639,17 @@ class _SubjectsView extends StatelessWidget {
                       Row(
                         children: [
                           _MiniStat(
-                            label: 'Highest',
+                            label: l10n.servantAnalyticsHighestLabel,
                             value: '${s.highest}%',
                             valueColor: Colors.green.shade700,
                           ),
                           _MiniStat(
-                            label: 'Lowest',
+                            label: l10n.servantAnalyticsLowestLabel,
                             value: '${s.lowest}%',
                             valueColor: Colors.red.shade700,
                           ),
                           _MiniStat(
-                            label: 'Incomplete',
+                            label: l10n.servantAnalyticsIncompleteLabel,
                             value: '${s.incomplete}',
                             valueColor: Colors.amber.shade700,
                           ),
@@ -642,7 +682,7 @@ class _SubjectsView extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Back to Subjects',
+                l10n.servantAnalyticsBackToSubjects,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -666,9 +706,9 @@ class _SubjectsView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Grade Distribution',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsGradeDistributionTitle,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF334155),
@@ -687,9 +727,9 @@ class _SubjectsView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Assessment Breakdown',
-                style: TextStyle(
+              Text(
+                l10n.servantAnalyticsAssessmentBreakdownTitle,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
@@ -756,7 +796,10 @@ class _SubjectsView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${a.completed}/${a.total} completed',
+                                  l10n.servantAnalyticsCompletedOutOf(
+                                    a.completed,
+                                    a.total,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -835,18 +878,19 @@ class _StudentsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _StudentListCard(
-          title: 'Top Performers',
-          subtitle: 'Students with highest averages',
+          title: l10n.servantAnalyticsMetricTopPerformers,
+          subtitle: l10n.servantAnalyticsTopPerformersSubtitle,
           icon: Icons.emoji_events_rounded,
           iconColor: Colors.green.shade700,
           headerGradient: LinearGradient(
             colors: [
               Colors.green.shade50,
-              Colors.green.shade100.withOpacity(0.4),
+              Colors.green.shade100.withAlpha(102),
             ],
           ),
           borderColor: Colors.green.shade100,
@@ -865,14 +909,14 @@ class _StudentsView extends StatelessWidget {
         const SizedBox(height: 16),
         if (data.atRiskStudents.isNotEmpty)
           _StudentListCard(
-            title: 'Students Needing Support',
-            subtitle: 'Below 70% average - requires attention',
+            title: l10n.servantAnalyticsStudentsNeedingSupportTitle,
+            subtitle: l10n.servantAnalyticsStudentsNeedingSupportSubtitle,
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.amber.shade800,
             headerGradient: LinearGradient(
               colors: [
                 Colors.amber.shade50,
-                Colors.amber.shade100.withOpacity(0.35),
+                Colors.amber.shade100.withAlpha(89),
               ],
             ),
             borderColor: Colors.amber.shade100,
@@ -884,22 +928,19 @@ class _StudentsView extends StatelessWidget {
                   gradeName: s.gradeName,
                   value: '${s.average}%',
                   valueColor: Colors.amber.shade800,
-                  subValue: 'Needs help',
+                  subValue: l10n.servantAnalyticsNeedsHelp,
                 ),
             ],
           ),
         if (data.atRiskStudents.isNotEmpty) const SizedBox(height: 16),
         if (data.studentsWithMissing.isNotEmpty)
           _StudentListCard(
-            title: 'Incomplete Assessments',
-            subtitle: 'Students with missing work',
+            title: l10n.servantAnalyticsIncompleteAssessmentsTitle,
+            subtitle: l10n.servantAnalyticsIncompleteAssessmentsSubtitle,
             icon: Icons.menu_book_rounded,
             iconColor: Colors.red.shade700,
             headerGradient: LinearGradient(
-              colors: [
-                Colors.red.shade50,
-                Colors.red.shade100.withOpacity(0.35),
-              ],
+              colors: [Colors.red.shade50, Colors.red.shade100.withAlpha(89)],
             ),
             borderColor: Colors.red.shade100,
             rows: [
@@ -910,7 +951,9 @@ class _StudentsView extends StatelessWidget {
                   gradeName: s.gradeName,
                   value: '${s.missingSubjectCount}',
                   valueColor: Colors.red.shade700,
-                  subValue: 'subject${s.missingSubjectCount == 1 ? '' : 's'}',
+                  subValue: l10n.servantAnalyticsSubjectsLabel(
+                    s.missingSubjectCount,
+                  ),
                 ),
             ],
             footer: data.studentsWithMissing.length > 10
@@ -921,7 +964,9 @@ class _StudentsView extends StatelessWidget {
                     ),
                     decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
                     child: Text(
-                      'And ${data.studentsWithMissing.length - 10} more...',
+                      l10n.servantAnalyticsAndMore(
+                        data.studentsWithMissing.length - 10,
+                      ),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -959,6 +1004,7 @@ class _StudentListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Container(
@@ -1012,13 +1058,19 @@ class _StudentListCard extends StatelessWidget {
               ),
             ),
             if (rows.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'No students to display.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    l10n.servantAnalyticsNoStudentsToDisplay,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                 ),
               )

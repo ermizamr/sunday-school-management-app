@@ -1,3 +1,28 @@
+# Admin Panel
+
+## Environment
+
+This is a Vite app and requires the following environment variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+See `.env.example` for the expected names.
+
+## Deploy (Vercel)
+
+- **Root Directory**: `admin-panel`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variables**: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+
+This project includes `vercel.json` to make React Router routes work on refresh.
+
+## Local development
+
+- `npm install`
+- `npm run dev`
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
