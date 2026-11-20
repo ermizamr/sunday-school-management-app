@@ -4212,6 +4212,9 @@ class _StudentCommunicationScreenState
     if (parsed != null) {
       _activeTab = parsed;
     }
+    if (_activeTab == _CommTab.questions) {
+      _QuestionFormState.preloadContext();
+    }
 
     _loadBadgeCountsFromBackend();
   }
@@ -4464,6 +4467,7 @@ class _StudentCommunicationScreenState
                             icon: Icons.question_answer_rounded,
                             selected: _activeTab == _CommTab.questions,
                             onTap: () {
+                              _QuestionFormState.preloadContext();
                               setState(() {
                                 _activeTab = _CommTab.questions;
                                 _showQuestionForm = false;
@@ -5041,6 +5045,7 @@ class _QuestionsListState extends State<_QuestionsList> {
   @override
   void initState() {
     super.initState();
+    _QuestionFormState.preloadContext();
     _loadQuestionsFromBackend();
   }
 
@@ -5358,27 +5363,33 @@ class _QuestionForm extends StatefulWidget {
 class _QuestionFormState extends State<_QuestionForm> {
   static const _generalSubjectValue = 'general';
 
-  final _formKey = GlobalKey<FormState>();
+  static List<({String id, String name})>? _cachedSubjects;
+  static String? _cachedGradeId;
+  static String? _cachedAcademicYearId;
+  static String? _cachedUserId;
+  static Future<void>? _inFlightPreload;
 
-  bool _loadingContext = false;
-  String? _contextError;
-  String? _submitError;
-  String? _academicYearId;
-  String? _gradeId;
-  List<_QuestionSubjectOption> _subjectOptions = const [];
+  static Future<void> preloadContext() async {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return;
+    if (_cachedUserId == userId && _cachedSubjects != null) return;
+    if (_inFlightPreload != null) return _inFlightPreload!;
 
-  String _subjectValue = _generalSubjectValue;
-  String _question = '';
-  bool _submitting = false;
-  bool _showSuccess = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadContextFromBackend();
+    final future = _fetchContextStatic(client, userId);
+    _inFlightPreload = future;
+    try {
+      await future;
+    } finally {
+      if (_inFlightPreload == future) {
+        _inFlightPreload = null;
+      }
+    }
   }
 
-  Future<String?> _activeAcademicYearId(SupabaseClient client) async {
+  static Future<String?> _activeAcademicYearIdStatic(
+    SupabaseClient client,
+  ) async {
     try {
       final id = await client.rpc('active_academic_year_id');
       final asString = id?.toString();
@@ -5399,34 +5410,29 @@ class _QuestionFormState extends State<_QuestionForm> {
     }
   }
 
-  Future<void> _loadContextFromBackend() async {
-    final l10n = AppLocalizations.of(context);
-    if (_loadingContext) return;
-
-    setState(() {
-      _loadingContext = true;
-      _contextError = null;
-      _submitError = null;
-    });
-
+  static Future<void> _fetchContextStatic(
+    SupabaseClient client,
+    String userId,
+  ) async {
     try {
-      final client = Supabase.instance.client;
-      final userId = client.auth.currentUser?.id;
-      if (userId == null) throw StateError('Not signed in');
+      final results = await Future.wait<dynamic>([
+        client
+            .from('profiles')
+            .select('grade_id')
+            .eq('id', userId)
+            .maybeSingle(),
+        _activeAcademicYearIdStatic(client),
+      ]);
 
-      final profile = await client
-          .from('profiles')
-          .select('grade_id')
-          .eq('id', userId)
-          .maybeSingle();
-      final gradeId = (profile as Map?)?['grade_id']?.toString();
-      if (gradeId == null || gradeId.isEmpty) {
-        throw StateError('Missing grade assignment');
-      }
+      final profile = results[0] as Map?;
+      final gradeId = profile?['grade_id']?.toString();
+      final academicYearId = results[1] as String?;
 
-      final academicYearId = await _activeAcademicYearId(client);
-      if (academicYearId == null || academicYearId.isEmpty) {
-        throw StateError('Missing academic year');
+      if (gradeId == null ||
+          gradeId.isEmpty ||
+          academicYearId == null ||
+          academicYearId.isEmpty) {
+        return;
       }
 
       final subjectRows = await client
@@ -5436,24 +5442,130 @@ class _QuestionFormState extends State<_QuestionForm> {
           .eq('active', true)
           .order('name');
 
+      final subjects = <({String id, String name})>[];
+      for (final r in (subjectRows as List)) {
+        final map = r as Map;
+        final id = map['id']?.toString();
+        final name = map['name']?.toString();
+        if (id == null || id.isEmpty || name == null || name.isEmpty) continue;
+        subjects.add((id: id, name: name));
+      }
+
+      _cachedUserId = userId;
+      _cachedGradeId = gradeId;
+      _cachedAcademicYearId = academicYearId;
+      _cachedSubjects = subjects;
+    } catch (e) {
+      debugPrint('Preload question context failed: $e');
+    }
+  }
+
+  final _formKey = GlobalKey<FormState>();
+
+  bool _loadingContext = false;
+  String? _contextError;
+  String? _submitError;
+  String? _academicYearId;
+  String? _gradeId;
+  List<_QuestionSubjectOption> _subjectOptions = const [];
+
+  String _subjectValue = _generalSubjectValue;
+  String _question = '';
+  bool _submitting = false;
+  bool _showSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContextFromBackend();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_subjectOptions.isEmpty) {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId != null &&
+          _cachedUserId == userId &&
+          _cachedSubjects != null) {
+        final l10n = AppLocalizations.of(context);
+        _gradeId = _cachedGradeId;
+        _academicYearId = _cachedAcademicYearId;
+        _subjectOptions = [
+          _QuestionSubjectOption(
+            value: _generalSubjectValue,
+            label: l10n.commSubjectGeneral,
+          ),
+          for (final s in _cachedSubjects!)
+            _QuestionSubjectOption(value: s.id, label: s.name),
+        ];
+        _loadingContext = false;
+      }
+    }
+  }
+
+  Future<void> _loadContextFromBackend() async {
+    final l10n = AppLocalizations.of(context);
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+
+    if (userId != null &&
+        _cachedUserId == userId &&
+        _cachedSubjects != null) {
+      if (mounted) {
+        setState(() {
+          _gradeId = _cachedGradeId;
+          _academicYearId = _cachedAcademicYearId;
+          _subjectOptions = [
+            _QuestionSubjectOption(
+              value: _generalSubjectValue,
+              label: l10n.commSubjectGeneral,
+            ),
+            for (final s in _cachedSubjects!)
+              _QuestionSubjectOption(value: s.id, label: s.name),
+          ];
+          _loadingContext = false;
+        });
+      }
+      return;
+    }
+
+    if (_loadingContext) return;
+
+    setState(() {
+      _loadingContext = true;
+      _contextError = null;
+      _submitError = null;
+    });
+
+    try {
+      if (userId == null) throw StateError('Not signed in');
+
+      if (_inFlightPreload != null) {
+        await _inFlightPreload;
+      } else {
+        await _fetchContextStatic(client, userId);
+      }
+
+      final gradeId = _cachedGradeId;
+      final academicYearId = _cachedAcademicYearId;
+      if (gradeId == null || gradeId.isEmpty) {
+        throw StateError('Missing grade assignment');
+      }
+      if (academicYearId == null || academicYearId.isEmpty) {
+        throw StateError('Missing academic year');
+      }
+
       final options = <_QuestionSubjectOption>[
         _QuestionSubjectOption(
           value: _generalSubjectValue,
           label: l10n.commSubjectGeneral,
         ),
+        if (_cachedSubjects != null)
+          for (final s in _cachedSubjects!)
+            _QuestionSubjectOption(value: s.id, label: s.name),
       ];
-
-      for (final r in (subjectRows as List)) {
-        final map = r as Map;
-        final id = map['id']?.toString();
-        if (id == null || id.isEmpty) continue;
-        options.add(
-          _QuestionSubjectOption(
-            value: id,
-            label: map['name']?.toString() ?? id,
-          ),
-        );
-      }
 
       if (!mounted) return;
       setState(() {
@@ -5558,6 +5670,14 @@ class _QuestionFormState extends State<_QuestionForm> {
             ),
           ];
 
+    final effectiveSubjectValue =
+        subjectOptions.any((o) => o.value == _subjectValue)
+            ? _subjectValue
+            : (subjectOptions.isNotEmpty
+                ? subjectOptions.first.value
+                : _generalSubjectValue);
+    final isLoadingOptions = _loadingContext && _subjectOptions.length <= 1;
+
     return Form(
       key: _formKey,
       child: Column(
@@ -5597,7 +5717,10 @@ class _QuestionFormState extends State<_QuestionForm> {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  initialValue: _subjectValue.isEmpty ? null : _subjectValue,
+                  key: ValueKey(
+                    'subject_${subjectOptions.length}_$effectiveSubjectValue',
+                  ),
+                  initialValue: effectiveSubjectValue,
                   items: subjectOptions
                       .map(
                         (o) => DropdownMenuItem(
@@ -5606,12 +5729,25 @@ class _QuestionFormState extends State<_QuestionForm> {
                         ),
                       )
                       .toList(growable: false),
-                  decoration: _dropdownDecoration,
-                  onChanged: (value) {
-                    setState(
-                      () => _subjectValue = value ?? _generalSubjectValue,
-                    );
-                  },
+                  decoration: _dropdownDecoration.copyWith(
+                    suffixIcon: isLoadingOptions
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
+                  onChanged: isLoadingOptions
+                      ? null
+                      : (value) {
+                          setState(
+                            () => _subjectValue = value ?? _generalSubjectValue,
+                          );
+                        },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return l10n.commSelectSubjectError;
