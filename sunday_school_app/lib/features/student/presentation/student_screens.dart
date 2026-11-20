@@ -15,6 +15,9 @@ import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/push/push_notifications_service.dart';
+import 'widgets/daily_gospel_verse_card.dart';
+import 'widgets/gospel_verses.dart';
+import 'widgets/student_dashboard_header.dart';
 
 const Color accent = Color(0xFF0284C7); // sky-600
 
@@ -497,33 +500,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     }
   }
 
-  static String _getDailyVerse(bool isAmharic) {
-    final day = DateTime.now().day;
-    if (isAmharic) {
-      const verses = [
-        '«ሕፃኑን በሚሄድበት መንገድ ምራው፥ በሸመገለም ጊዜ ከእርሱ ፈቀቅ አይልም።» (ምሳሌ 22:6)',
-        '«የእግዚአብሔር ቃል ለእግሬ መብራት ለመንገዴም ብርሃን ነው» (መዝ 119:105)',
-        '«እግዚአብሔር እረኛዬ ነው፥ የሚያሳጣኝም የለም።» (መዝ 23:1)',
-        '«በፍጹም ልብህ በእግዚአብሔር ታመን፥ በራስህም ማስተዋል አትደገፍ» (ምሳሌ 3:5)',
-        '«ሁሉን ማድረግ በሚያበረታኝ በክርስቶስ እችላለሁ።» (ፊል 4:13)',
-        '«የእግዚአብሔር ስም የጸና ግምብ ነው፤ ጻድቅ ወደ እርሱ ሮጦ ከፍ ከፍ ይላል።» (ምሳሌ 18:10)',
-        '«የእግዚአብሔርን ቸርነት በሕያዋን ምድር አይ ዘንድ አምናለሁ።» (መዝ 27:13)',
-      ];
-      return verses[day % verses.length];
-    } else {
-      const verses = [
-        '“Train up a child in the way he should go, and when he is old he will not depart from it.” (Prov 22:6)',
-        '“Your word is a lamp to my feet and a light to my path.” (Ps 119:105)',
-        '“The Lord is my shepherd; I shall not want.” (Ps 23:1)',
-        '“Trust in the Lord with all your heart, and do not lean on your own understanding.” (Prov 3:5)',
-        '“I can do all things through Christ who strengthens me.” (Phil 4:13)',
-        '“The name of the Lord is a strong tower; the righteous run into it and are safe.” (Prov 18:10)',
-        '“I believe that I shall see the goodness of the Lord in the land of the living.” (Ps 27:13)',
-      ];
-      return verses[day % verses.length];
-    }
-  }
-
   Future<String?> _activeAcademicYearId(SupabaseClient client) async {
     try {
       final id = await client.rpc('active_academic_year_id');
@@ -733,10 +709,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final academicYearName = _stats?.academicYearName;
 
     final now = DateTime.now();
-    final ethFormatted = EthiopianDateFormatter.formatDateTime(now, includeYear: true);
-    final ethiopianDateString = isAmharic ? '📅 $ethFormatted ዓ.ም' : '📅 $ethFormatted E.C.';
+    final ethFormatted = EthiopianDateFormatter.formatDateTime(
+      now,
+      includeYear: true,
+    );
+    final ethiopianDateString = isAmharic
+        ? '📅 $ethFormatted ዓ.ም'
+        : '📅 $ethFormatted E.C.';
     final timeGreeting = _getTimeBasedGreeting(context);
-    final dailyVerse = _getDailyVerse(isAmharic);
+    final dailyVerse = gospelVerseForDate(now);
     final avatarInitial = displayName.trim().isNotEmpty
         ? displayName.trim().characters.first.toUpperCase()
         : 'S';
@@ -805,213 +786,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             child: Column(
               children: [
                 // Premium Celestial Header Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0369A1), // sky-700
-                        Color(0xFF0284C7), // sky-600
-                        Color(0xFF0EA5E9), // sky-500
-                      ],
-                    ),
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(28),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Row: Ethiopian Date Badge & Academic Year Pill
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0x33FFFFFF),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0x4DFFFFFF),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 12,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  ethiopianDateString,
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (academicYearName != null &&
-                              academicYearName.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0x3DF59E0B),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(0x80FCD34D),
-                                ),
-                              ),
-                              child: Text(
-                                academicYearName,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  color: Color(0xFFFEF3C7),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-
-                      // Middle Row: Greeting, Name, Grade & Avatar
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  timeGreeting,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    color: Color(0xE6FFFFFF),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                if (gradeName != null &&
-                                    gradeName.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 9,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0x26FFFFFF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      gradeName,
-                                      style: const TextStyle(
-                                        fontSize: 11.5,
-                                        color: Color(0xFFE0F2FE),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Student Avatar Badge with subtle golden ring
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0x33FFFFFF),
-                              border: Border.all(
-                                color: const Color(0xFFFDE68A),
-                                width: 2,
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x26000000),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                avatarInitial,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Daily Verse Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0x24FFFFFF),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x38FFFFFF)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.auto_stories_rounded,
-                              size: 15,
-                              color: Color(0xFFFDE68A),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                dailyVerse,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  color: Colors.white,
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                StudentDashboardHeader(
+                  greeting: timeGreeting,
+                  displayName: displayName,
+                  avatarInitial: avatarInitial,
+                  ethiopianDateString: ethiopianDateString,
+                  isAmharic: isAmharic,
+                  gradeName: gradeName,
+                  academicYearName: academicYearName,
                 ),
 
                 // Floating Content Section
@@ -1022,6 +804,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        DailyGospelVerseCard(
+                          verse: dailyVerse,
+                          isAmharic: isAmharic,
+                        ),
+                        const SizedBox(height: 16),
+
                         if (_error != null) ...[
                           Container(
                             decoration: BoxDecoration(
@@ -1203,12 +991,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 subtitle: _loading
                                     ? '...'
                                     : (announcementCount > 0
-                                        ? (isAmharic
-                                            ? '$announcementCount ንቁ ማስታወቂያዎች'
-                                            : '$announcementCount active announcements')
-                                        : (isAmharic
-                                            ? 'አዲስ ማስታወቂያ የለም'
-                                            : 'No new announcements')),
+                                          ? (isAmharic
+                                                ? '$announcementCount ንቁ ማስታወቂያዎች'
+                                                : '$announcementCount active announcements')
+                                          : (isAmharic
+                                                ? 'አዲስ ማስታወቂያ የለም'
+                                                : 'No new announcements')),
                                 badgeCount: announcementCount,
                                 badgeColor: const Color(0xFFD97706),
                                 onTap: () => context.go(
@@ -1231,12 +1019,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 subtitle: _loading
                                     ? '...'
                                     : (answeredQuestions > 0
-                                        ? (isAmharic
-                                            ? '$answeredQuestions ተመልሰዋል'
-                                            : '$answeredQuestions answered')
-                                        : (isAmharic
-                                            ? '$pendingQuestions በመጠባበቅ ላይ'
-                                            : '$pendingQuestions pending')),
+                                          ? (isAmharic
+                                                ? '$answeredQuestions ተመልሰዋል'
+                                                : '$answeredQuestions answered')
+                                          : (isAmharic
+                                                ? '$pendingQuestions በመጠባበቅ ላይ'
+                                                : '$pendingQuestions pending')),
                                 badgeCount: pendingQuestions,
                                 badgeColor: const Color(0xFF0284C7),
                                 onTap: () => context.go(
@@ -1261,12 +1049,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 subtitle: _loading
                                     ? '...'
                                     : (openComplaints > 0
-                                        ? (isAmharic
-                                            ? '$openComplaints ክፍት ቅሬታዎች'
-                                            : '$openComplaints open complaints')
-                                        : (isAmharic
-                                            ? 'አስተያየት ወይም ቅሬታ ያጋሩ'
-                                            : 'Share feedback or complaints')),
+                                          ? (isAmharic
+                                                ? '$openComplaints ክፍት ቅሬታዎች'
+                                                : '$openComplaints open complaints')
+                                          : (isAmharic
+                                                ? 'አስተያየት ወይም ቅሬታ ያጋሩ'
+                                                : 'Share feedback or complaints')),
                                 badgeCount: openComplaints,
                                 badgeColor: const Color(0xFF059669),
                                 isLast: true,
@@ -1856,13 +1644,18 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     ),
                     OutlinedButton.icon(
                       onPressed: () {
-                        context.go('/student/communication?tab=complaints&category=attendance');
+                        context.go(
+                          '/student/communication?tab=complaints&category=attendance',
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Color(0x80FFFFFF)),
                         backgroundColor: const Color(0x26FFFFFF),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -3715,7 +3508,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                            l10n.studentGradesAcademicYearLabel(
+                              _academicYear.name,
+                            ),
                             style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFF64748B),
@@ -3726,21 +3521,23 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                     ),
                     OutlinedButton.icon(
                       onPressed: () {
-                        context.go('/student/communication?tab=complaints&category=results');
+                        context.go(
+                          '/student/communication?tab=complaints&category=results',
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF0284C7),
                         side: const BorderSide(color: Color(0xFFBAE6FD)),
                         backgroundColor: const Color(0xFFF0F9FF),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      icon: const Icon(
-                        Icons.report_problem_outlined,
-                        size: 15,
-                      ),
+                      icon: const Icon(Icons.report_problem_outlined, size: 15),
                       label: Text(
                         l10n.commSubmitComplaint,
                         style: const TextStyle(
@@ -4211,7 +4008,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                            l10n.studentGradesAcademicYearLabel(
+                              _academicYear.name,
+                            ),
                             style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFF64748B),
@@ -4222,21 +4021,23 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                     ),
                     OutlinedButton.icon(
                       onPressed: () {
-                        context.go('/student/communication?tab=complaints&category=results');
+                        context.go(
+                          '/student/communication?tab=complaints&category=results',
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF0284C7),
                         side: const BorderSide(color: Color(0xFFBAE6FD)),
                         backgroundColor: const Color(0xFFF0F9FF),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      icon: const Icon(
-                        Icons.report_problem_outlined,
-                        size: 15,
-                      ),
+                      icon: const Icon(Icons.report_problem_outlined, size: 15),
                       label: Text(
                         l10n.commSubmitComplaint,
                         style: const TextStyle(
@@ -6348,9 +6149,7 @@ class _QuestionFormState extends State<_QuestionForm> {
     final client = Supabase.instance.client;
     final userId = client.auth.currentUser?.id;
 
-    if (userId != null &&
-        _cachedUserId == userId &&
-        _cachedSubjects != null) {
+    if (userId != null && _cachedUserId == userId && _cachedSubjects != null) {
       if (mounted) {
         setState(() {
           _gradeId = _cachedGradeId;
@@ -6510,10 +6309,10 @@ class _QuestionFormState extends State<_QuestionForm> {
 
     final effectiveSubjectValue =
         subjectOptions.any((o) => o.value == _subjectValue)
-            ? _subjectValue
-            : (subjectOptions.isNotEmpty
-                ? subjectOptions.first.value
-                : _generalSubjectValue);
+        ? _subjectValue
+        : (subjectOptions.isNotEmpty
+              ? subjectOptions.first.value
+              : _generalSubjectValue);
     final isLoadingOptions = _loadingContext && _subjectOptions.length <= 1;
 
     return Form(
@@ -7704,8 +7503,9 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
           final qId = entry.key;
           final val = entry.value;
           _answers[qId] = val;
-          _textControllers[qId] =
-              TextEditingController(text: val?.toString() ?? '');
+          _textControllers[qId] = TextEditingController(
+            text: val?.toString() ?? '',
+          );
         }
       }
     });
@@ -7767,19 +7567,22 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
       final existingSubmission = _mySubmissions[form.id];
       bool savedViaRpc = false;
       try {
-        await client.rpc('submit_feedback_response', params: {
-          'p_form_id': form.id,
-          'p_answers': answers,
-        });
+        await client.rpc(
+          'submit_feedback_response',
+          params: {'p_form_id': form.id, 'p_answers': answers},
+        );
         savedViaRpc = true;
       } catch (_) {}
 
       if (!savedViaRpc) {
         if (existingSubmission != null) {
-          await client.from('feedback_submissions').update({
-            'answers': answers,
-            'submitted_at': DateTime.now().toIso8601String(),
-          }).eq('id', existingSubmission.id);
+          await client
+              .from('feedback_submissions')
+              .update({
+                'answers': answers,
+                'submitted_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', existingSubmission.id);
         } else {
           await client.from('feedback_submissions').insert({
             'form_id': form.id,
@@ -7911,8 +7714,8 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                       final ratingVal = current is int
                           ? current
                           : (current != null
-                              ? int.tryParse(current.toString())
-                              : null);
+                                ? int.tryParse(current.toString())
+                                : null);
                       field = DropdownButtonFormField<int>(
                         key: ValueKey('rating_${q.id}_$ratingVal'),
                         initialValue: ratingVal,
@@ -7944,8 +7747,8 @@ class _FeedbackSectionState extends State<_FeedbackSection> {
                       final options = q.options;
                       final mcVal =
                           (current != null && options.contains(current))
-                              ? current
-                              : null;
+                          ? current
+                          : null;
                       field = DropdownButtonFormField<String>(
                         key: ValueKey('mc_${q.id}_$mcVal'),
                         initialValue: mcVal,
