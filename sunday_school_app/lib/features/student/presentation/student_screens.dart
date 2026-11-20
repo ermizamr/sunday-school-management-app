@@ -1364,23 +1364,56 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      l10n.navAttendance,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.navAttendance,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.attendanceTrackSubtitle,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFBAE6FD),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.attendanceTrackSubtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFFBAE6FD),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        context.go('/student/communication?tab=complaints&category=attendance');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0x80FFFFFF)),
+                        backgroundColor: const Color(0x26FFFFFF),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.report_problem_outlined,
+                        size: 15,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        l10n.commSubmitComplaint,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -2951,23 +2984,54 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      l10n.studentFinalResultsTitle,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F172A),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.studentFinalResultsTitle,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        context.go('/student/communication?tab=complaints&category=results');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0284C7),
+                        side: const BorderSide(color: Color(0xFFBAE6FD)),
+                        backgroundColor: const Color(0xFFF0F9FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.report_problem_outlined,
+                        size: 15,
+                      ),
+                      label: Text(
+                        l10n.commSubmitComplaint,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -3416,23 +3480,54 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      l10n.navGrades,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F172A),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.navGrades,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.studentGradesAcademicYearLabel(_academicYear.name),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.studentGradesAcademicYearLabel(_academicYear.name),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        context.go('/student/communication?tab=complaints&category=results');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0284C7),
+                        side: const BorderSide(color: Color(0xFFBAE6FD)),
+                        backgroundColor: const Color(0xFFF0F9FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.report_problem_outlined,
+                        size: 15,
+                      ),
+                      label: Text(
+                        l10n.commSubmitComplaint,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -4177,9 +4272,14 @@ class _PercentBar extends StatelessWidget {
 }
 
 class StudentCommunicationScreen extends StatefulWidget {
-  const StudentCommunicationScreen({super.key, this.initialTab});
+  const StudentCommunicationScreen({
+    super.key,
+    this.initialTab,
+    this.initialCategory,
+  });
 
   final String? initialTab;
+  final String? initialCategory;
 
   @override
   State<StudentCommunicationScreen> createState() =>
@@ -4193,6 +4293,7 @@ class _StudentCommunicationScreenState
   _CommTab _activeTab = _CommTab.announcements;
   bool _showQuestionForm = false;
   bool _showComplaintForm = false;
+  String? _preselectedComplaintCategory;
 
   bool _loadingBadges = false;
   int _announcementBadgeCount = 0;
@@ -4211,6 +4312,11 @@ class _StudentCommunicationScreenState
     final parsed = _parseTab(widget.initialTab);
     if (parsed != null) {
       _activeTab = parsed;
+    }
+    if (widget.initialCategory != null && widget.initialCategory!.isNotEmpty) {
+      _activeTab = _CommTab.complaints;
+      _showComplaintForm = true;
+      _preselectedComplaintCategory = widget.initialCategory;
     }
     if (_activeTab == _CommTab.questions) {
       _QuestionFormState.preloadContext();
@@ -4382,6 +4488,16 @@ class _StudentCommunicationScreenState
   @override
   void didUpdateWidget(covariant StudentCommunicationScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.initialCategory != null &&
+        widget.initialCategory!.isNotEmpty &&
+        widget.initialCategory != oldWidget.initialCategory) {
+      setState(() {
+        _activeTab = _CommTab.complaints;
+        _showComplaintForm = true;
+        _preselectedComplaintCategory = widget.initialCategory;
+      });
+      return;
+    }
     if (oldWidget.initialTab == widget.initialTab) return;
     final parsed = _parseTab(widget.initialTab);
     if (parsed == null) return;
@@ -4535,15 +4651,22 @@ class _StudentCommunicationScreenState
                           if (_showComplaintForm) {
                             return _ComplaintForm(
                               key: _complaintFormKey,
+                              initialCategory: _preselectedComplaintCategory,
                               onCancel: () {
-                                setState(() => _showComplaintForm = false);
+                                setState(() {
+                                  _showComplaintForm = false;
+                                  _preselectedComplaintCategory = null;
+                                });
                               },
                             );
                           }
                           return _ComplaintsList(
                             key: _complaintsKey,
                             onSubmitComplaint: () {
-                              setState(() => _showComplaintForm = true);
+                              setState(() {
+                                _preselectedComplaintCategory = null;
+                                _showComplaintForm = true;
+                              });
                             },
                           );
                         case _CommTab.feedback:
@@ -6101,6 +6224,8 @@ class _ComplaintCard extends StatelessWidget {
 
     final categoryLabel = switch (complaint.category) {
       'teacher' => l10n.commCategoryTeacher,
+      'results' || 'grades' => l10n.commCategoryResults,
+      'attendance' => l10n.commCategoryAttendance,
       'facility' => l10n.commCategoryFacility,
       'course' => l10n.commCategoryCourse,
       'administrative' => l10n.commCategoryAdministrative,
@@ -6179,9 +6304,14 @@ class _ComplaintCard extends StatelessWidget {
 }
 
 class _ComplaintForm extends StatefulWidget {
-  const _ComplaintForm({super.key, required this.onCancel});
+  const _ComplaintForm({
+    super.key,
+    required this.onCancel,
+    this.initialCategory,
+  });
 
   final VoidCallback onCancel;
+  final String? initialCategory;
 
   @override
   State<_ComplaintForm> createState() => _ComplaintFormState();
@@ -6206,6 +6336,9 @@ class _ComplaintFormState extends State<_ComplaintForm> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialCategory != null && widget.initialCategory!.isNotEmpty) {
+      _category = widget.initialCategory!;
+    }
     _loadContextFromBackend();
   }
 
@@ -6391,11 +6524,20 @@ class _ComplaintFormState extends State<_ComplaintForm> {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
+                  key: ValueKey('complaint_category_$_category'),
                   initialValue: _category.isEmpty ? null : _category,
                   items: [
                     DropdownMenuItem(
                       value: 'teacher',
                       child: Text(l10n.commCategoryTeacher),
+                    ),
+                    DropdownMenuItem(
+                      value: 'results',
+                      child: Text(l10n.commCategoryResults),
+                    ),
+                    DropdownMenuItem(
+                      value: 'attendance',
+                      child: Text(l10n.commCategoryAttendance),
                     ),
                     DropdownMenuItem(
                       value: 'facility',

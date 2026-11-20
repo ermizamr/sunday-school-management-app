@@ -229,6 +229,7 @@ final GoRouter appRouter = GoRouter(
               name: 'student-communication',
               builder: (context, state) => StudentCommunicationScreen(
                 initialTab: state.uri.queryParameters['tab'],
+                initialCategory: state.uri.queryParameters['category'],
               ),
             ),
           ],

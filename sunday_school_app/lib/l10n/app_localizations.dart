@@ -1562,6 +1562,18 @@ abstract class AppLocalizations {
   /// **'Teacher'**
   String get commCategoryTeacher;
 
+  /// No description provided for @commCategoryResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get commCategoryResults;
+
+  /// No description provided for @commCategoryAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get commCategoryAttendance;
+
   /// No description provided for @commCategoryFacility.
   ///
   /// In en, this message translates to:

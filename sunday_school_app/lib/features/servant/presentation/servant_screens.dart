@@ -6928,6 +6928,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     final normalizedFilter = switch (_complaintCategoryFilter) {
       'teaching' => 'teacher',
       'administration' => 'administrative',
+      'grades' => 'results',
       _ => _complaintCategoryFilter,
     };
 
@@ -6939,6 +6940,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       items = items.where((c) {
         if (normalizedFilter == 'teacher') {
           return c.category == 'teacher' || c.category == 'teaching';
+        }
+        if (normalizedFilter == 'results') {
+          return c.category == 'results' || c.category == 'grades';
         }
         if (normalizedFilter == 'administrative') {
           return c.category == 'administrative' ||
@@ -6988,6 +6992,8 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   items: const [
                     'all',
                     'teacher',
+                    'results',
+                    'attendance',
                     'facility',
                     'course',
                     'administrative',
@@ -7000,6 +7006,11 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       case 'teacher':
                       case 'teaching':
                         return l10n.commCategoryTeacher;
+                      case 'results':
+                      case 'grades':
+                        return l10n.commCategoryResults;
+                      case 'attendance':
+                        return l10n.commCategoryAttendance;
                       case 'facility':
                         return l10n.commCategoryFacility;
                       case 'course':
@@ -9453,6 +9464,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           label: l10n.commCategoryTeacher,
           bg: const Color(0xFFE0F2FE),
           fg: const Color(0xFF0369A1),
+        );
+      case 'results':
+        return _tinyPill(
+          label: l10n.commCategoryResults,
+          bg: const Color(0xFFFCE7F3),
+          fg: const Color(0xFFBE185D),
+        );
+      case 'attendance':
+        return _tinyPill(
+          label: l10n.commCategoryAttendance,
+          bg: const Color(0xFFCCFBF1),
+          fg: const Color(0xFF0F766E),
         );
       case 'course':
         return _tinyPill(

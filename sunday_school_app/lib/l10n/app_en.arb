@@ -426,6 +426,8 @@
 
   "commCategoryLabel": "Category",
   "commCategoryTeacher": "Teacher",
+  "commCategoryResults": "Results",
+  "commCategoryAttendance": "Attendance",
   "commCategoryFacility": "Facility",
   "commCategoryCourse": "Course",
   "commCategoryAdministrative": "Administrative",
