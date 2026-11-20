@@ -66,19 +66,17 @@ class StudentDashboardHeader extends StatelessWidget {
               final bool compact = width < 420;
               final double horizontalPadding = compact ? 16 : 20;
 
-              // Large overflowing logo: reduced ~10% for ideal proportion, shifted rightward
-              final double logoWidth = (width * 0.65).clamp(215.0, 450.0);
-              final double logoRightOffset = -(logoWidth * 0.22);
+              // Logo sized so top (cross) and bottom (open book) are fully shown within the header card
+              final double logoRightOffset = -(width * 0.05);
 
               return Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[
-                  // 1. Large overflowing logo shifted to the right
+                  // 1. Logo fitted vertically so top and bottom are fully shown
                   Positioned(
-                    top: -24,
-                    bottom: -24,
+                    top: 10,
+                    bottom: 14,
                     right: logoRightOffset,
-                    width: logoWidth,
                     child: IgnorePointer(
                       child: ShaderMask(
                         shaderCallback: (Rect bounds) {
@@ -95,7 +93,7 @@ class StudentDashboardHeader extends StatelessWidget {
                         },
                         child: Image.asset(
                           'assets/logo.png',
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           alignment: Alignment.centerRight,
                           filterQuality: FilterQuality.medium,
                         ),
