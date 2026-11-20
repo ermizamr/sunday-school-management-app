@@ -266,6 +266,12 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get commonUpdate;
 
+  /// No description provided for @commonEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get commonEdit;
+
   /// No description provided for @commonTryChangingFilters.
   ///
   /// In en, this message translates to:

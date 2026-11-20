@@ -93,6 +93,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonUpdate => 'Update';
 
   @override
+  String get commonEdit => 'Edit';
+
+  @override
   String get commonTryChangingFilters => 'Try changing the filters.';
 
   @override
