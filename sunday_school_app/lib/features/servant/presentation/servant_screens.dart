@@ -1811,10 +1811,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
 
       final profile = await client
           .from('profiles')
-          .select('grade_id')
+          .select('grade_id, role')
           .eq('id', user.id)
           .maybeSingle();
       final gradeId = profile?['grade_id']?.toString();
+      final role = profile?['role']?.toString().toLowerCase().trim();
+      final isAdmin = role == 'admin';
       if (gradeId == null || gradeId.isEmpty) {
         throw Exception('Servant is not assigned to a grade');
       }
@@ -1837,6 +1839,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
         }
       }
       setState(() {
+        _isAdmin = isAdmin;
         _subjects = subjects;
         _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
         _loadingSubjects = false;
@@ -1852,6 +1855,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   // UI and logic state
+  bool _isAdmin = false;
   _ServantGradeEntry? _selectedEntry;
   String? _myGradeId;
   String? _academicYearId;
@@ -2394,7 +2398,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   void _goToAddSubject() {
-    if (_isLocked) return;
+    if (_isLocked || !_isAdmin) return;
     _subjectNameController.text = '';
     setState(() {
       _view = _ServantGradesView.addSubject;
@@ -2648,7 +2652,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Future<void> _saveSubject() async {
-    if (_isLocked || _savingSubject) return;
+    if (_isLocked || _savingSubject || !_isAdmin) return;
     final l10n = AppLocalizations.of(context);
     final name = _subjectNameController.text.trim();
     if (name.isEmpty) {
@@ -2887,14 +2891,15 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                                         ),
                                       ),
                                     ],
-                                    _SubjectChip(
-                                      selected: false,
-                                      label: l10n.servantGradesNewSubjectChip,
-                                      tone: _ChipTone.amber,
-                                      icon: Icons.add_rounded,
-                                      onTap: _goToAddSubject,
-                                      disabled: _isLocked,
-                                    ),
+                                    if (_isAdmin)
+                                      _SubjectChip(
+                                        selected: false,
+                                        label: l10n.servantGradesNewSubjectChip,
+                                        tone: _ChipTone.amber,
+                                        icon: Icons.add_rounded,
+                                        onTap: _goToAddSubject,
+                                        disabled: _isLocked,
+                                      ),
                                   ],
                                 ),
                               ),
@@ -2925,7 +2930,12 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                         _ServantGradesView.edit => _buildAssessmentForm(
                           editing: true,
                         ),
-                        _ServantGradesView.addSubject => _buildAddSubjectForm(),
+                        _ServantGradesView.addSubject => _isAdmin
+                            ? _buildAddSubjectForm()
+                            : _buildList(
+                                entries: entries,
+                                totalWeight: totalWeight,
+                              ),
                         _ServantGradesView.missing => _buildMissingView(
                           entries: entries,
                         ),
@@ -4065,6 +4075,9 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   }
 
   Widget _buildAddSubjectForm() {
+    if (!_isAdmin) {
+      return const SizedBox.shrink();
+    }
     final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('servant-grades-add-subject'),
