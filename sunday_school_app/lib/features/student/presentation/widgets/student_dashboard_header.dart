@@ -66,8 +66,8 @@ class StudentDashboardHeader extends StatelessWidget {
               final bool compact = width < 420;
               final double horizontalPadding = compact ? 16 : 20;
 
-              // Logo sized so top (cross) and bottom (open book) are fully shown within the header card
-              final double logoRightOffset = -(width * 0.05);
+              // Logo sized so top (cross) and bottom (open book) are fully shown, shifted near to the right
+              final double logoRightOffset = -(width * 0.10);
 
               return Stack(
                 clipBehavior: Clip.none,
