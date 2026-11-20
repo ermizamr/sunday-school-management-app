@@ -1858,6 +1858,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
   String? _academicYearStatus;
   bool _loadingLockState = true;
   bool _isLocked = false;
+  // Guards against double-taps: saves span several network round-trips
+  // and buttons stay tappable until these flip.
+  bool _savingAssessment = false;
+  bool _savingSubject = false;
   String? _lockMessage;
   PromotionCriteriaSet _criteria = PromotionCriteriaSet.defaults;
   bool _loadingCriteria = false;
@@ -2490,6 +2494,11 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
     final subject = _selectedSubject;
     if (subject == null) return;
 
+    // Synchronous double-tap guard: set before the first await so a second
+    // tap that lands while the save is in flight returns immediately.
+    if (_savingAssessment) return;
+    setState(() => _savingAssessment = true);
+
     try {
       final client = SupabaseClientManager.instance.client;
       final user = client.auth.currentUser;
@@ -2538,7 +2547,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       } else {
         final inserted = await client
             .from('assessments')
-            .insert({
+            .upsert({
               'academic_year_id': academicYearId,
               'grade_id': gradeId,
               'subject_id': subject.id,
@@ -2547,7 +2556,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
               'weight': weight ?? 0,
               'assessment_date': assessmentDate,
               'created_by': user.id,
-            })
+            }, onConflict: 'academic_year_id,subject_id,grade_type,assessment_date')
             .select('id')
             .single();
         assessmentId = inserted['id'] as String;
@@ -2603,11 +2612,15 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.servantGradesSaveAssessmentFailed)),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _savingAssessment = false);
+      }
     }
   }
 
   Future<void> _saveSubject() async {
-    if (_isLocked) return;
+    if (_isLocked || _savingSubject) return;
     final l10n = AppLocalizations.of(context);
     final name = _subjectNameController.text.trim();
     if (name.isEmpty) {
@@ -2616,6 +2629,8 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       );
       return;
     }
+
+    setState(() => _savingSubject = true);
     try {
       final client = SupabaseClientManager.instance.client;
       final user = client.auth.currentUser;
@@ -2651,6 +2666,10 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.servantGradesSubjectAddFailed)),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _savingSubject = false);
+      }
     }
   }
 
@@ -3951,7 +3970,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: _isLocked
+                      onPressed: (_isLocked || _savingAssessment)
                           ? null
                           : () => _saveAssessment(editing: editing),
                       style: FilledButton.styleFrom(
@@ -3961,7 +3980,16 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      icon: const Icon(Icons.save_rounded),
+                      icon: _savingAssessment
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.save_rounded),
                       label: Text(l10n.commonSave),
                     ),
                   ),
@@ -4042,7 +4070,7 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: _isLocked ? null : _saveSubject,
+                      onPressed: (_isLocked || _savingSubject) ? null : _saveSubject,
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF0EA5E9),
                         foregroundColor: Colors.white,
@@ -4050,7 +4078,16 @@ class _ServantGradesScreenState extends State<ServantGradesScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      icon: const Icon(Icons.save_rounded),
+                      icon: _savingSubject
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.save_rounded),
                       label: Text(l10n.commonSave),
                     ),
                   ),
@@ -4329,8 +4366,10 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
   }
 
   bool _showAnnouncementForm = false;
+  bool _postingAnnouncement = false;
 
   bool _showCreateFeedback = false;
+  bool _creatingFeedbackForm = false;
   String? _viewingFeedbackFormId;
   bool _showFeedbackSuccessToast = false;
 
@@ -5778,6 +5817,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
     }
 
     Future<void> postAnnouncement() async {
+      if (_postingAnnouncement) return;
       final title = _announcementTitleController.text.trim();
       final message = _announcementMessageController.text.trim();
       if (title.isEmpty || message.isEmpty) {
@@ -5789,9 +5829,9 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
         return;
       }
 
-      _ServantAnnouncement? created;
+      setState(() => _postingAnnouncement = true);
       try {
-        created = await _createAnnouncementInBackend(
+        final created = await _createAnnouncementInBackend(
           title: title,
           message: message,
           category: _announcementCategory,
@@ -5799,26 +5839,35 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           targetAudience: _announcementTargetAudience,
           expiresOnIso: null,
         );
-      } catch (_) {}
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (created == null) {
+        if (created == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.servantAnnouncementsPostFailed)),
+          );
+          return;
+        }
+
+        final createdAnnouncement = created;
+
+        setState(() {
+          _announcements.insert(0, createdAnnouncement);
+          _announcementTitleController.clear();
+          _announcementMessageController.clear();
+          _announcementExpiresOn = null;
+          _showAnnouncementForm = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.servantAnnouncementsPostFailed)),
         );
-        return;
+      } finally {
+        if (mounted) {
+          setState(() => _postingAnnouncement = false);
+        }
       }
-
-      final createdAnnouncement = created;
-
-      setState(() {
-        _announcements.insert(0, createdAnnouncement);
-        _announcementTitleController.clear();
-        _announcementMessageController.clear();
-        _announcementExpiresOn = null;
-        _showAnnouncementForm = false;
-      });
     }
 
     void cancelAnnouncement() {
@@ -5993,7 +6042,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: postAnnouncement,
+                        onPressed: _postingAnnouncement ? null : postAnnouncement,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF59E0B),
                           foregroundColor: Colors.white,
@@ -6002,7 +6051,16 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        icon: const Icon(Icons.send_rounded, size: 18),
+                        icon: _postingAnnouncement
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 18),
                         label: Text(
                           l10n.servantAnnouncementsPostButton,
                           style: const TextStyle(fontWeight: FontWeight.w700),
@@ -8456,120 +8514,130 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () async {
-                    final l10n = AppLocalizations.of(context);
-                    final title = _feedbackTitleController.text.trim();
-                    final desc = _feedbackDescriptionController.text.trim();
-                    if (title.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.servantFeedbackEnterTitleError),
-                        ),
-                      );
-                      return;
-                    }
-                    if (desc.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.servantFeedbackEnterDescriptionError,
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-                    if (_draftFeedbackQuestions.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.servantFeedbackAddAtLeastOneQuestionError,
-                          ),
-                        ),
-                      );
-                      return;
-                    }
+                  onPressed: _creatingFeedbackForm
+                      ? null
+                      : () async {
+                          if (_creatingFeedbackForm) return;
+                          final l10n = AppLocalizations.of(context);
+                          final title = _feedbackTitleController.text.trim();
+                          final desc = _feedbackDescriptionController.text.trim();
+                          if (title.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.servantFeedbackEnterTitleError),
+                              ),
+                            );
+                            return;
+                          }
+                          if (desc.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.servantFeedbackEnterDescriptionError,
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          if (_draftFeedbackQuestions.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.servantFeedbackAddAtLeastOneQuestionError,
+                                ),
+                              ),
+                            );
+                            return;
+                          }
 
-                    final start = DateTime.tryParse(_feedbackStartDate);
-                    final end = DateTime.tryParse(_feedbackEndDate);
-                    if (start == null || end == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.servantFeedbackValidDatesError),
-                        ),
-                      );
-                      return;
-                    }
-                    if (!end.isAfter(start)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.servantFeedbackEndAfterStartError),
-                        ),
-                      );
-                      return;
-                    }
-                    if (_feedbackType.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.servantFeedbackSelectTypeError),
-                        ),
-                      );
-                      return;
-                    }
+                          final start = DateTime.tryParse(_feedbackStartDate);
+                          final end = DateTime.tryParse(_feedbackEndDate);
+                          if (start == null || end == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.servantFeedbackValidDatesError),
+                              ),
+                            );
+                            return;
+                          }
+                          if (!end.isAfter(start)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.servantFeedbackEndAfterStartError),
+                              ),
+                            );
+                            return;
+                          }
+                          if (_feedbackType.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.servantFeedbackSelectTypeError),
+                              ),
+                            );
+                            return;
+                          }
 
-                    final questions = _draftFeedbackQuestions
-                        .asMap()
-                        .entries
-                        .map(
-                          (e) => _ServantFeedbackQuestion(
-                            id: 'q${e.key + 1}',
-                            question: e.value.question,
-                            type: e.value.type,
-                            required: e.value.required,
-                            options: e.value.options,
-                          ),
-                        )
-                        .toList();
+                          setState(() => _creatingFeedbackForm = true);
+                          try {
+                            final questions = _draftFeedbackQuestions
+                                .asMap()
+                                .entries
+                                .map(
+                                  (e) => _ServantFeedbackQuestion(
+                                    id: 'q${e.key + 1}',
+                                    question: e.value.question,
+                                    type: e.value.type,
+                                    required: e.value.required,
+                                    options: e.value.options,
+                                  ),
+                                )
+                                .toList();
 
-                    _ServantFeedbackForm? created;
-                    try {
-                      created = await _createFeedbackFormInBackend(
-                        title: title,
-                        description: desc,
-                        typeLabel: _feedbackType,
-                        startDateIso: _feedbackStartDate,
-                        endDateIso: _feedbackEndDate,
-                        questions: questions,
-                      );
-                    } catch (_) {
-                      created = null;
-                    }
+                            _ServantFeedbackForm? created;
+                            try {
+                              created = await _createFeedbackFormInBackend(
+                                title: title,
+                                description: desc,
+                                typeLabel: _feedbackType,
+                                startDateIso: _feedbackStartDate,
+                                endDateIso: _feedbackEndDate,
+                                questions: questions,
+                              );
+                            } catch (_) {
+                              created = null;
+                            }
 
-                    if (!mounted) return;
+                            if (!mounted) return;
 
-                    if (created == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.servantFeedbackCreateFormFailed),
-                        ),
-                      );
-                      return;
-                    }
+                            if (created == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.servantFeedbackCreateFormFailed),
+                                ),
+                              );
+                              return;
+                            }
 
-                    await _loadFeedbackFromBackend();
-                    if (!mounted) return;
+                            await _loadFeedbackFromBackend();
+                            if (!mounted) return;
 
-                    setState(() {
-                      _showFeedbackSuccessToast = true;
-                    });
+                            setState(() {
+                              _showFeedbackSuccessToast = true;
+                            });
 
-                    Future.delayed(const Duration(milliseconds: 1500), () {
-                      if (!mounted) return;
-                      setState(() {
-                        _showFeedbackSuccessToast = false;
-                        _showCreateFeedback = false;
-                      });
-                    });
-                  },
+                            Future.delayed(const Duration(milliseconds: 1500), () {
+                              if (!mounted) return;
+                              setState(() {
+                                _showFeedbackSuccessToast = false;
+                                _showCreateFeedback = false;
+                              });
+                            });
+                          } finally {
+                            if (mounted) {
+                              setState(() => _creatingFeedbackForm = false);
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF59E0B),
                     foregroundColor: Colors.white,
@@ -8578,10 +8646,19 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
-                    l10n.servantFeedbackCreateFormSubmitButton,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  child: _creatingFeedbackForm
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          l10n.servantFeedbackCreateFormSubmitButton,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
