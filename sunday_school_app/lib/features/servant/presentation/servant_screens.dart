@@ -6489,6 +6489,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                 child: _ServantDropdown(
                   value: _questionSubjectFilter,
                   items: ['all', ...subjects],
+                  labelBuilder: (v) => v == 'all' ? l10n.commonAll : v,
                   onChanged: (v) {
                     if (v == null) return;
                     setState(() {
@@ -6924,12 +6925,27 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
       );
     }
 
+    final normalizedFilter = switch (_complaintCategoryFilter) {
+      'teaching' => 'teacher',
+      'administration' => 'administrative',
+      _ => _complaintCategoryFilter,
+    };
+
     Iterable<_ServantComplaint> items = _complaints;
     if (_complaintStatusFilter != 'all') {
       items = items.where((c) => c.status == _complaintStatusFilter);
     }
-    if (_complaintCategoryFilter != 'all') {
-      items = items.where((c) => c.category == _complaintCategoryFilter);
+    if (normalizedFilter != 'all') {
+      items = items.where((c) {
+        if (normalizedFilter == 'teacher') {
+          return c.category == 'teacher' || c.category == 'teaching';
+        }
+        if (normalizedFilter == 'administrative') {
+          return c.category == 'administrative' ||
+              c.category == 'administration';
+        }
+        return c.category == normalizedFilter;
+      });
     }
 
     final list = items.toList();
@@ -6968,14 +6984,35 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
               _ServantLabeledField(
                 label: l10n.commCategoryLabel,
                 child: _ServantDropdown(
-                  value: _complaintCategoryFilter,
+                  value: normalizedFilter,
                   items: const [
                     'all',
-                    'teaching',
+                    'teacher',
                     'facility',
-                    'administration',
+                    'course',
+                    'administrative',
                     'other',
                   ],
+                  labelBuilder: (v) {
+                    switch (v) {
+                      case 'all':
+                        return l10n.commonAll;
+                      case 'teacher':
+                      case 'teaching':
+                        return l10n.commCategoryTeacher;
+                      case 'facility':
+                        return l10n.commCategoryFacility;
+                      case 'course':
+                        return l10n.commCategoryCourse;
+                      case 'administrative':
+                      case 'administration':
+                        return l10n.commCategoryAdministrative;
+                      case 'other':
+                        return l10n.commCategoryOther;
+                      default:
+                        return v;
+                    }
+                  },
                   onChanged: (v) {
                     if (v == null) return;
                     setState(() {
@@ -7189,6 +7226,18 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
                                       'in-review',
                                       'resolved',
                                     ],
+                                    labelBuilder: (v) {
+                                      switch (v) {
+                                        case 'pending':
+                                          return l10n.commPending;
+                                        case 'in-review':
+                                          return l10n.commInReview;
+                                        case 'resolved':
+                                          return l10n.commResolved;
+                                        default:
+                                          return v;
+                                      }
+                                    },
                                     onChanged: (v) {
                                       if (v == null) return;
                                       setState(() {
@@ -9399,10 +9448,17 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           fg: const Color(0xFF047857),
         );
       case 'teaching':
+      case 'teacher':
         return _tinyPill(
           label: l10n.commCategoryTeacher,
           bg: const Color(0xFFE0F2FE),
           fg: const Color(0xFF0369A1),
+        );
+      case 'course':
+        return _tinyPill(
+          label: l10n.commCategoryCourse,
+          bg: const Color(0xFFEDE9FE),
+          fg: const Color(0xFF6D28D9),
         );
       case 'facility':
         return _tinyPill(
@@ -9411,6 +9467,7 @@ class _ServantCommunicationBodyState extends State<_ServantCommunicationBody> {
           fg: const Color(0xFF92400E),
         );
       case 'administration':
+      case 'administrative':
         return _tinyPill(
           label: l10n.commCategoryAdministrative,
           bg: const Color(0xFFE2E8F0),
@@ -9610,6 +9667,10 @@ class _ServantDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveValue = items.contains(value)
+        ? value
+        : (items.isNotEmpty ? items.first : null);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
@@ -9619,7 +9680,7 @@ class _ServantDropdown extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: effectiveValue,
           isExpanded: true,
           icon: const Icon(Icons.expand_more_rounded),
           items: items
