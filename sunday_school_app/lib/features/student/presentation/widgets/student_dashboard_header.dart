@@ -14,7 +14,7 @@ class StudentDashboardHeader extends StatelessWidget {
     super.key,
     required this.greeting,
     required this.displayName,
-    required this.avatarInitial,
+    this.avatarInitial = '',
     required this.ethiopianDateString,
     required this.isAmharic,
     this.gradeName,
@@ -122,11 +122,9 @@ class StudentDashboardHeader extends StatelessWidget {
                             child: _IdentityBlock(
                               greeting: greeting,
                               displayName: displayName,
-                              avatarInitial: avatarInitial,
                               ethiopianDateString: ethiopianDateString,
                               isAmharic: isAmharic,
                               gradeName: gradeName,
-                              academicYearName: academicYearName,
                             ),
                           ),
                         ),
@@ -154,92 +152,60 @@ class _IdentityBlock extends StatelessWidget {
   const _IdentityBlock({
     required this.greeting,
     required this.displayName,
-    required this.avatarInitial,
     required this.ethiopianDateString,
     required this.isAmharic,
     this.gradeName,
-    this.academicYearName,
   });
 
   final String greeting;
   final String displayName;
-  final String avatarInitial;
   final String ethiopianDateString;
   final bool isAmharic;
   final String? gradeName;
-  final String? academicYearName;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: <Widget>[
-            _HeaderPill(
-              icon: Icons.calendar_today_rounded,
-              label: ethiopianDateString,
-            ),
-            if (academicYearName != null && academicYearName!.trim().isNotEmpty)
-              _HeaderPill(
-                icon: Icons.school_rounded,
-                label: academicYearName!.trim(),
-                background: const Color(0x33F59E0B),
-                border: const Color(0x66FCD34D),
-                foreground: const Color(0xFFFEF3C7),
-              ),
-          ],
+        _HeaderPill(
+          icon: Icons.calendar_today_rounded,
+          label: ethiopianDateString,
         ),
         const SizedBox(height: 14),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    greeting,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xE6FFFFFF),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.1,
-                      shadows: <Shadow>[
-                        Shadow(color: Color(0x33000000), blurRadius: 6),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    displayName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
-                      height: 1.15,
-                      shadows: <Shadow>[
-                        Shadow(color: Color(0x40000000), blurRadius: 8),
-                      ],
-                    ),
-                  ),
-                  if (gradeName != null &&
-                      gradeName!.trim().isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 8),
-                    _GradeBadge(label: gradeName!.trim()),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            _AvatarBadge(initial: avatarInitial),
-          ],
+        Text(
+          greeting,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xE6FFFFFF),
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            shadows: <Shadow>[
+              Shadow(color: Color(0x33000000), blurRadius: 6),
+            ],
+          ),
         ),
+        const SizedBox(height: 2),
+        Text(
+          displayName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -0.3,
+            height: 1.15,
+            shadows: <Shadow>[
+              Shadow(color: Color(0x40000000), blurRadius: 8),
+            ],
+          ),
+        ),
+        if (gradeName != null &&
+            gradeName!.trim().isNotEmpty) ...<Widget>[
+          const SizedBox(height: 8),
+          _GradeBadge(label: gradeName!.trim()),
+        ],
       ],
     );
   }
@@ -249,39 +215,33 @@ class _HeaderPill extends StatelessWidget {
   const _HeaderPill({
     required this.icon,
     required this.label,
-    this.background = const Color(0x33FFFFFF),
-    this.border = const Color(0x4DFFFFFF),
-    this.foreground = Colors.white,
   });
 
   final IconData icon;
   final String label;
-  final Color background;
-  final Color border;
-  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: background,
+        color: const Color(0x33FFFFFF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
+        border: Border.all(color: const Color(0x4DFFFFFF)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 12, color: foreground),
+          Icon(icon, size: 12, color: Colors.white),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               label,
               softWrap: true,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 height: 1.25,
-                color: foreground,
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -313,46 +273,6 @@ class _GradeBadge extends StatelessWidget {
           color: Colors.white,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.1,
-        ),
-      ),
-    );
-  }
-}
-
-class _AvatarBadge extends StatelessWidget {
-  const _AvatarBadge({required this.initial});
-
-  final String initial;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF38BDF8), Color(0xFF0369A1)],
-        ),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 2),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          initial,
-          style: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
         ),
       ),
     );
