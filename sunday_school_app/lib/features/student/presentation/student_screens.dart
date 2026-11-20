@@ -15,7 +15,6 @@ import '../../../core/text/text_encoding.dart';
 import '../../../core/promotions/promotion_criteria_set.dart';
 import '../../../core/refresh/app_refresh_configurator.dart';
 import '../../../core/push/push_notifications_service.dart';
-import 'widgets/daily_gospel_verse_card.dart';
 import 'widgets/gospel_verses.dart';
 import 'widgets/student_dashboard_header.dart';
 
@@ -714,8 +713,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       includeYear: true,
     );
     final ethiopianDateString = isAmharic
-        ? '📅 $ethFormatted ዓ.ም'
-        : '📅 $ethFormatted E.C.';
+        ? '$ethFormatted ዓ.ም'
+        : '$ethFormatted E.C.';
     final timeGreeting = _getTimeBasedGreeting(context);
     final dailyVerse = gospelVerseForDate(now);
     final avatarInitial = displayName.trim().isNotEmpty
@@ -785,7 +784,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                // Premium Celestial Header Card
+                // Premium Celestial Header Card with Untrimmed Daily Verse
                 StudentDashboardHeader(
                   greeting: timeGreeting,
                   displayName: displayName,
@@ -794,390 +793,376 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   isAmharic: isAmharic,
                   gradeName: gradeName,
                   academicYearName: academicYearName,
+                  dailyVerse: dailyVerse,
                 ),
 
-                // Floating Content Section
-                Transform.translate(
-                  offset: const Offset(0, -16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        DailyGospelVerseCard(
-                          verse: dailyVerse,
-                          isAmharic: isAmharic,
-                        ),
-                        const SizedBox(height: 16),
-
-                        if (_error != null) ...[
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFFFCA5A5),
+                // Dashboard content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                size: 18,
+                                color: Color(0xFFB91C1C),
                               ),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.error_outline_rounded,
-                                  size: 18,
-                                  color: Color(0xFFB91C1C),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _error!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF7F1D1D),
-                                    ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF7F1D1D),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                TextButton(
-                                  onPressed: _loading
-                                      ? null
-                                      : _loadStatsFromBackend,
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFFB91C1C),
-                                  ),
-                                  child: Text(l10n.commonRetry),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: _loading
+                                    ? null
+                                    : _loadStatsFromBackend,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFFB91C1C),
                                 ),
-                              ],
+                                child: Text(l10n.commonRetry),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Radial Metric Gauges (Attendance & Academic Average)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DashboardRadialGaugeCard(
+                              title: l10n.dashboardAttendanceStat,
+                              percent: attendancePercent,
+                              progressGradient: attendanceGradient,
+                              trackColor: const Color(0xFFF1F5F9),
+                              icon: Icons.calendar_month_rounded,
+                              badgeLabel: attendanceBadgeLabel,
+                              badgeBgColor: attendanceBadgeBg,
+                              badgeTextColor: attendanceBadgeText,
+                              isLoading: _loading,
+                              onTap: () => context.go('/student/attendance'),
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: _DashboardRadialGaugeCard(
+                              title: l10n.dashboardAverageScoreStat,
+                              percent: academicAvg,
+                              progressGradient: avgGradient,
+                              trackColor: const Color(0xFFF1F5F9),
+                              icon: Icons.emoji_events_rounded,
+                              badgeLabel: avgBadgeLabel,
+                              badgeBgColor: avgBadgeBg,
+                              badgeTextColor: avgBadgeText,
+                              isLoading: _loading,
+                              onTap: () => context.go('/student/grades'),
+                            ),
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
 
-                        // Radial Metric Gauges (Attendance & Academic Average)
-                        Row(
+                      // Interactive Communication Hub Card
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A0F172A),
+                              blurRadius: 16,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: _DashboardRadialGaugeCard(
-                                title: l10n.dashboardAttendanceStat,
-                                percent: attendancePercent,
-                                progressGradient: attendanceGradient,
-                                trackColor: const Color(0xFFF1F5F9),
-                                icon: Icons.calendar_month_rounded,
-                                badgeLabel: attendanceBadgeLabel,
-                                badgeBgColor: attendanceBadgeBg,
-                                badgeTextColor: attendanceBadgeText,
-                                isLoading: _loading,
-                                onTap: () => context.go('/student/attendance'),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 13,
+                              ),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Color(0xFFF1F5F9)),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0F2FE),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.forum_rounded,
+                                      size: 17,
+                                      color: Color(0xFF0284C7),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.dashboardCommunicationTitle,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () =>
+                                        context.go('/student/communication'),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            l10n.commonAll,
+                                            style: const TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0284C7),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 16,
+                                            color: Color(0xFF0284C7),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: _DashboardRadialGaugeCard(
-                                title: l10n.dashboardAverageScoreStat,
-                                percent: academicAvg,
-                                progressGradient: avgGradient,
-                                trackColor: const Color(0xFFF1F5F9),
-                                icon: Icons.emoji_events_rounded,
-                                badgeLabel: avgBadgeLabel,
-                                badgeBgColor: avgBadgeBg,
-                                badgeTextColor: avgBadgeText,
-                                isLoading: _loading,
-                                onTap: () => context.go('/student/grades'),
+
+                            // 1. Announcements Row
+                            _CommHubListRow(
+                              icon: Icons.campaign_rounded,
+                              iconBg: const Color(0xFFFEF3C7),
+                              iconColor: const Color(0xFFD97706),
+                              title: l10n.commAnnouncements,
+                              subtitle: _loading
+                                  ? '...'
+                                  : (announcementCount > 0
+                                        ? (isAmharic
+                                              ? '$announcementCount ንቁ ማስታወቂያዎች'
+                                              : '$announcementCount active announcements')
+                                        : (isAmharic
+                                              ? 'አዲስ ማስታወቂያ የለም'
+                                              : 'No new announcements')),
+                              badgeCount: announcementCount,
+                              badgeColor: const Color(0xFFD97706),
+                              onTap: () => context.go(
+                                '/student/communication?tab=announcements',
+                              ),
+                            ),
+                            const Divider(
+                              height: 1,
+                              indent: 64,
+                              endIndent: 16,
+                              color: Color(0xFFF1F5F9),
+                            ),
+
+                            // 2. Questions Row
+                            _CommHubListRow(
+                              icon: Icons.help_outline_rounded,
+                              iconBg: const Color(0xFFE0F2FE),
+                              iconColor: const Color(0xFF0284C7),
+                              title: l10n.commQuestions,
+                              subtitle: _loading
+                                  ? '...'
+                                  : (answeredQuestions > 0
+                                        ? (isAmharic
+                                              ? '$answeredQuestions ተመልሰዋል'
+                                              : '$answeredQuestions answered')
+                                        : (isAmharic
+                                              ? '$pendingQuestions በመጠባበቅ ላይ'
+                                              : '$pendingQuestions pending')),
+                              badgeCount: pendingQuestions,
+                              badgeColor: const Color(0xFF0284C7),
+                              onTap: () => context.go(
+                                '/student/communication?tab=questions',
+                              ),
+                            ),
+                            const Divider(
+                              height: 1,
+                              indent: 64,
+                              endIndent: 16,
+                              color: Color(0xFFF1F5F9),
+                            ),
+
+                            // 3. Complaints & Feedback Row
+                            _CommHubListRow(
+                              icon: Icons.rate_review_rounded,
+                              iconBg: const Color(0xFFECFDF5),
+                              iconColor: const Color(0xFF059669),
+                              title: isAmharic
+                                  ? 'ቅሬታ እና አስተያየት'
+                                  : 'Complaints & Feedback',
+                              subtitle: _loading
+                                  ? '...'
+                                  : (openComplaints > 0
+                                        ? (isAmharic
+                                              ? '$openComplaints ክፍት ቅሬታዎች'
+                                              : '$openComplaints open complaints')
+                                        : (isAmharic
+                                              ? 'አስተያየት ወይም ቅሬታ ያጋሩ'
+                                              : 'Share feedback or complaints')),
+                              badgeCount: openComplaints,
+                              badgeColor: const Color(0xFF059669),
+                              isLast: true,
+                              onTap: () => context.go(
+                                '/student/communication?tab=complaints',
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
 
-                        // Interactive Communication Hub Card
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x0A0F172A),
-                                blurRadius: 16,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 13,
-                                ),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Color(0xFFF1F5F9),
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE0F2FE),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.forum_rounded,
-                                        size: 17,
-                                        color: Color(0xFF0284C7),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        l10n.dashboardCommunicationTitle,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                    ),
-                                    InkWell(
-                                      onTap: () =>
-                                          context.go('/student/communication'),
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              l10n.commonAll,
-                                              style: const TextStyle(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF0284C7),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 2),
-                                            const Icon(
-                                              Icons.chevron_right_rounded,
-                                              size: 16,
-                                              color: Color(0xFF0284C7),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // 1. Announcements Row
-                              _CommHubListRow(
-                                icon: Icons.campaign_rounded,
-                                iconBg: const Color(0xFFFEF3C7),
-                                iconColor: const Color(0xFFD97706),
-                                title: l10n.commAnnouncements,
-                                subtitle: _loading
-                                    ? '...'
-                                    : (announcementCount > 0
-                                          ? (isAmharic
-                                                ? '$announcementCount ንቁ ማስታወቂያዎች'
-                                                : '$announcementCount active announcements')
-                                          : (isAmharic
-                                                ? 'አዲስ ማስታወቂያ የለም'
-                                                : 'No new announcements')),
-                                badgeCount: announcementCount,
-                                badgeColor: const Color(0xFFD97706),
-                                onTap: () => context.go(
-                                  '/student/communication?tab=announcements',
-                                ),
-                              ),
-                              const Divider(
-                                height: 1,
-                                indent: 64,
-                                endIndent: 16,
-                                color: Color(0xFFF1F5F9),
-                              ),
-
-                              // 2. Questions Row
-                              _CommHubListRow(
-                                icon: Icons.help_outline_rounded,
-                                iconBg: const Color(0xFFE0F2FE),
-                                iconColor: const Color(0xFF0284C7),
-                                title: l10n.commQuestions,
-                                subtitle: _loading
-                                    ? '...'
-                                    : (answeredQuestions > 0
-                                          ? (isAmharic
-                                                ? '$answeredQuestions ተመልሰዋል'
-                                                : '$answeredQuestions answered')
-                                          : (isAmharic
-                                                ? '$pendingQuestions በመጠባበቅ ላይ'
-                                                : '$pendingQuestions pending')),
-                                badgeCount: pendingQuestions,
-                                badgeColor: const Color(0xFF0284C7),
-                                onTap: () => context.go(
-                                  '/student/communication?tab=questions',
-                                ),
-                              ),
-                              const Divider(
-                                height: 1,
-                                indent: 64,
-                                endIndent: 16,
-                                color: Color(0xFFF1F5F9),
-                              ),
-
-                              // 3. Complaints & Feedback Row
-                              _CommHubListRow(
-                                icon: Icons.rate_review_rounded,
-                                iconBg: const Color(0xFFECFDF5),
-                                iconColor: const Color(0xFF059669),
-                                title: isAmharic
-                                    ? 'ቅሬታ እና አስተያየት'
-                                    : 'Complaints & Feedback',
-                                subtitle: _loading
-                                    ? '...'
-                                    : (openComplaints > 0
-                                          ? (isAmharic
-                                                ? '$openComplaints ክፍት ቅሬታዎች'
-                                                : '$openComplaints open complaints')
-                                          : (isAmharic
-                                                ? 'አስተያየት ወይም ቅሬታ ያጋሩ'
-                                                : 'Share feedback or complaints')),
-                                badgeCount: openComplaints,
-                                badgeColor: const Color(0xFF059669),
-                                isLast: true,
-                                onTap: () => context.go(
-                                  '/student/communication?tab=complaints',
-                                ),
-                              ),
-                            ],
-                          ),
+                      // 2x2 Quick Actions Grid
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A0F172A),
+                              blurRadius: 16,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-
-                        // 2x2 Quick Actions Grid
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x0A0F172A),
-                                blurRadius: 16,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    l10n.dashboardQuickActions,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF0F172A),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  l10n.dashboardQuickActions,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.bolt_rounded,
+                                  size: 18,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _QuickActionTile(
+                                    icon: Icons.auto_stories_rounded,
+                                    label: l10n.dashboardViewGrades,
+                                    subtitle: isAmharic
+                                        ? 'የፈተናና ምዘና ውጤቶች'
+                                        : 'Assessments & marks',
+                                    iconColor: const Color(0xFF4F46E5),
+                                    iconBg: const Color(0xFFEEF2FF),
+                                    onTap: () => context.go('/student/grades'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _QuickActionTile(
+                                    icon: Icons.calendar_month_rounded,
+                                    label: l10n.navAttendance,
+                                    subtitle: isAmharic
+                                        ? 'የክፍለ ጊዜያት ዝርዝር'
+                                        : 'Session history',
+                                    iconColor: const Color(0xFF0284C7),
+                                    iconBg: const Color(0xFFE0F2FE),
+                                    onTap: () =>
+                                        context.go('/student/attendance'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _QuickActionTile(
+                                    icon: Icons.help_outline_rounded,
+                                    label: l10n.commAskQuestion,
+                                    subtitle: isAmharic
+                                        ? 'ለመምህራን ጥያቄ ላክ'
+                                        : 'Inquire with servants',
+                                    iconColor: const Color(0xFFD97706),
+                                    iconBg: const Color(0xFFFEF3C7),
+                                    onTap: () => context.go(
+                                      '/student/communication?tab=questions',
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.bolt_rounded,
-                                    size: 18,
-                                    color: Color(0xFFD97706),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _QuickActionTile(
-                                      icon: Icons.auto_stories_rounded,
-                                      label: l10n.dashboardViewGrades,
-                                      subtitle: isAmharic
-                                          ? 'የፈተናና ምዘና ውጤቶች'
-                                          : 'Assessments & marks',
-                                      iconColor: const Color(0xFF4F46E5),
-                                      iconBg: const Color(0xFFEEF2FF),
-                                      onTap: () =>
-                                          context.go('/student/grades'),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _QuickActionTile(
+                                    icon: Icons.rate_review_rounded,
+                                    label: isAmharic
+                                        ? 'አስተያየትና ቅሬታ'
+                                        : 'Feedback & Complaints',
+                                    subtitle: isAmharic
+                                        ? 'የዳሰሳ ጥናትና ቅሬታ'
+                                        : 'Surveys & complaints',
+                                    iconColor: const Color(0xFF059669),
+                                    iconBg: const Color(0xFFECFDF5),
+                                    onTap: () => context.go(
+                                      '/student/communication?tab=complaints',
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _QuickActionTile(
-                                      icon: Icons.calendar_month_rounded,
-                                      label: l10n.navAttendance,
-                                      subtitle: isAmharic
-                                          ? 'የክፍለ ጊዜያት ዝርዝር'
-                                          : 'Session history',
-                                      iconColor: const Color(0xFF0284C7),
-                                      iconBg: const Color(0xFFE0F2FE),
-                                      onTap: () =>
-                                          context.go('/student/attendance'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _QuickActionTile(
-                                      icon: Icons.help_outline_rounded,
-                                      label: l10n.commAskQuestion,
-                                      subtitle: isAmharic
-                                          ? 'ለመምህራን ጥያቄ ላክ'
-                                          : 'Inquire with servants',
-                                      iconColor: const Color(0xFFD97706),
-                                      iconBg: const Color(0xFFFEF3C7),
-                                      onTap: () => context.go(
-                                        '/student/communication?tab=questions',
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _QuickActionTile(
-                                      icon: Icons.rate_review_rounded,
-                                      label: isAmharic
-                                          ? 'አስተያየትና ቅሬታ'
-                                          : 'Feedback & Complaints',
-                                      subtitle: isAmharic
-                                          ? 'የዳሰሳ ጥናትና ቅሬታ'
-                                          : 'Surveys & complaints',
-                                      iconColor: const Color(0xFF059669),
-                                      iconBg: const Color(0xFFECFDF5),
-                                      onTap: () => context.go(
-                                        '/student/communication?tab=complaints',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ],
