@@ -49,10 +49,10 @@ class _ServantAttendanceSessionScreenState
   final Map<String, String> _statusByStudentId = <String, String>{};
 
   static const List<String> _statuses = <String>[
+    'absent',
     'present',
     'late',
     'permission',
-    'absent',
   ];
 
   String _statusLabel(AppLocalizations l10n, String status) {
@@ -136,9 +136,9 @@ class _ServantAttendanceSessionScreenState
         statusByStudent[studentId] = status;
       }
 
-      // Default missing records to "present" to speed up marking.
+      // Default missing records to "absent" so unrecorded students aren't falsely marked present.
       for (final s in students) {
-        statusByStudent.putIfAbsent(s.id, () => 'present');
+        statusByStudent.putIfAbsent(s.id, () => 'absent');
       }
 
       if (!mounted) return;
@@ -187,7 +187,7 @@ class _ServantAttendanceSessionScreenState
             (s) => <String, dynamic>{
               'session_id': widget.sessionId,
               'student_id': s.id,
-              'status': _statusByStudentId[s.id] ?? 'present',
+              'status': _statusByStudentId[s.id] ?? 'absent',
               'updated_by': userId,
               'updated_at': nowIso,
             },
@@ -298,7 +298,7 @@ class _ServantAttendanceSessionScreenState
                       itemBuilder: (context, index) {
                         final student = _filteredStudents()[index];
                         final current =
-                            _statusByStudentId[student.id] ?? 'present';
+                            _statusByStudentId[student.id] ?? 'absent';
 
                         return ListTile(
                           title: Text(
@@ -309,7 +309,7 @@ class _ServantAttendanceSessionScreenState
                           trailing: DropdownButton<String>(
                             value: _statuses.contains(current)
                                 ? current
-                                : 'present',
+                                : 'absent',
                             items: _statuses
                                 .map(
                                   (s) => DropdownMenuItem<String>(
