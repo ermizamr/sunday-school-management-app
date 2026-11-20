@@ -22,3 +22,6 @@ service-account.json
 
 # Supabase CLI internal state
 supabase/.branches/
+
+# Android build outputs
+*.apk

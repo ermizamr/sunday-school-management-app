@@ -8,7 +8,7 @@ and sign off at the bottom.
 
 | Item | Value |
 |---|---|
-| App APK | `sunday-school-0.9.0-b6-release.apk` (install over previous builds) |
+| App APK | `sunday-school-0.9.0-b7-release.apk` (install over previous builds) |
 | Supabase project | `Egziaabher-mislene-erp` — `https://eucvcyqrgdlkrhoekqtq.supabase.co` |
 | Admin panel | `https://admin-panel-lake-nu.vercel.app` ⚠️ **only after the Vercel env vars are updated** (see §0) |
 | Seed script | `supabase/seed_uat.sql` — already applied; re-running resets the passwords below |
