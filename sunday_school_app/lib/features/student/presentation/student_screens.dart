@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -482,6 +483,47 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     _loadStatsFromBackend();
   }
 
+  static String _getTimeBasedGreeting(BuildContext context) {
+    final isAmharic = Localizations.localeOf(context).languageCode == 'am';
+    final hour = DateTime.now().hour;
+    if (isAmharic) {
+      if (hour >= 5 && hour < 12) return 'እንደ ምን አደሩ';
+      if (hour >= 12 && hour < 18) return 'እንደ ምን ዋሉ';
+      return 'እንደ ምን አመሹ';
+    } else {
+      if (hour >= 5 && hour < 12) return 'Good morning';
+      if (hour >= 12 && hour < 18) return 'Good afternoon';
+      return 'Good evening';
+    }
+  }
+
+  static String _getDailyVerse(bool isAmharic) {
+    final day = DateTime.now().day;
+    if (isAmharic) {
+      const verses = [
+        '«ሕፃኑን በሚሄድበት መንገድ ምራው፥ በሸመገለም ጊዜ ከእርሱ ፈቀቅ አይልም።» (ምሳሌ 22:6)',
+        '«የእግዚአብሔር ቃል ለእግሬ መብራት ለመንገዴም ብርሃን ነው» (መዝ 119:105)',
+        '«እግዚአብሔር እረኛዬ ነው፥ የሚያሳጣኝም የለም።» (መዝ 23:1)',
+        '«በፍጹም ልብህ በእግዚአብሔር ታመን፥ በራስህም ማስተዋል አትደገፍ» (ምሳሌ 3:5)',
+        '«ሁሉን ማድረግ በሚያበረታኝ በክርስቶስ እችላለሁ።» (ፊል 4:13)',
+        '«የእግዚአብሔር ስም የጸና ግምብ ነው፤ ጻድቅ ወደ እርሱ ሮጦ ከፍ ከፍ ይላል።» (ምሳሌ 18:10)',
+        '«የእግዚአብሔርን ቸርነት በሕያዋን ምድር አይ ዘንድ አምናለሁ።» (መዝ 27:13)',
+      ];
+      return verses[day % verses.length];
+    } else {
+      const verses = [
+        '“Train up a child in the way he should go, and when he is old he will not depart from it.” (Prov 22:6)',
+        '“Your word is a lamp to my feet and a light to my path.” (Ps 119:105)',
+        '“The Lord is my shepherd; I shall not want.” (Ps 23:1)',
+        '“Trust in the Lord with all your heart, and do not lean on your own understanding.” (Prov 3:5)',
+        '“I can do all things through Christ who strengthens me.” (Phil 4:13)',
+        '“The name of the Lord is a strong tower; the righteous run into it and are safe.” (Prov 18:10)',
+        '“I believe that I shall see the goodness of the Lord in the land of the living.” (Ps 27:13)',
+      ];
+      return verses[day % verses.length];
+    }
+  }
+
   Future<String?> _activeAcademicYearId(SupabaseClient client) async {
     try {
       final id = await client.rpc('active_academic_year_id');
@@ -535,6 +577,30 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       final gradeId = profileMap['grade_id']?.toString();
       final name = (profileMap['name'] as String?)?.trim();
 
+      String? gradeName;
+      if (gradeId != null && gradeId.isNotEmpty) {
+        try {
+          final gradeRow = await client
+              .from('grades')
+              .select('name')
+              .eq('id', gradeId)
+              .maybeSingle();
+          gradeName = (gradeRow as Map?)?['name']?.toString();
+        } catch (_) {}
+      }
+
+      String? academicYearName;
+      if (academicYearId != null && academicYearId.isNotEmpty) {
+        try {
+          final yearRow = await client
+              .from('academic_years')
+              .select('name')
+              .eq('id', academicYearId)
+              .maybeSingle();
+          academicYearName = (yearRow as Map?)?['name']?.toString();
+        } catch (_) {}
+      }
+
       int attendancePercent = 0;
       int academicAvg = 0;
 
@@ -566,16 +632,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       }
 
       var pendingQuestions = 0;
+      var answeredQuestions = 0;
       var openComplaints = 0;
+      var announcementCount = 0;
+
       if (academicYearId != null && academicYearId.isNotEmpty) {
         try {
           final rows = await client
               .from('questions')
-              .select('id')
+              .select('id, answered')
               .eq('student_id', userId)
-              .eq('academic_year_id', academicYearId)
-              .eq('answered', false);
-          pendingQuestions = rows.length;
+              .eq('academic_year_id', academicYearId);
+          for (final r in rows as List) {
+            if ((r as Map)['answered'] == true) {
+              answeredQuestions++;
+            } else {
+              pendingQuestions++;
+            }
+          }
         } catch (_) {}
 
         try {
@@ -585,7 +659,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               .eq('student_id', userId)
               .eq('academic_year_id', academicYearId)
               .inFilter('status', const ['pending', 'in_review']);
-          openComplaints = rows.length;
+          openComplaints = (rows as List).length;
+        } catch (_) {}
+
+        try {
+          var q = client
+              .from('announcements')
+              .select('id')
+              .eq('active', true)
+              .eq('academic_year_id', academicYearId);
+          if (gradeId != null && gradeId.isNotEmpty) {
+            q = q.or('grade_id.is.null,grade_id.eq.$gradeId');
+          }
+          final rows = await q;
+          announcementCount = (rows as List).length;
         } catch (_) {}
       }
 
@@ -594,11 +681,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         _stats = _StudentDashboardStats(
           name: name,
           gradeId: gradeId,
+          gradeName: gradeName,
           academicYearId: academicYearId,
+          academicYearName: academicYearName,
           attendancePercent: attendancePercent.clamp(0, 100),
           academicAvg: academicAvg.clamp(0, 100),
           pendingQuestions: pendingQuestions,
+          answeredQuestions: answeredQuestions,
           openComplaints: openComplaints,
+          announcementCount: announcementCount,
         );
       });
     } catch (e) {
@@ -624,6 +715,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final user = Supabase.instance.client.auth.currentUser;
+    final isAmharic = Localizations.localeOf(context).languageCode == 'am';
 
     final displayName =
         (_stats?.name != null && _stats!.name!.trim().isNotEmpty)
@@ -633,11 +725,75 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final attendancePercent = _stats?.attendancePercent ?? 0;
     final academicAvg = _stats?.academicAvg ?? 0;
     final pendingQuestions = _stats?.pendingQuestions ?? 0;
+    final answeredQuestions = _stats?.answeredQuestions ?? 0;
     final openComplaints = _stats?.openComplaints ?? 0;
-    final pendingTotal = pendingQuestions + openComplaints;
+    final announcementCount = _stats?.announcementCount ?? 0;
 
-    final attendanceValue = _loading ? '—' : '$attendancePercent%';
-    final avgValue = _loading ? '—' : '$academicAvg%';
+    final gradeName = _stats?.gradeName;
+    final academicYearName = _stats?.academicYearName;
+
+    final now = DateTime.now();
+    final ethFormatted = EthiopianDateFormatter.formatDateTime(now, includeYear: true);
+    final ethiopianDateString = isAmharic ? '📅 $ethFormatted ዓ.ም' : '📅 $ethFormatted E.C.';
+    final timeGreeting = _getTimeBasedGreeting(context);
+    final dailyVerse = _getDailyVerse(isAmharic);
+    final avatarInitial = displayName.trim().isNotEmpty
+        ? displayName.trim().characters.first.toUpperCase()
+        : 'S';
+
+    final String attendanceBadgeLabel;
+    final Color attendanceBadgeBg;
+    final Color attendanceBadgeText;
+    final List<Color> attendanceGradient;
+
+    if (attendancePercent >= 90) {
+      attendanceBadgeLabel = isAmharic ? 'በጣም ጥሩ' : 'Excellent';
+      attendanceBadgeBg = const Color(0xFFDCFCE7);
+      attendanceBadgeText = const Color(0xFF166534);
+      attendanceGradient = const [Color(0xFF059669), Color(0xFF10B981)];
+    } else if (attendancePercent >= 75) {
+      attendanceBadgeLabel = isAmharic ? 'ጥሩ' : 'Good';
+      attendanceBadgeBg = const Color(0xFFE0F2FE);
+      attendanceBadgeText = const Color(0xFF0369A1);
+      attendanceGradient = const [Color(0xFF0284C7), Color(0xFF38BDF8)];
+    } else if (attendancePercent >= 60) {
+      attendanceBadgeLabel = isAmharic ? 'ትኩረት ያስፈልጋል' : 'Needs Attention';
+      attendanceBadgeBg = const Color(0xFFFEF3C7);
+      attendanceBadgeText = const Color(0xFFB45309);
+      attendanceGradient = const [Color(0xFFD97706), Color(0xFFFBBF24)];
+    } else {
+      attendanceBadgeLabel = isAmharic ? 'ማሻሻል ይገባል' : 'Needs Improvement';
+      attendanceBadgeBg = const Color(0xFFFEE2E2);
+      attendanceBadgeText = const Color(0xFFB91C1C);
+      attendanceGradient = const [Color(0xFFDC2626), Color(0xFFF87171)];
+    }
+
+    final String avgBadgeLabel;
+    final Color avgBadgeBg;
+    final Color avgBadgeText;
+    final List<Color> avgGradient;
+
+    if (academicAvg >= 90) {
+      avgBadgeLabel = isAmharic ? 'የላቀ ውጤት' : 'Outstanding';
+      avgBadgeBg = const Color(0xFFFEF3C7);
+      avgBadgeText = const Color(0xFF92400E);
+      avgGradient = const [Color(0xFFD97706), Color(0xFFF59E0B)];
+    } else if (academicAvg >= 80) {
+      avgBadgeLabel = isAmharic ? 'በጣም ጥሩ' : 'Very Good';
+      avgBadgeBg = const Color(0xFFCCFBF1);
+      avgBadgeText = const Color(0xFF115E59);
+      avgGradient = const [Color(0xFF0D9488), Color(0xFF2DD4BF)];
+    } else if (academicAvg >= 65) {
+      avgBadgeLabel = isAmharic ? 'ጥሩ' : 'Good';
+      avgBadgeBg = const Color(0xFFE0F2FE);
+      avgBadgeText = const Color(0xFF0369A1);
+      avgGradient = const [Color(0xFF0284C7), Color(0xFF38BDF8)];
+    } else {
+      avgBadgeLabel = isAmharic ? 'ድጋፍ ያስፈልጋል' : 'Needs Support';
+      avgBadgeBg = const Color(0xFFFEE2E2);
+      avgBadgeText = const Color(0xFFB91C1C);
+      avgGradient = const [Color(0xFFDC2626), Color(0xFFF87171)];
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // slate-50
@@ -648,46 +804,221 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
+                // Premium Celestial Header Card
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: [
+                        Color(0xFF0369A1), // sky-700
                         Color(0xFF0284C7), // sky-600
                         Color(0xFF0EA5E9), // sky-500
                       ],
+                    ),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(28),
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.dashboardWelcome,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      // Top Row: Ethiopian Date Badge & Academic Year Pill
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x33FFFFFF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0x4DFFFFFF),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  ethiopianDateString,
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (academicYearName != null &&
+                              academicYearName.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0x3DF59E0B),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0x80FCD34D),
+                                ),
+                              ),
+                              child: Text(
+                                academicYearName,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: Color(0xFFFEF3C7),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFFBAE6FD), // sky-200
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 18),
+
+                      // Middle Row: Greeting, Name, Grade & Avatar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  timeGreeting,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    color: Color(0xE6FFFFFF),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                if (gradeName != null &&
+                                    gradeName.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0x26FFFFFF),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      gradeName,
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: Color(0xFFE0F2FE),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Student Avatar Badge with subtle golden ring
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0x33FFFFFF),
+                              border: Border.all(
+                                color: const Color(0xFFFDE68A),
+                                width: 2,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x26000000),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                avatarInitial,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Daily Verse Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x24FFFFFF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0x38FFFFFF)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.auto_stories_rounded,
+                              size: 15,
+                              color: Color(0xFFFDE68A),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                dailyVerse,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: Colors.white,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+
+                // Floating Content Section
                 Transform.translate(
                   offset: const Offset(0, -16),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -695,13 +1026,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           Container(
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: const Color(0xFFFCA5A5),
                               ),
                             ),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                              horizontal: 14,
                               vertical: 10,
                             ),
                             child: Row(
@@ -736,43 +1067,56 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                         ],
+
+                        // Radial Metric Gauges (Attendance & Academic Average)
                         Row(
                           children: [
                             Expanded(
-                              child: _DashboardStatCard(
-                                iconBackground: const Color(0xFFE0F2FE),
-                                iconColor: const Color(0xFF0284C7),
+                              child: _DashboardRadialGaugeCard(
+                                title: l10n.dashboardAttendanceStat,
+                                percent: attendancePercent,
+                                progressGradient: attendanceGradient,
+                                trackColor: const Color(0xFFF1F5F9),
                                 icon: Icons.calendar_month_rounded,
-                                value: attendanceValue,
-                                label: l10n.dashboardAttendanceStat,
+                                badgeLabel: attendanceBadgeLabel,
+                                badgeBgColor: attendanceBadgeBg,
+                                badgeTextColor: attendanceBadgeText,
+                                isLoading: _loading,
+                                onTap: () => context.go('/student/attendance'),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 14),
                             Expanded(
-                              child: _DashboardStatCard(
-                                iconBackground: const Color(0xFFFEF3C7),
-                                iconColor: const Color(0xFFD97706),
+                              child: _DashboardRadialGaugeCard(
+                                title: l10n.dashboardAverageScoreStat,
+                                percent: academicAvg,
+                                progressGradient: avgGradient,
+                                trackColor: const Color(0xFFF1F5F9),
                                 icon: Icons.emoji_events_rounded,
-                                value: avgValue,
-                                label: l10n.dashboardAverageScoreStat,
+                                badgeLabel: avgBadgeLabel,
+                                badgeBgColor: avgBadgeBg,
+                                badgeTextColor: avgBadgeText,
+                                isLoading: _loading,
+                                onTap: () => context.go('/student/grades'),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
 
-                        // Communication overview
+                        // Interactive Communication Hub Card
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0x0F000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 4),
+                                color: Color(0x0A0F172A),
+                                blurRadius: 16,
+                                offset: Offset(0, 6),
                               ),
                             ],
                           ),
@@ -782,7 +1126,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
-                                  vertical: 12,
+                                  vertical: 13,
                                 ),
                                 decoration: const BoxDecoration(
                                   border: Border(
@@ -793,87 +1137,141 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(
-                                      Icons.notifications_rounded,
-                                      size: 20,
-                                      color: Color(0xFF475569),
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE0F2FE),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.forum_rounded,
+                                        size: 17,
+                                        color: Color(0xFF0284C7),
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         l10n.dashboardCommunicationTitle,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
                                           color: Color(0xFF0F172A),
                                         ),
                                       ),
                                     ),
-                                    if (!_loading && pendingTotal > 0)
-                                      Container(
+                                    InkWell(
+                                      onTap: () =>
+                                          context.go('/student/communication'),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 6,
+                                          horizontal: 8,
+                                          vertical: 4,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF0EA5E9),
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          l10n.dashboardPendingCount(
-                                            pendingTotal,
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.white,
-                                          ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              l10n.commonAll,
+                                              style: const TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF0284C7),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            const Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 16,
+                                              color: Color(0xFF0284C7),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  children: [
-                                    _KeyValueRow(
-                                      label: l10n.dashboardPendingQuestions,
-                                      value: _loading
-                                          ? '—'
-                                          : '$pendingQuestions',
-                                    ),
-                                    const SizedBox(height: 10),
-                                    _KeyValueRow(
-                                      label: l10n.dashboardOpenComplaints,
-                                      value: _loading ? '—' : '$openComplaints',
                                     ),
                                   ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
+
+                              // 1. Announcements Row
+                              _CommHubListRow(
+                                icon: Icons.campaign_rounded,
+                                iconBg: const Color(0xFFFEF3C7),
+                                iconColor: const Color(0xFFD97706),
+                                title: l10n.commAnnouncements,
+                                subtitle: _loading
+                                    ? '...'
+                                    : (announcementCount > 0
+                                        ? (isAmharic
+                                            ? '$announcementCount ንቁ ማስታወቂያዎች'
+                                            : '$announcementCount active announcements')
+                                        : (isAmharic
+                                            ? 'አዲስ ማስታወቂያ የለም'
+                                            : 'No new announcements')),
+                                badgeCount: announcementCount,
+                                badgeColor: const Color(0xFFD97706),
+                                onTap: () => context.go(
+                                  '/student/communication?tab=announcements',
                                 ),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.only(
-                                    bottomLeft: Radius.circular(18),
-                                    bottomRight: Radius.circular(18),
-                                  ),
+                              ),
+                              const Divider(
+                                height: 1,
+                                indent: 64,
+                                endIndent: 16,
+                                color: Color(0xFFF1F5F9),
+                              ),
+
+                              // 2. Questions Row
+                              _CommHubListRow(
+                                icon: Icons.help_outline_rounded,
+                                iconBg: const Color(0xFFE0F2FE),
+                                iconColor: const Color(0xFF0284C7),
+                                title: l10n.commQuestions,
+                                subtitle: _loading
+                                    ? '...'
+                                    : (answeredQuestions > 0
+                                        ? (isAmharic
+                                            ? '$answeredQuestions ተመልሰዋል'
+                                            : '$answeredQuestions answered')
+                                        : (isAmharic
+                                            ? '$pendingQuestions በመጠባበቅ ላይ'
+                                            : '$pendingQuestions pending')),
+                                badgeCount: pendingQuestions,
+                                badgeColor: const Color(0xFF0284C7),
+                                onTap: () => context.go(
+                                  '/student/communication?tab=questions',
                                 ),
-                                child: Center(
-                                  child: TextButton(
-                                    onPressed: () =>
-                                        context.go('/student/communication'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: const Color(0xFF0EA5E9),
-                                    ),
-                                    child: Text(
-                                      l10n.dashboardGoToCommunication,
-                                    ),
-                                  ),
+                              ),
+                              const Divider(
+                                height: 1,
+                                indent: 64,
+                                endIndent: 16,
+                                color: Color(0xFFF1F5F9),
+                              ),
+
+                              // 3. Complaints & Feedback Row
+                              _CommHubListRow(
+                                icon: Icons.rate_review_rounded,
+                                iconBg: const Color(0xFFECFDF5),
+                                iconColor: const Color(0xFF059669),
+                                title: isAmharic
+                                    ? 'ቅሬታ እና አስተያየት'
+                                    : 'Complaints & Feedback',
+                                subtitle: _loading
+                                    ? '...'
+                                    : (openComplaints > 0
+                                        ? (isAmharic
+                                            ? '$openComplaints ክፍት ቅሬታዎች'
+                                            : '$openComplaints open complaints')
+                                        : (isAmharic
+                                            ? 'አስተያየት ወይም ቅሬታ ያጋሩ'
+                                            : 'Share feedback or complaints')),
+                                badgeCount: openComplaints,
+                                badgeColor: const Color(0xFF059669),
+                                isLast: true,
+                                onTap: () => context.go(
+                                  '/student/communication?tab=complaints',
                                 ),
                               ),
                             ],
@@ -881,16 +1279,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Quick actions
+                        // 2x2 Quick Actions Grid
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0x0F000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 4),
+                                color: Color(0x0A0F172A),
+                                blurRadius: 16,
+                                offset: Offset(0, 6),
                               ),
                             ],
                           ),
@@ -898,20 +1297,37 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                l10n.dashboardQuickActions,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF0F172A),
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    l10n.dashboardQuickActions,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.bolt_rounded,
+                                    size: 18,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               Row(
                                 children: [
                                   Expanded(
                                     child: _QuickActionTile(
-                                      icon: Icons.trending_up_rounded,
+                                      icon: Icons.auto_stories_rounded,
                                       label: l10n.dashboardViewGrades,
+                                      subtitle: isAmharic
+                                          ? 'የፈተናና ምዘና ውጤቶች'
+                                          : 'Assessments & marks',
+                                      iconColor: const Color(0xFF4F46E5),
+                                      iconBg: const Color(0xFFEEF2FF),
                                       onTap: () =>
                                           context.go('/student/grades'),
                                     ),
@@ -921,8 +1337,49 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                     child: _QuickActionTile(
                                       icon: Icons.calendar_month_rounded,
                                       label: l10n.navAttendance,
+                                      subtitle: isAmharic
+                                          ? 'የክፍለ ጊዜያት ዝርዝር'
+                                          : 'Session history',
+                                      iconColor: const Color(0xFF0284C7),
+                                      iconBg: const Color(0xFFE0F2FE),
                                       onTap: () =>
                                           context.go('/student/attendance'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _QuickActionTile(
+                                      icon: Icons.help_outline_rounded,
+                                      label: l10n.commAskQuestion,
+                                      subtitle: isAmharic
+                                          ? 'ለመምህራን ጥያቄ ላክ'
+                                          : 'Inquire with servants',
+                                      iconColor: const Color(0xFFD97706),
+                                      iconBg: const Color(0xFFFEF3C7),
+                                      onTap: () => context.go(
+                                        '/student/communication?tab=questions',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _QuickActionTile(
+                                      icon: Icons.rate_review_rounded,
+                                      label: isAmharic
+                                          ? 'አስተያየትና ቅሬታ'
+                                          : 'Feedback & Complaints',
+                                      subtitle: isAmharic
+                                          ? 'የዳሰሳ ጥናትና ቅሬታ'
+                                          : 'Surveys & complaints',
+                                      iconColor: const Color(0xFF059669),
+                                      iconBg: const Color(0xFFECFDF5),
+                                      onTap: () => context.go(
+                                        '/student/communication?tab=complaints',
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -930,7 +1387,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -949,19 +1406,27 @@ class _StudentDashboardStats {
     required this.attendancePercent,
     required this.academicAvg,
     required this.pendingQuestions,
+    required this.answeredQuestions,
     required this.openComplaints,
+    required this.announcementCount,
     this.name,
     this.gradeId,
+    this.gradeName,
     this.academicYearId,
+    this.academicYearName,
   });
 
   final String? name;
   final String? gradeId;
+  final String? gradeName;
   final String? academicYearId;
+  final String? academicYearName;
   final int attendancePercent;
   final int academicAvg;
   final int pendingQuestions;
+  final int answeredQuestions;
   final int openComplaints;
+  final int announcementCount;
 }
 
 class StudentAttendanceScreen extends StatefulWidget {
@@ -1900,63 +2365,304 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 }
 
-class _DashboardStatCard extends StatelessWidget {
-  const _DashboardStatCard({
-    required this.iconBackground,
-    required this.iconColor,
-    required this.icon,
-    required this.value,
-    required this.label,
+class _RadialArcPainter extends CustomPainter {
+  _RadialArcPainter({
+    required this.progress,
+    required this.gradientColors,
+    required this.trackColor,
   });
 
-  final Color iconBackground;
-  final Color iconColor;
+  final double progress;
+  final List<Color> gradientColors;
+  final Color trackColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - 10) / 2;
+    const strokeWidth = 8.0;
+
+    // Track
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Progress Arc with Gradient
+    if (progress > 0.0) {
+      final rect = Rect.fromCircle(center: center, radius: radius);
+      final sweepPaint = Paint()
+        ..shader = SweepGradient(
+          colors: gradientColors,
+          transform: const GradientRotation(-math.pi / 2),
+        ).createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      const startAngle = -math.pi / 2;
+      final sweepAngle = 2 * math.pi * progress.clamp(0.0, 1.0);
+      canvas.drawArc(rect, startAngle, sweepAngle, false, sweepPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RadialArcPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.trackColor != trackColor ||
+      oldDelegate.gradientColors != gradientColors;
+}
+
+class _DashboardRadialGaugeCard extends StatelessWidget {
+  const _DashboardRadialGaugeCard({
+    required this.title,
+    required this.percent,
+    required this.progressGradient,
+    required this.trackColor,
+    required this.icon,
+    required this.badgeLabel,
+    required this.badgeBgColor,
+    required this.badgeTextColor,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  final String title;
+  final int percent;
+  final List<Color> progressGradient;
+  final Color trackColor;
   final IconData icon;
-  final String value;
-  final String label;
+  final String badgeLabel;
+  final Color badgeBgColor;
+  final Color badgeTextColor;
+  final bool isLoading;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A0F172A),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: progressGradient.first.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 16, color: progressGradient.first),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 84,
+                height: 84,
+                child: isLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Color(0xFF0284C7),
+                          ),
+                        ),
+                      )
+                    : TweenAnimationBuilder<double>(
+                        tween: Tween<double>(
+                          begin: 0,
+                          end: (percent.clamp(0, 100)) / 100.0,
+                        ),
+                        duration: const Duration(milliseconds: 900),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, _) {
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                size: const Size(84, 84),
+                                painter: _RadialArcPainter(
+                                  progress: value,
+                                  gradientColors: progressGradient,
+                                  trackColor: trackColor,
+                                ),
+                              ),
+                              Text(
+                                '${(value * 100).round()}%',
+                                style: const TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: isLoading ? const Color(0xFFF1F5F9) : badgeBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isLoading ? '—' : badgeLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isLoading ? const Color(0xFF94A3B8) : badgeTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
+    );
+  }
+}
+
+class _CommHubListRow extends StatelessWidget {
+  const _CommHubListRow({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.badgeCount = 0,
+    this.badgeColor = const Color(0xFF0284C7),
+    this.isLast = false,
+  });
+
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final int badgeCount;
+  final Color badgeColor;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: isLast
+            ? const BorderRadius.vertical(bottom: Radius.circular(20))
+            : BorderRadius.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 19, color: iconColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (badgeCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Color(0xFF94A3B8),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1967,69 +2673,78 @@ class _QuickActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.iconColor = const Color(0xFF0284C7),
+    this.iconBg = const Color(0xFFE0F2FE),
+    this.subtitle,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color iconColor;
+  final Color iconBg;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
-                borderRadius: BorderRadius.circular(12),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A0F172A),
+                blurRadius: 14,
+                offset: Offset(0, 4),
               ),
-              child: Icon(icon, size: 18, color: const Color(0xFF0284C7)),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KeyValueRow extends StatelessWidget {
-  const _KeyValueRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+            ],
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 20, color: iconColor),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              if (subtitle != null && subtitle!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-        ),
-      ],
+      ),
     );
   }
 }
