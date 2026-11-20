@@ -4,10 +4,11 @@ import 'gospel_verses.dart';
 
 /// Hero header for the student dashboard.
 ///
-/// The background is a horizontal gradient that starts with the Sunday school
-/// blue on the left and settles to pure white on the right. The white area is
-/// reserved for the church/Bible logo, while the student details and the verse
-/// of the day live on the blue side and across the gradient.
+/// Features a continuous, seamless horizontal gradient from deep Sunday school
+/// blue on the left to pure white on the far right. The school logo is
+/// rendered as a large, bold visual element on the right that gracefully overflows
+/// and trims at the card edges, while the student details and untrimmed daily
+/// Gospel verse remain clearly legible on the blue gradient.
 class StudentDashboardHeader extends StatelessWidget {
   const StudentDashboardHeader({
     super.key,
@@ -33,15 +34,20 @@ class StudentDashboardHeader extends StatelessWidget {
   /// shows the student identity block.
   final GospelVerse? dailyVerse;
 
-  static const Color _blue = Color(0xFF0284C7);
-  static const Color _blueDeep = Color(0xFF0369A1);
-
-  /// Blue -> white, with the last third kept pure white for the logo.
+  // Single continuous, seamless LinearGradient without any harsh step overlays:
+  // Starts with Sunday school sky-700 on the left, allows white to begin early
+  // through sky-400 and sky-200, and finishes softly into pure white at the right.
   static const LinearGradient _headerGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: <Color>[_blue, _blueDeep, _blueDeep, Color(0xFFFFFFFF)],
-    stops: <double>[0.0, 0.30, 0.52, 0.70],
+    colors: <Color>[
+      Color(0xFF0284C7), // Sunday school deep sky blue
+      Color(0xFF0EA5E9), // Vibrant azure
+      Color(0xFF7DD3FC), // Soft sky blue (white begins early)
+      Color(0xFFE0F2FE), // Ice blue (blue finishes late)
+      Color(0xFFFFFFFF), // Pure white at the far right edge for logo contrast
+    ],
+    stops: <double>[0.0, 0.25, 0.50, 0.75, 1.0],
   );
 
   @override
@@ -58,86 +64,72 @@ class StudentDashboardHeader extends StatelessWidget {
             builder: (BuildContext context, BoxConstraints constraints) {
               final double width = constraints.maxWidth;
               final bool compact = width < 420;
-              final double logoWidth = (width * (compact ? 0.30 : 0.32))
-                  .clamp(88.0, 168.0)
-                  .toDouble();
               final double horizontalPadding = compact ? 16 : 20;
 
+              // Large overflowing logo: ~68% of header width
+              final double logoWidth = (width * 0.68).clamp(220.0, 480.0);
+
               return Stack(
+                clipBehavior: Clip.none,
                 children: <Widget>[
-                  // Guarantees a pure-white bed under the logo even while the
-                  // main gradient is still blending out of the blue.
+                  // 1. Large overflowing logo on the right
                   Positioned(
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: width * 0.48,
+                    top: -24,
+                    bottom: -24,
+                    right: -32,
+                    width: logoWidth,
                     child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                      child: ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return const LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                             colors: <Color>[
-                              const Color(0x00FFFFFF),
-                              const Color(0xCCFFFFFF),
-                              const Color(0xFFFFFFFF),
+                              Color(0x00FFFFFF), // fully transparent on the left edge
+                              Color(0x4DFFFFFF), // gentle soft fade
+                              Color(0xFFFFFFFF), // full opacity towards the right
                             ],
-                            stops: const <double>[0.0, 0.10, 0.18],
-                          ),
+                            stops: <double>[0.0, 0.28, 0.65],
+                          ).createShader(bounds);
+                        },
+                        child: Image.asset(
+                          'assets/logo.png',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerRight,
+                          filterQuality: FilterQuality.medium,
                         ),
                       ),
                     ),
                   ),
 
+                  // 2. Foreground content: student identity details & daily verse
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       horizontalPadding,
                       20,
                       horizontalPadding,
-                      26,
+                      24,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: ConstrainedBox(
-                                  // Keeps the white typography inside the blue
-                                  // side of the gradient on wide screens.
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 420,
-                                  ),
-                                  child: _IdentityBlock(
-                                    greeting: greeting,
-                                    displayName: displayName,
-                                    avatarInitial: avatarInitial,
-                                    ethiopianDateString: ethiopianDateString,
-                                    isAmharic: isAmharic,
-                                    gradeName: gradeName,
-                                    academicYearName: academicYearName,
-                                  ),
-                                ),
-                              ),
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: (width * 0.78).clamp(240.0, 520.0),
                             ),
-                            SizedBox(width: compact ? 4 : 10),
-                            SizedBox(
-                              width: logoWidth,
-                              child: Align(
-                                alignment: Alignment.topRight,
-                                child: Image.asset(
-                                  'assets/logo.png',
-                                  fit: BoxFit.contain,
-                                  filterQuality: FilterQuality.medium,
-                                ),
-                              ),
+                            child: _IdentityBlock(
+                              greeting: greeting,
+                              displayName: displayName,
+                              avatarInitial: avatarInitial,
+                              ethiopianDateString: ethiopianDateString,
+                              isAmharic: isAmharic,
+                              gradeName: gradeName,
+                              academicYearName: academicYearName,
                             ),
-                          ],
+                          ),
                         ),
                         if (dailyVerse != null) ...<Widget>[
                           const SizedBox(height: 18),
@@ -373,7 +365,10 @@ class _AvatarBadge extends StatelessWidget {
 /// The verse deliberately has no `maxLines` and no `overflow`, so long
 /// passages wrap and the header grows instead of trimming the text.
 class _HeaderVerse extends StatelessWidget {
-  const _HeaderVerse({required this.verse, required this.isAmharic});
+  const _HeaderVerse({
+    required this.verse,
+    required this.isAmharic,
+  });
 
   final GospelVerse verse;
   final bool isAmharic;
@@ -420,7 +415,7 @@ class _HeaderVerse extends StatelessWidget {
                   border: Border.all(color: const Color(0x66FCD34D)),
                 ),
                 child: const Icon(
-                  Icons.menu_book_rounded,
+                  Icons.auto_stories_rounded,
                   size: 18,
                   color: _gold,
                 ),
@@ -443,35 +438,53 @@ class _HeaderVerse extends StatelessWidget {
           Text(
             quoted,
             softWrap: true,
-            overflow: TextOverflow.visible,
             textAlign: TextAlign.start,
             style: TextStyle(
               fontSize: 14.5,
               height: isAmharic ? 1.85 : 1.55,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
-              fontWeight: FontWeight.w500,
-              fontStyle: isAmharic ? FontStyle.normal : FontStyle.italic,
               letterSpacing: isAmharic ? 0.1 : 0.05,
+              shadows: const <Shadow>[
+                Shadow(
+                  color: Color(0x33000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(Icons.bookmark_rounded, size: 14, color: _gold),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  verse.reference(isAmharic),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: _goldSoft,
-                    letterSpacing: 0.1,
-                  ),
-                ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0x26FCD34D),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0x4DFCD34D)),
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(
+                    Icons.bookmark_rounded,
+                    size: 13,
+                    color: _gold,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    verse.reference(isAmharic),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: _goldSoft,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
