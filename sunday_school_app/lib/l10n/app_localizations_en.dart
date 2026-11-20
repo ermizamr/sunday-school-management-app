@@ -862,6 +862,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commSubmitAnonymously => 'Submit anonymously';
 
   @override
+  String get commAnonymousStudent => 'Anonymous Student';
+
+  @override
   String get commComplaintSubmitted => 'Complaint submitted!';
 
   @override
