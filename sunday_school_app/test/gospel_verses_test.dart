@@ -70,7 +70,7 @@ void main() {
     expect(find.text('Luke 6:38'), findsOneWidget);
   });
 
-  testWidgets('header and card fit a narrow phone without overflow', (
+  testWidgets('header fits a narrow phone with daily verse without overflow', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(320, 800));
@@ -84,22 +84,15 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                StudentDashboardHeader(
-                  greeting: 'እንደ ምን አደሩ',
-                  displayName: 'አበበ ከበደ',
-                  avatarInitial: 'አ',
-                  ethiopianDateString: '📅 ጥቅምት 11, 2018 ዓ.ም',
-                  isAmharic: true,
-                  gradeName: 'ደረጃ 5',
-                  academicYearName: '2018 ዓ.ም',
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: DailyGospelVerseCard(verse: verse, isAmharic: true),
-                ),
-              ],
+            child: StudentDashboardHeader(
+              greeting: 'እንደ ምን አደሩ',
+              displayName: 'አበበ ከበደ',
+              avatarInitial: 'አ',
+              ethiopianDateString: '📅 ጥቅምት 11, 2018 ዓ.ም',
+              isAmharic: true,
+              gradeName: 'ደረጃ 5',
+              academicYearName: '2018 ዓ.ም',
+              dailyVerse: verse,
             ),
           ),
         ),
